@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BYZ502 · Yarış AI'ı: Veri Uzayı, Hipotez Uzayı ve Gradyan İnişi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --mavi:#447099;
+  --mavi-koyu:#2d4d6b;
+  --mavi-acik:#e8eff5;
+  --turuncu:#FF6F20;
+  --pembe:#FF3D7F;
+  --zemin:#f7f9fb;
+  --kart:#ffffff;
+  --metin:#26343f;
+  --gri:#6b7a87;
+  --cizgi:#dbe4ec;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Open Sans',sans-serif;
+  background:var(--zemin);
+  color:var(--metin);
+  line-height:1.6;
+}
+header{
+  background:linear-gradient(135deg,var(--mavi-koyu),var(--mavi));
+  color:#fff;
+  padding:34px 24px 30px;
+  text-align:center;
+}
+header .ders{
+  font-family:'Fira Code',monospace;
+  font-size:.8rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#bcd3e6;
+  margin-bottom:8px;
+}
+header h1{
+  font-family:'Roboto Slab',serif;
+  font-size:1.7rem;
+  font-weight:700;
+  margin-bottom:6px;
+}
+header p{max-width:840px;margin:0 auto;color:#dce8f2;font-size:.95rem}
+main{max-width:1120px;margin:0 auto;padding:26px 18px 60px}
+
+section{margin-bottom:44px}
+.bolum-baslik{
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;
+}
+.bolum-no{
+  font-family:'Roboto Slab',serif;font-weight:700;font-size:1.05rem;
+  background:var(--mavi);color:#fff;border-radius:8px;
+  width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.bolum-baslik h2{
+  font-family:'Roboto Slab',serif;font-size:1.3rem;color:var(--mavi-koyu);
+}
+.aciklama{color:var(--gri);font-size:.94rem;margin-bottom:16px;max-width:900px}
+
+.kutu{
+  border-left:4px solid var(--mavi);
+  background:var(--mavi-acik);
+  border-radius:0 10px 10px 0;
+  padding:12px 16px;
+  margin:14px 0;
+  font-size:.92rem;
+}
+.kutu.ipucu{border-color:var(--turuncu);background:#fff3ea}
+.kutu.dikkat{border-color:var(--pembe);background:#ffeef4}
+.kutu b:first-child{display:block;margin-bottom:3px}
+
+.panel{
+  background:var(--kart);
+  border:1px solid var(--cizgi);
+  border-radius:14px;
+  padding:18px;
+  box-shadow:0 2px 10px rgba(45,77,107,.06);
+}
+.iki-sutun{display:grid;grid-template-columns:1fr 300px;gap:18px}
+@media(max-width:860px){.iki-sutun{grid-template-columns:1fr}}
+
+canvas{width:100%;height:auto;display:block;border-radius:10px;background:#fdfefe;border:1px solid var(--cizgi)}
+#dataCanvas{cursor:crosshair}
+
+.kontrol{margin-bottom:14px}
+.kontrol label{
+  display:flex;justify-content:space-between;
+  font-size:.85rem;font-weight:600;color:var(--mavi-koyu);margin-bottom:4px;
+}
+.kontrol label .deger{
+  font-family:'Fira Code',monospace;font-weight:600;color:var(--turuncu);
+}
+input[type=range]{width:100%;accent-color:var(--mavi)}
+.gd-kontrol input[type=range]{accent-color:var(--pembe)}
+
+button{
+  font-family:'Open Sans',sans-serif;font-weight:700;font-size:.88rem;
+  border:none;border-radius:8px;padding:9px 14px;cursor:pointer;
+  transition:transform .08s ease, box-shadow .08s ease;
+}
+button:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.12)}
+button:active{transform:translateY(0)}
+.btn-mavi{background:var(--mavi);color:#fff}
+.btn-turuncu{background:var(--turuncu);color:#fff}
+.btn-pembe{background:var(--pembe);color:#fff}
+.btn-gri{background:#e4ebf1;color:var(--mavi-koyu)}
+.buton-grubu{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+
+.stat-tablo{
+  width:100%;border-collapse:collapse;font-size:.85rem;margin-top:6px;
+}
+.stat-tablo td{padding:5px 8px;border-bottom:1px solid var(--cizgi)}
+.stat-tablo td:last-child{
+  text-align:right;font-family:'Fira Code',monospace;font-weight:600;color:var(--mavi-koyu);
+}
+.formul{
+  font-family:'Fira Code',monospace;font-size:.9rem;
+  background:#f0f5f9;border:1px dashed var(--mavi);
+  border-radius:8px;padding:10px 14px;margin:10px 0;
+  color:var(--mavi-koyu);overflow-x:auto;white-space:nowrap;
+}
+.formul .vurgu{color:var(--pembe);font-weight:600}
+.formul .vurgu2{color:var(--turuncu);font-weight:600}
+
+.onay{display:flex;align-items:center;gap:8px;font-size:.86rem;font-weight:600;color:var(--mavi-koyu);margin-bottom:12px}
+.onay input{accent-color:var(--turuncu);width:16px;height:16px}
+
+.lejant{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--gri);margin-top:8px}
+.lejant span{display:inline-flex;align-items:center;gap:5px}
+.lejant i{width:14px;height:14px;border-radius:3px;display:inline-block}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+@media(max-width:860px){.grid-2{grid-template-columns:1fr}}
+.mini-baslik{
+  font-family:'Roboto Slab',serif;font-size:.98rem;color:var(--mavi-koyu);
+  margin-bottom:8px;font-weight:600;
+}
+footer{
+  text-align:center;color:var(--gri);font-size:.8rem;padding:18px;
+  border-top:1px solid var(--cizgi);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="ders">BYZ502 · Oyun Motorunda Yapay Zekâ Uygulamaları</div>
+  <h1>🏎️ Yarış AI'ı: Veriden Modele</h1>
+  <p>Yapay zekâ pilotumuz, oyuncunun hızına bakarak virajda ne kadar direksiyon kıracağını öğrenmeye çalışıyor.
+  Bu araçla makine öğrenmesinin üç temel yapıtaşını keşfedeceğiz: <b>Veri Uzayı</b>, <b>Hipotez Uzayı</b> ve
+  <b>Kayıp Ölçütünün gradyan inişiyle optimizasyonu</b>.</p>
+</header>
+
+<main>
+
+<!-- ═══════════════ 1. VERİ UZAYI ═══════════════ -->
+<section>
+  <div class="bolum-baslik">
+    <div class="bolum-no">1</div>
+    <h2>Veri Uzayı — Usta Pilotun Tur Kayıtları</h2>
+  </div>
+  <p class="aciklama">
+    Usta bir pilotun tur kayıtlarından örnekler topluyoruz: her nokta bir viraj girişinde
+    <b>(hız, uygulanan direksiyon açısı)</b> çiftidir. Fizik sezgisiyle uyumlu olarak, hız arttıkça
+    savrulmamak için daha <i>az</i> direksiyon kırılır. Veri gürültülüdür — insan pilot her seferinde
+    aynı açıyı tutturamaz.
+  </p>
+
+  <div class="panel iki-sutun">
+    <div>
+      <canvas id="dataCanvas" width="760" height="440"></canvas>
+      <div class="lejant">
+        <span><i style="background:#447099"></i> Gözlem (tur kaydı)</span>
+        <span><i style="background:#FF6F20"></i> Mevcut hipotez doğrusu</span>
+        <span><i style="background:#FF3D7F"></i> Hata (artık) çizgileri</span>
+        <span>🖱️ Grafiğe tıklayarak kendi gözleminizi ekleyin</span>
+      </div>
+    </div>
+    <div>
+      <div class="kontrol">
+        <label>Örnek sayısı (N) <span class="deger" id="lblN">40</span></label>
+        <input type="range" id="sldN" min="10" max="120" value="40" step="5">
+      </div>
+      <div class="kontrol">
+        <label>Gürültü (σ, derece) <span class="deger" id="lblNoise">2.5</span></label>
+        <input type="range" id="sldNoise" min="0" max="6" value="2.5" step="0.5">
+      </div>
+      <div class="buton-grubu">
+        <button class="btn-mavi" id="btnGenerate">🎲 Yeni Veri Üret</button>
+        <button class="btn-gri" id="btnClear">🧹 Temizle</button>
+      </div>
+      <div class="onay">
+        <input type="checkbox" id="chkResid" checked>
+        <label for="chkResid" style="cursor:pointer">Hata çizgilerini göster</label>
+      </div>
+      <div class="kutu">
+        <b>🎯 Kavram</b>
+        Veri uzayı, problemimizin yaşadığı yerdir: girdi <b>v</b> (hız, km/sa) ve hedef çıktı
+        <b>α</b> (viraj açısı, derece). Model bu uzaydaki örüntüyü yakalamaya çalışır.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 2. HİPOTEZ UZAYI ═══════════════ -->
+<section>
+  <div class="bolum-baslik">
+    <div class="bolum-no">2</div>
+    <h2>Hipotez Uzayı — Tüm Olası Doğrusal Pilotlar</h2>
+  </div>
+  <p class="aciklama">
+    Modelimizi <b>doğrusal</b> seçiyoruz: her hipotez, iki parametreyle (θ₀, θ₁) tanımlanan bir doğrudur.
+    Yani hipotez uzayımız iki boyutlu bir düzlemdir — aşağıdaki haritadaki <b>her nokta bir aday pilottur</b>.
+    Rengi, o pilotun veri üzerinde yaptığı ortalama karesel hatayı (MSE) gösterir: koyu mavi = düşük kayıp,
+    turuncu/pembe = yüksek kayıp.
+  </p>
+
+  <div class="formul">
+    ŷ = <span class="vurgu2">θ₁</span> · (v / 100) + <span class="vurgu2">θ₀</span>
+    &nbsp;&nbsp;│&nbsp;&nbsp; Kayıp: J(θ₀, θ₁) = (1/N) Σ (ŷᵢ − αᵢ)²
+  </div>
+
+  <div class="kutu ipucu">
+    <b>💡 Neden v/100?</b>
+    Hız 40–200 km/sa aralığında; açı ise 10–35° civarında. Girdiyi 100'e bölerek
+    <b>özellik ölçekleme</b> yapıyoruz. Bu, kayıp yüzeyini daha "yuvarlak" yapar ve gradyan inişinin
+    zikzak çizmeden hızla dibe inmesini sağlar. Ölçeklemesiz denerseniz θ₁ yönündeki eğim θ₀'a göre
+    çok dik olur ve öğrenme oranı seçimi zorlaşır.
+  </div>
+
+  <div class="panel iki-sutun">
+    <div>
+      <canvas id="surfaceCanvas" width="760" height="560"></canvas>
+      <div class="lejant">
+        <span><i style="background:linear-gradient(90deg,#12324a,#447099,#8ab6d6,#ffd9a8,#FF6F20,#FF3D7F)"></i> MSE: düşük → yüksek</span>
+        <span><i style="background:#fff;border:2px solid #FF6F20;border-radius:50%"></i> Mevcut hipotez</span>
+        <span><i style="background:#FF3D7F"></i> Gradyan inişi izi</span>
+        <span>🖱️ Haritaya tıklayarak hipotez seçin</span>
+      </div>
+    </div>
+    <div>
+      <div class="kontrol">
+        <label>θ₀ (taban açı, derece) <span class="deger" id="lblT0">10.0</span></label>
+        <input type="range" id="sldT0" min="0" max="70" value="10" step="0.1">
+      </div>
+      <div class="kontrol">
+        <label>θ₁ (hız katsayısı) <span class="deger" id="lblT1">5.0</span></label>
+        <input type="range" id="sldT1" min="-40" max="15" value="5" step="0.1">
+      </div>
+      <table class="stat-tablo">
+        <tr><td>Mevcut hipotez</td><td id="txtHyp">—</td></tr>
+        <tr><td>Kayıp J(θ₀, θ₁)</td><td id="txtLoss">—</td></tr>
+        <tr><td>Gerçek süreç (gizli)</td><td>α = −12·(v/100) + 35</td></tr>
+      </table>
+      <div class="kutu">
+        <b>🎯 Kavram</b>
+        "Öğrenme", bu haritada <b>en koyu noktayı aramaktır</b>. Kaydırıcılarla elle arayabilirsiniz;
+        ama parametre sayısı milyonlara çıktığında (derin ağlar!) elle arama imkânsızdır.
+        İşte bu yüzden gradyan inişine ihtiyacımız var.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 3. GRADYAN İNİŞİ ═══════════════ -->
+<section>
+  <div class="bolum-baslik">
+    <div class="bolum-no">3</div>
+    <h2>Gradyan İnişi — Sisli Vadide Yokuş Aşağı</h2>
+  </div>
+  <p class="aciklama">
+    Kayıp yüzeyini sisli bir vadi gibi düşünün: bulunduğunuz noktada yalnızca <b>yerel eğimi</b>
+    hissedebilirsiniz. Gradyan inişi her adımda eğimin tersi yönünde, öğrenme oranı (η) kadar
+    ölçeklenmiş bir adım atar. Adımları yukarıdaki hipotez haritasında pembe iz olarak göreceksiniz.
+  </p>
+
+  <div class="formul">
+    θ₀ ← θ₀ − <span class="vurgu">η</span> · ∂J/∂θ₀
+    &nbsp;&nbsp;│&nbsp;&nbsp;
+    θ₁ ← θ₁ − <span class="vurgu">η</span> · ∂J/∂θ₁
+    &nbsp;&nbsp;│&nbsp;&nbsp;
+    ∂J/∂θ₀ = (2/N) Σ eᵢ , &nbsp; ∂J/∂θ₁ = (2/N) Σ eᵢ·(vᵢ/100) , &nbsp; eᵢ = ŷᵢ − αᵢ
+  </div>
+
+  <div class="panel">
+    <div class="iki-sutun">
+      <div>
+        <div class="mini-baslik">📉 Kayıp Eğrisi (iterasyon → J)</div>
+        <canvas id="lossCanvas" width="760" height="300"></canvas>
+      </div>
+      <div class="gd-kontrol">
+        <div class="kontrol">
+          <label>Öğrenme oranı (η) <span class="deger" id="lblLR">0.100</span></label>
+          <input type="range" id="sldLR" min="-3" max="0.2" value="-1" step="0.05">
+        </div>
+        <div class="buton-grubu">
+          <button class="btn-pembe" id="btnStep">👣 Tek Adım</button>
+          <button class="btn-turuncu" id="btnRun">▶ Başlat</button>
+          <button class="btn-gri" id="btnResetGD">↺ Rastgele Başlat</button>
+        </div>
+        <table class="stat-tablo">
+          <tr><td>İterasyon</td><td id="txtIter">0</td></tr>
+          <tr><td>∂J/∂θ₀</td><td id="txtG0">—</td></tr>
+          <tr><td>∂J/∂θ₁</td><td id="txtG1">—</td></tr>
+          <tr><td>‖∇J‖ (gradyan büyüklüğü)</td><td id="txtGN">—</td></tr>
+          <tr><td>Durum</td><td id="txtState">hazır</td></tr>
+        </table>
+        <div class="kutu dikkat">
+          <b>⚠️ Deney önerisi</b>
+          η'yı en sağa çekip Başlat'a basın: adımlar vadinin karşı yamacına savrulur ve kayıp
+          <b>ıraksar</b> — tıpkı virajı çok hızlı almak gibi! Çok küçük η ise güvenli ama
+          sabır ister: yakınsama yavaşlar.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="mini-baslik">🏁 Test Sürüşü — Öğrenilen Pilotu Dene</div>
+      <canvas id="trackCanvas" width="520" height="300"></canvas>
+      <div class="kontrol" style="margin-top:12px">
+        <label>Viraj giriş hızı <span class="deger" id="lblTest">140 km/sa</span></label>
+        <input type="range" id="sldTest" min="40" max="200" value="140" step="5">
+      </div>
+    </div>
+    <div class="panel">
+      <div class="mini-baslik">🧭 Adım Adım Ne Oluyor?</div>
+      <ol style="font-size:.9rem;padding-left:20px;color:var(--metin)">
+        <li style="margin-bottom:8px"><b>İleri geçiş:</b> mevcut (θ₀, θ₁) ile tüm hızlar için açı tahmini ŷᵢ üretilir.</li>
+        <li style="margin-bottom:8px"><b>Kayıp:</b> tahminlerle usta pilotun gerçek açıları karşılaştırılır (MSE).</li>
+        <li style="margin-bottom:8px"><b>Gradyan:</b> kaybın her parametreye göre kısmi türevi hesaplanır — "hangi yönde kötüleşiyorum?"</li>
+        <li><b>Güncelleme:</b> parametreler gradyanın tersine, η adımıyla kaydırılır. Tekrar 1'e dön.</li>
+      </ol>
+      <div class="kutu ipucu" style="margin-top:12px">
+        <b>💡 Oyun AI bağlantısı</b>
+        Aynı döngü, yarış oyunlarındaki öğrenen rakip AI'larda (ör. Forza'nın Drivatar sistemi)
+        çok daha büyük modellerle çalışır: girdi tek bir hız değil; pist eğriliği, yol tutuşu,
+        lastik durumu gibi onlarca özelliktir. Ama optimizasyonun kalbi hep budur.
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>BYZ502 · Oyun Motorunda Yapay Zekâ Uygulamaları — Makine Öğrenmesine Giriş: Gradyan İnişi Simülatörü</footer>
+
+<script>
+"use strict";
+
+/* ─────────── Yardımcılar ─────────── */
+const $ = id => document.getElementById(id);
+function gauss(){
+  let u=0, v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+const clamp = (x,a,b)=>Math.min(b,Math.max(a,x));
+const fmt = (x,d=2)=>Number(x).toFixed(d);
+
+/* ─────────── Gerçek süreç ─────────── */
+const TRUE_T0 = 35, TRUE_T1 = -12;   // α = -12·(v/100) + 35
+
+/* ─────────── Durum ─────────── */
+let data = [];
+let t0 = 10, t1 = 5;
+let gdPath = [];      // [{t0,t1}]
+let lossHist = [];    // J değerleri
+let iter = 0;
+let running = false;
+let converged = false;
+
+/* Parametre haritası sınırları */
+const T0MIN=0, T0MAX=70, T1MIN=-40, T1MAX=15;
+
+/* ─────────── Model & kayıp ─────────── */
+const predict = (v, a0, a1) => a1*(v/100) + a0;
+
+function mse(a0, a1){
+  if(data.length===0) return 0;
+  let s=0;
+  for(const p of data){ const e = predict(p.x,a0,a1)-p.y; s += e*e; }
+  return s/data.length;
+}
+function grads(a0, a1){
+  if(data.length===0) return [0,0];
+  let g0=0, g1=0;
+  for(const p of data){
+    const e = predict(p.x,a0,a1)-p.y;
+    g0 += e; g1 += e*(p.x/100);
+  }
+  const n = data.length;
+  return [2*g0/n, 2*g1/n];
+}
+
+/* ─────────── Veri üretimi ─────────── */
+function generateData(){
+  const n = +$('sldN').value;
+  const noise = +$('sldNoise').value;
+  data = [];
+  for(let i=0;i<n;i++){
+    const v = 40 + Math.random()*160;
+    const a = predict(v, TRUE_T0, TRUE_T1) + gauss()*noise;
+    data.push({x:v, y:clamp(a,0,45)});
+  }
+  afterDataChange();
+}
+
+function afterDataChange(){
+  computeHeatmap();
+  resetGDHistory(false);
+  redrawAll();
+}
+
+/* ─────────── Veri uzayı çizimi ─────────── */
+const dCv = $('dataCanvas'), dCx = dCv.getContext('2d');
+const DM = {l:56, r:16, t:16, b:44};           // kenar boşlukları
+const VMIN=0, VMAX=220, AMIN=0, AMAX=45;
+
+function dX(v){ return DM.l + (v-VMIN)/(VMAX-VMIN)*(dCv.width-DM.l-DM.r); }
+function dY(a){ return dCv.height-DM.b - (a-AMIN)/(AMAX-AMIN)*(dCv.height-DM.t-DM.b); }
+function invD(px,py){
+  const v = VMIN + (px-DM.l)/(dCv.width-DM.l-DM.r)*(VMAX-VMIN);
+  const a = AMIN + (dCv.height-DM.b-py)/(dCv.height-DM.t-DM.b)*(AMAX-AMIN);
+  return [v,a];
+}
+
+function drawData(){
+  const w=dCv.width, h=dCv.height;
+  dCx.clearRect(0,0,w,h);
+
+  // ızgara + eksenler
+  dCx.strokeStyle='#eef3f7'; dCx.lineWidth=1;
+  dCx.fillStyle='#8a99a6';
+  dCx.font='12px "Open Sans", sans-serif';
+  dCx.textAlign='center';
+  for(let v=0; v<=220; v+=40){
+    const x=dX(v);
+    dCx.beginPath(); dCx.moveTo(x,DM.t); dCx.lineTo(x,h-DM.b); dCx.stroke();
+    dCx.fillText(v, x, h-DM.b+18);
+  }
+  dCx.textAlign='right';
+  for(let a=0; a<=45; a+=10){
+    const y=dY(a);
+    dCx.beginPath(); dCx.moveTo(DM.l,y); dCx.lineTo(w-DM.r,y); dCx.stroke();
+    dCx.fillText(a+'°', DM.l-8, y+4);
+  }
+  dCx.strokeStyle='#b9c8d4'; dCx.lineWidth=1.5;
+  dCx.strokeRect(DM.l, DM.t, w-DM.l-DM.r, h-DM.t-DM.b);
+
+  dCx.fillStyle='#5a6a77';
+  dCx.font='600 13px "Open Sans", sans-serif';
+  dCx.textAlign='center';
+  dCx.fillText('Hız v (km/sa)', (DM.l+w-DM.r)/2, h-8);
+  dCx.save();
+  dCx.translate(16,(DM.t+h-DM.b)/2); dCx.rotate(-Math.PI/2);
+  dCx.fillText('Viraj açısı α (derece)',0,0);
+  dCx.restore();
+
+  // hata çizgileri
+  if($('chkResid').checked){
+    dCx.strokeStyle='rgba(255,61,127,.45)'; dCx.lineWidth=1.4;
+    for(const p of data){
+      const yhat = clamp(predict(p.x,t0,t1), AMIN, AMAX);
+      dCx.beginPath();
+      dCx.moveTo(dX(p.x), dY(p.y));
+      dCx.lineTo(dX(p.x), dY(yhat));
+      dCx.stroke();
+    }
+  }
+
+  // hipotez doğrusu
+  dCx.strokeStyle='#FF6F20'; dCx.lineWidth=3;
+  dCx.beginPath();
+  dCx.moveTo(dX(VMIN), dY(clamp(predict(VMIN,t0,t1),-500,500)));
+  dCx.lineTo(dX(VMAX), dY(clamp(predict(VMAX,t0,t1),-500,500)));
+  dCx.save();
+  dCx.beginPath(); dCx.rect(DM.l,DM.t,w-DM.l-DM.r,h-DM.t-DM.b); dCx.clip();
+  dCx.beginPath();
+  dCx.moveTo(dX(VMIN), dY(predict(VMIN,t0,t1)));
+  dCx.lineTo(dX(VMAX), dY(predict(VMAX,t0,t1)));
+  dCx.stroke();
+  dCx.restore();
+
+  // noktalar
+  for(const p of data){
+    dCx.beginPath();
+    dCx.arc(dX(p.x), dY(p.y), 5, 0, Math.PI*2);
+    dCx.fillStyle='rgba(68,112,153,.85)';
+    dCx.fill();
+    dCx.strokeStyle='#fff'; dCx.lineWidth=1.2; dCx.stroke();
+  }
+}
+
+dCv.addEventListener('click', ev=>{
+  const r = dCv.getBoundingClientRect();
+  const px = (ev.clientX-r.left) * dCv.width/r.width;
+  const py = (ev.clientY-r.top) * dCv.height/r.height;
+  const [v,a] = invD(px,py);
+  if(v<VMIN||v>VMAX||a<AMIN||a>AMAX) return;
+  data.push({x:v, y:a});
+  $('lblN').textContent = data.length;
+  afterDataChange();
+});
+
+/* ─────────── Kayıp yüzeyi (heatmap) ─────────── */
+const sCv = $('surfaceCanvas'), sCx = sCv.getContext('2d');
+const SM = {l:60, r:16, t:16, b:46};
+const GRID = 120;
+let heat = null, heatMin=0, heatMax=1;
+const off = document.createElement('canvas');
+off.width = GRID; off.height = GRID;
+const offCx = off.getContext('2d');
+
+/* renk durakları: koyu mavi → mavi → açık → sarımsı → turuncu → pembe */
+const STOPS = [
+  [0.00, 18, 50, 74],
+  [0.28, 68, 112, 153],
+  [0.50, 138, 182, 214],
+  [0.68, 255, 217, 168],
+  [0.85, 255, 111, 32],
+  [1.00, 255, 61, 127]
+];
+function heatColor(t){
+  t = clamp(t,0,1);
+  for(let i=1;i<STOPS.length;i++){
+    if(t<=STOPS[i][0]){
+      const [ta,ra,ga,ba]=STOPS[i-1], [tb,rb,gb,bb]=STOPS[i];
+      const f=(t-ta)/(tb-ta);
+      return [ra+(rb-ra)*f, ga+(gb-ga)*f, ba+(bb-ba)*f];
+    }
+  }
+  return STOPS[STOPS.length-1].slice(1);
+}
+
+function computeHeatmap(){
+  if(data.length===0){ heat=null; return; }
+  heat = new Float32Array(GRID*GRID);
+  heatMin=Infinity; heatMax=-Infinity;
+  for(let j=0;j<GRID;j++){
+    const b1 = T1MAX - (j/(GRID-1))*(T1MAX-T1MIN);   // üst = T1MAX
+    for(let i=0;i<GRID;i++){
+      const b0 = T0MIN + (i/(GRID-1))*(T0MAX-T0MIN);
+      const L = Math.log(1+mse(b0,b1));
+      heat[j*GRID+i]=L;
+      if(L<heatMin)heatMin=L;
+      if(L>heatMax)heatMax=L;
+    }
+  }
+  const img = offCx.createImageData(GRID,GRID);
+  const range = Math.max(1e-9, heatMax-heatMin);
+  for(let k=0;k<GRID*GRID;k++){
+    const t=(heat[k]-heatMin)/range;
+    const [r,g,b]=heatColor(t);
+    img.data[4*k]=r; img.data[4*k+1]=g; img.data[4*k+2]=b; img.data[4*k+3]=255;
+  }
+  offCx.putImageData(img,0,0);
+}
+
+function sX(a0){ return SM.l + (a0-T0MIN)/(T0MAX-T0MIN)*(sCv.width-SM.l-SM.r); }
+function sY(a1){ return SM.t + (T1MAX-a1)/(T1MAX-T1MIN)*(sCv.height-SM.t-SM.b); }
+function invS(px,py){
+  const a0 = T0MIN + (px-SM.l)/(sCv.width-SM.l-SM.r)*(T0MAX-T0MIN);
+  const a1 = T1MAX - (py-SM.t)/(sCv.height-SM.t-SM.b)*(T1MAX-T1MIN);
+  return [a0,a1];
+}
+
+function drawSurface(){
+  const w=sCv.width, h=sCv.height;
+  sCx.clearRect(0,0,w,h);
+  const pw=w-SM.l-SM.r, ph=h-SM.t-SM.b;
+
+  if(heat){
+    sCx.imageSmoothingEnabled = true;
+    sCx.drawImage(off, SM.l, SM.t, pw, ph);
+  }else{
+    sCx.fillStyle='#f0f5f9';
+    sCx.fillRect(SM.l,SM.t,pw,ph);
+    sCx.fillStyle='#8a99a6';
+    sCx.font='14px "Open Sans", sans-serif';
+    sCx.textAlign='center';
+    sCx.fillText('Önce veri üretin', SM.l+pw/2, SM.t+ph/2);
+  }
+
+  // eksen etiketleri
+  sCx.fillStyle='#8a99a6';
+  sCx.font='12px "Open Sans", sans-serif';
+  sCx.textAlign='center';
+  for(let a0=0; a0<=70; a0+=10) sCx.fillText(a0, sX(a0), h-SM.b+18);
+  sCx.textAlign='right';
+  for(let a1=-40; a1<=15; a1+=10) sCx.fillText(a1, SM.l-8, sY(a1)+4);
+
+  sCx.strokeStyle='#b9c8d4'; sCx.lineWidth=1.5;
+  sCx.strokeRect(SM.l,SM.t,pw,ph);
+
+  sCx.fillStyle='#5a6a77';
+  sCx.font='600 13px "Open Sans", sans-serif';
+  sCx.textAlign='center';
+  sCx.fillText('θ₀ (taban açı)', SM.l+pw/2, h-8);
+  sCx.save();
+  sCx.translate(18, SM.t+ph/2); sCx.rotate(-Math.PI/2);
+  sCx.fillText('θ₁ (hız katsayısı)',0,0);
+  sCx.restore();
+
+  // gerçek süreç işareti
+  if(heat){
+    sCx.strokeStyle='rgba(255,255,255,.9)';
+    sCx.lineWidth=1.5;
+    const tx=sX(TRUE_T0), ty=sY(TRUE_T1);
+    sCx.beginPath();
+    sCx.moveTo(tx-7,ty); sCx.lineTo(tx+7,ty);
+    sCx.moveTo(tx,ty-7); sCx.lineTo(tx,ty+7);
+    sCx.stroke();
+  }
+
+  // GD izi
+  if(gdPath.length>1){
+    sCx.strokeStyle='#FF3D7F'; sCx.lineWidth=2.2;
+    sCx.beginPath();
+    for(let i=0;i<gdPath.length;i++){
+      const p=gdPath[i];
+      const x=clamp(sX(p.t0),SM.l,w-SM.r), y=clamp(sY(p.t1),SM.t,h-SM.b);
+      if(i===0) sCx.moveTo(x,y); else sCx.lineTo(x,y);
+    }
+    sCx.stroke();
+    sCx.fillStyle='#FF3D7F';
+    for(const p of gdPath){
+      const x=clamp(sX(p.t0),SM.l,w-SM.r), y=clamp(sY(p.t1),SM.t,h-SM.b);
+      sCx.beginPath(); sCx.arc(x,y,2.6,0,Math.PI*2); sCx.fill();
+    }
+  }
+
+  // mevcut hipotez
+  const cx=clamp(sX(t0),SM.l,w-SM.r), cy=clamp(sY(t1),SM.t,h-SM.b);
+  sCx.beginPath(); sCx.arc(cx,cy,8,0,Math.PI*2);
+  sCx.fillStyle='#fff'; sCx.fill();
+  sCx.lineWidth=3; sCx.strokeStyle='#FF6F20'; sCx.stroke();
+}
+
+sCv.addEventListener('click', ev=>{
+  const r=sCv.getBoundingClientRect();
+  const px=(ev.clientX-r.left)*sCv.width/r.width;
+  const py=(ev.clientY-r.top)*sCv.height/r.height;
+  const [a0,a1]=invS(px,py);
+  if(a0<T0MIN||a0>T0MAX||a1<T1MIN||a1>T1MAX) return;
+  stopRun();
+  t0=a0; t1=a1;
+  resetGDHistory(true);
+  syncSliders();
+  redrawAll();
+});
+
+/* ─────────── Kayıp eğrisi ─────────── */
+const lCv=$('lossCanvas'), lCx=lCv.getContext('2d');
+const LM={l:58,r:14,t:14,b:36};
+
+function drawLossCurve(){
+  const w=lCv.width,h=lCv.height;
+  lCx.clearRect(0,0,w,h);
+  lCx.strokeStyle='#b9c8d4'; lCx.lineWidth=1.5;
+  lCx.strokeRect(LM.l,LM.t,w-LM.l-LM.r,h-LM.t-LM.b);
+  lCx.fillStyle='#5a6a77';
+  lCx.font='600 12px "Open Sans", sans-serif';
+  lCx.textAlign='center';
+  lCx.fillText('iterasyon',(LM.l+w-LM.r)/2,h-8);
+  lCx.save(); lCx.translate(16,(LM.t+h-LM.b)/2); lCx.rotate(-Math.PI/2);
+  lCx.fillText('J (MSE)',0,0); lCx.restore();
+
+  if(lossHist.length<1){
+    lCx.fillStyle='#8a99a6';
+    lCx.font='13px "Open Sans", sans-serif';
+    lCx.textAlign='center';
+    lCx.fillText('Gradyan inişini başlatın', (LM.l+w-LM.r)/2, (LM.t+h-LM.b)/2);
+    return;
+  }
+  const maxJ=Math.max(...lossHist), minJ=Math.min(...lossHist);
+  const span=Math.max(1e-9,maxJ-minJ);
+  const n=lossHist.length;
+  const px=i=> LM.l + (n===1?0:(i/(n-1)))*(w-LM.l-LM.r);
+  const py=J=> h-LM.b - (J-minJ)/span*(h-LM.t-LM.b);
+
+  // y ekseni etiketleri
+  lCx.fillStyle='#8a99a6'; lCx.font='11px "Fira Code", monospace';
+  lCx.textAlign='right';
+  lCx.fillText(fmt(maxJ,1), LM.l-6, py(maxJ)+4);
+  lCx.fillText(fmt(minJ,1), LM.l-6, py(minJ)+4);
+
+  lCx.strokeStyle='#FF3D7F'; lCx.lineWidth=2.4;
+  lCx.beginPath();
+  for(let i=0;i<n;i++){
+    if(i===0) lCx.moveTo(px(i),py(lossHist[i]));
+    else lCx.lineTo(px(i),py(lossHist[i]));
+  }
+  lCx.stroke();
+
+  // son değer
+  lCx.fillStyle='#FF3D7F';
+  lCx.beginPath(); lCx.arc(px(n-1),py(lossHist[n-1]),4,0,Math.PI*2); lCx.fill();
+  lCx.font='600 12px "Fira Code", monospace';
+  lCx.textAlign='left';
+  lCx.fillText('J='+fmt(lossHist[n-1],2), Math.min(px(n-1)+8,w-90), py(lossHist[n-1])-8);
+}
+
+/* ─────────── Test pisti ─────────── */
+const tCv=$('trackCanvas'), tCx=tCv.getContext('2d');
+
+function drawTrack(){
+  const w=tCv.width,h=tCv.height;
+  tCx.clearRect(0,0,w,h);
+
+  // çim
+  tCx.fillStyle='#eaf3ea';
+  tCx.fillRect(0,0,w,h);
+
+  // pist: alttan gelen düz yol + sağa kıvrılan viraj
+  const cx=w*0.68, cy=h*0.78, R=150, ROADW=64;
+  tCx.strokeStyle='#4b5661';
+  tCx.lineCap='butt';
+  tCx.lineWidth=ROADW;
+  tCx.beginPath();
+  tCx.moveTo(cx-R, h+10);
+  tCx.lineTo(cx-R, cy);
+  tCx.arc(cx, cy, R, Math.PI, Math.PI*1.5, false);
+  tCx.lineTo(w+10, cy-R);
+  tCx.stroke();
+
+  // orta çizgi
+  tCx.strokeStyle='#f2d17a';
+  tCx.lineWidth=3;
+  tCx.setLineDash([14,12]);
+  tCx.beginPath();
+  tCx.moveTo(cx-R, h+10);
+  tCx.lineTo(cx-R, cy);
+  tCx.arc(cx, cy, R, Math.PI, Math.PI*1.5, false);
+  tCx.lineTo(w+10, cy-R);
+  tCx.stroke();
+  tCx.setLineDash([]);
+
+  // araba: viraj girişinde
+  const carX=cx-R, carY=cy+18;
+  const v=+$('sldTest').value;
+  const pred=clamp(predict(v,t0,t1), -45, 45);
+  const steerRad = -pred*Math.PI/180;   // pozitif açı = sağa kırış
+
+  tCx.save();
+  tCx.translate(carX,carY);
+  // gövde (yukarı bakıyor)
+  tCx.rotate(steerRad*0.35); // gövde hafif döner
+  tCx.fillStyle='#FF6F20';
+  tCx.strokeStyle='#c24f0e';
+  tCx.lineWidth=2;
+  roundRect(tCx,-13,-26,26,52,7); tCx.fill(); tCx.stroke();
+  // cam
+  tCx.fillStyle='#2d4d6b';
+  roundRect(tCx,-9,-16,18,14,4); tCx.fill();
+  // ön tekerlekler: tahmin edilen açıyla döner
+  tCx.fillStyle='#26343f';
+  for(const sx of [-14,14]){
+    tCx.save();
+    tCx.translate(sx,-18);
+    tCx.rotate(steerRad);
+    tCx.fillRect(-3,-8,6,16);
+    tCx.restore();
+  }
+  // arka tekerlekler
+  for(const sx of [-14,14]) tCx.fillRect(sx-3,12,6,16);
+  tCx.restore();
+
+  // yön oku
+  tCx.save();
+  tCx.translate(carX,carY-52);
+  tCx.rotate(steerRad);
+  tCx.strokeStyle='#FF3D7F'; tCx.fillStyle='#FF3D7F'; tCx.lineWidth=3.5;
+  tCx.beginPath(); tCx.moveTo(0,18); tCx.lineTo(0,-26); tCx.stroke();
+  tCx.beginPath(); tCx.moveTo(0,-34); tCx.lineTo(-8,-20); tCx.lineTo(8,-20); tCx.closePath(); tCx.fill();
+  tCx.restore();
+
+  // bilgi kutusu
+  tCx.fillStyle='rgba(255,255,255,.92)';
+  tCx.strokeStyle='#dbe4ec';
+  roundRect(tCx,12,12,236,64,10); tCx.fill(); tCx.stroke();
+  tCx.fillStyle='#2d4d6b';
+  tCx.font='600 14px "Fira Code", monospace';
+  tCx.textAlign='left';
+  tCx.fillText('v  = '+v+' km/sa', 26, 38);
+  tCx.fillStyle='#FF3D7F';
+  tCx.fillText('α̂  = '+fmt(pred,1)+'°', 26, 62);
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+/* ─────────── Gradyan inişi ─────────── */
+function lrValue(){ return Math.pow(10, +$('sldLR').value); }
+
+function gdStep(){
+  if(data.length===0) return;
+  const [g0,g1]=grads(t0,t1);
+  const eta=lrValue();
+  t0 -= eta*g0;
+  t1 -= eta*g1;
+  t0 = clamp(t0, T0MIN-200, T0MAX+200);
+  t1 = clamp(t1, T1MIN-200, T1MAX+200);
+  iter++;
+  gdPath.push({t0,t1});
+  if(gdPath.length>600) gdPath.shift();
+  lossHist.push(mse(t0,t1));
+  if(lossHist.length>600) lossHist.shift();
+
+  const gn=Math.hypot(g0,g1);
+  $('txtG0').textContent=fmt(g0,3);
+  $('txtG1').textContent=fmt(g1,3);
+  $('txtGN').textContent=fmt(gn,4);
+  if(gn<1e-3){
+    converged=true;
+    stopRun();
+    $('txtState').textContent='yakınsadı ✓';
+  }else if(!isFinite(lossHist[lossHist.length-1]) || lossHist[lossHist.length-1]>1e7){
+    stopRun();
+    $('txtState').textContent='ıraksadı ✗ (η çok büyük)';
+  }else{
+    $('txtState').textContent = running ? 'çalışıyor…' : 'duraklatıldı';
+  }
+  syncSliders();
+}
+
+function resetGDHistory(keepTheta){
+  gdPath=[{t0,t1}];
+  lossHist = data.length ? [mse(t0,t1)] : [];
+  iter=0;
+  converged=false;
+  $('txtIter').textContent='0';
+  $('txtG0').textContent='—';
+  $('txtG1').textContent='—';
+  $('txtGN').textContent='—';
+  $('txtState').textContent='hazır';
+  if(!keepTheta){ /* θ korunur; sadece iz sıfırlanır */ }
+}
+
+function randomInit(){
+  stopRun();
+  t0 = T0MIN + Math.random()*(T0MAX-T0MIN);
+  t1 = T1MIN + Math.random()*(T1MAX-T1MIN);
+  resetGDHistory(true);
+  syncSliders();
+  redrawAll();
+}
+
+let rafId=null;
+function runLoop(){
+  if(!running) return;
+  gdStep();
+  $('txtIter').textContent=iter;
+  redrawAll();
+  if(running) rafId=requestAnimationFrame(runLoop);
+}
+function startRun(){
+  if(data.length===0 || running) return;
+  running=true;
+  converged=false;
+  $('btnRun').textContent='⏸ Durdur';
+  $('txtState').textContent='çalışıyor…';
+  rafId=requestAnimationFrame(runLoop);
+}
+function stopRun(){
+  running=false;
+  if(rafId) cancelAnimationFrame(rafId);
+  $('btnRun').textContent='▶ Başlat';
+}
+
+/* ─────────── UI senkronizasyonu ─────────── */
+function syncSliders(){
+  $('sldT0').value=clamp(t0,T0MIN,T0MAX);
+  $('sldT1').value=clamp(t1,T1MIN,T1MAX);
+  $('lblT0').textContent=fmt(t0,1);
+  $('lblT1').textContent=fmt(t1,1);
+  $('txtHyp').textContent='ŷ = '+fmt(t1,1)+'·(v/100) + '+fmt(t0,1);
+  $('txtLoss').textContent = data.length ? fmt(mse(t0,t1),3) : '—';
+}
+
+function redrawAll(){
+  drawData();
+  drawSurface();
+  drawLossCurve();
+  drawTrack();
+  syncSliders();
+}
+
+/* ─────────── Olay bağlama ─────────── */
+$('sldN').addEventListener('input', ()=>{ $('lblN').textContent=$('sldN').value; });
+$('sldN').addEventListener('change', generateData);
+$('sldNoise').addEventListener('input', ()=>{ $('lblNoise').textContent=$('sldNoise').value; });
+$('sldNoise').addEventListener('change', generateData);
+$('btnGenerate').addEventListener('click', generateData);
+$('btnClear').addEventListener('click', ()=>{ stopRun(); data=[]; heat=null; resetGDHistory(true); redrawAll(); });
+$('chkResid').addEventListener('change', drawData);
+
+for(const id of ['sldT0','sldT1']){
+  $(id).addEventListener('input', ()=>{
+    stopRun();
+    t0=+$('sldT0').value;
+    t1=+$('sldT1').value;
+    resetGDHistory(true);
+    redrawAll();
+  });
+}
+
+$('sldLR').addEventListener('input', ()=>{ $('lblLR').textContent=fmt(lrValue(),3); });
+$('btnStep').addEventListener('click', ()=>{
+  stopRun();
+  gdStep();
+  $('txtIter').textContent=iter;
+  redrawAll();
+});
+$('btnRun').addEventListener('click', ()=>{ running ? stopRun() : startRun(); });
+$('btnResetGD').addEventListener('click', randomInit);
+$('sldTest').addEventListener('input', ()=>{
+  $('lblTest').textContent=$('sldTest').value+' km/sa';
+  drawTrack();
+});
+
+/* ─────────── Başlat ─────────── */
+$('lblLR').textContent=fmt(lrValue(),3);
+generateData();
+</script>
+</body>
+</html>

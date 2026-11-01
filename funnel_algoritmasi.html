@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funnel (Huni) Algoritması — Etkileşimli Anlatım</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F;
+    --ink:#26333f; --muted:#66757f; --line:#e2e8ee;
+    --bg:#f7f9fb; --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Open Sans',system-ui,sans-serif; line-height:1.55;
+    padding:24px 16px 56px;
+  }
+  .wrap{max-width:1120px; margin:0 auto;}
+  header.top{border-left:6px solid var(--orange); padding:6px 0 6px 16px; margin-bottom:22px;}
+  header.top h1{
+    font-family:'Roboto Slab',serif; font-weight:700; color:var(--blue);
+    margin:0 0 4px; font-size:1.7rem; letter-spacing:.2px;
+  }
+  header.top p{margin:0; color:var(--muted); font-size:.95rem;}
+  .grid{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:22px;}
+  @media(max-width:900px){ .grid{grid-template-columns:1fr;} }
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px; box-shadow:0 1px 3px rgba(38,51,63,.05);
+  }
+  h2{font-family:'Roboto Slab',serif; color:var(--blue); font-size:1.15rem; margin:0 0 12px;}
+  h3{font-family:'Roboto Slab',serif; color:var(--ink); font-size:1rem; margin:18px 0 8px;}
+  canvas{width:100%; height:auto; display:block; border-radius:10px; background:#fff; touch-action:none;}
+  .canvas-frame{border:1px solid var(--line); border-radius:12px; padding:10px; background:#fdfdfe;}
+  .controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px;}
+  button{
+    font-family:'Open Sans',sans-serif; font-weight:600; font-size:.9rem;
+    border:1px solid var(--blue); background:var(--blue); color:#fff;
+    padding:8px 14px; border-radius:9px; cursor:pointer; transition:.15s;
+  }
+  button.ghost{background:#fff; color:var(--blue);}
+  button:hover{filter:brightness(1.06);}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  button.accent{background:var(--orange); border-color:var(--orange);}
+  .toggles{display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; font-size:.88rem; color:var(--muted);}
+  .toggles label{display:flex; align-items:center; gap:6px; cursor:pointer;}
+  .stepbar{
+    margin-top:14px; padding:12px 14px; border-radius:10px;
+    background:rgba(68,112,153,.06); border:1px solid rgba(68,112,153,.16);
+    min-height:64px;
+  }
+  .stepbar .num{font-family:'Fira Code',monospace; font-size:.8rem; color:var(--orange); font-weight:600;}
+  .stepbar .desc{margin-top:4px; font-size:.95rem; color:var(--ink);}
+  .legend{display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:14px; font-size:.82rem; color:var(--muted);}
+  .legend span{display:flex; align-items:center; gap:7px;}
+  .dot{width:13px; height:13px; border-radius:50%; display:inline-block; border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.08);}
+  .bar{width:22px; height:4px; border-radius:2px; display:inline-block;}
+  p.lead{margin-top:0;}
+  ol.flow{margin:0; padding-left:20px;}
+  ol.flow li{margin-bottom:7px;}
+  code, .mono{font-family:'Fira Code',monospace; font-size:.86em; background:#eef2f6; padding:1px 5px; border-radius:4px; color:#324a5e;}
+  pre{
+    background:#1f2b36; color:#e6edf3; border-radius:10px; padding:14px 16px;
+    overflow:auto; font-family:'Fira Code',monospace; font-size:.8rem; line-height:1.5;
+  }
+  pre .kw{color:#ff9d6b;} pre .cm{color:#8aa0b0; font-style:italic;} pre .fn{color:#7fd1c9;}
+  .pill{display:inline-block; background:var(--pink); color:#fff; font-size:.72rem; font-weight:700;
+    padding:2px 9px; border-radius:20px; vertical-align:middle; margin-left:6px;}
+  .metrics{display:flex; gap:18px; margin-top:12px; flex-wrap:wrap;}
+  .metric{background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 14px; text-align:center;}
+  .metric .v{font-family:'Roboto Slab',serif; font-size:1.25rem; color:var(--blue);}
+  .metric .k{font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
+  .hint{font-size:.82rem; color:var(--muted); margin-top:8px; font-style:italic;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Funnel (Huni) Algoritması <span class="pill">String Pulling</span></h1>
+    <p>NavMesh üzerinde bulunan poligon koridorunu, köşelere yaslanan <strong>en kısa yola</strong> dönüştüren adım adım anlatım.</p>
+  </header>
+
+  <div class="grid">
+    <!-- SOL: Görselleştirme -->
+    <div class="card">
+      <h2>Etkileşimli Görselleştirme</h2>
+      <div class="canvas-frame">
+        <canvas id="cv" width="800" height="430"></canvas>
+      </div>
+
+      <div class="controls">
+        <button class="ghost" id="btnReset">⏮ Başa</button>
+        <button class="ghost" id="btnPrev">◀ Geri</button>
+        <button id="btnNext">İleri ▶</button>
+        <button class="accent" id="btnPlay">▶ Oynat</button>
+      </div>
+
+      <div class="toggles">
+        <label><input type="checkbox" id="tgPortals" checked> Portalları göster</label>
+        <label><input type="checkbox" id="tgNaive"> Naif orta-nokta yolu</label>
+        <label><input type="checkbox" id="tgResult"> Sadece sonucu göster</label>
+      </div>
+
+      <div class="stepbar">
+        <div class="num" id="stepNum">Adım 0 / 0</div>
+        <div class="desc" id="stepDesc">—</div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="v" id="mLen">—</div><div class="k">Funnel yolu</div></div>
+        <div class="metric"><div class="v" id="mNaive">—</div><div class="k">Naif yol</div></div>
+        <div class="metric"><div class="v" id="mCorners">—</div><div class="k">Köşe sayısı</div></div>
+      </div>
+
+      <div class="legend">
+        <span><span class="dot" style="background:#2f9e6b"></span>Başlangıç</span>
+        <span><span class="dot" style="background:var(--orange)"></span>Hedef / Apex</span>
+        <span><span class="dot" style="background:var(--blue)"></span>Sol köşe (portal)</span>
+        <span><span class="dot" style="background:var(--pink)"></span>Sağ köşe (portal)</span>
+        <span><span class="bar" style="background:var(--orange)"></span>Funnel (en kısa) yol</span>
+        <span><span class="bar" style="background:#b9c2cc"></span>Naif yol</span>
+      </div>
+      <p class="hint">İpucu: Başlangıç ve hedef noktalarını sürükleyerek yolu canlı yeniden hesaplayabilirsiniz.</p>
+    </div>
+
+    <!-- SAĞ: Açıklama -->
+    <div class="card">
+      <h2>Funnel algoritması nasıl kullanılır?</h2>
+      <p class="lead">Bir NavMesh üzerinde A* algoritması, gidilecek <strong>poligonların sırasını</strong> verir; hangi noktalardan geçileceğini değil. Funnel algoritması bu poligon koridorunu gergin bir ip gibi çekerek en kısa yürünebilir yola çevirir. Tipik boru hattı:</p>
+      <ol class="flow">
+        <li><strong>NavMesh:</strong> Yürünebilir alan dışbükey poligonlara (genellikle üçgenlere) bölünür.</li>
+        <li><strong>A* araması:</strong> Poligon komşuluk grafiğinde başlangıç ve hedef poligonları arasında bir <em>poligon dizisi</em> bulunur.</li>
+        <li><strong>Portal çıkarımı:</strong> Ardışık poligonların paylaştığı ortak kenarlar birer <em>portal</em>'dır. Her portalın bir <span style="color:var(--blue);font-weight:600">sol</span> ve bir <span style="color:var(--pink);font-weight:600">sağ</span> ucu tutarlı sarımla etiketlenir.</li>
+        <li><strong>Funnel (string pulling):</strong> Portallar üzerinden gergin ip çekilir; sonuç, koridor içinde kalan <em>en kısa</em> yoldur.</li>
+        <li><strong>Takip:</strong> Ajan, elde edilen köşe noktalarını (waypoint) steering davranışlarıyla izler.</li>
+      </ol>
+
+      <h3>Neden gerekli?</h3>
+      <p>Portal orta noktalarını birleştiren <em>naif</em> yol zikzak yapar ve gereksiz uzundur (soldaki gri çizgi). Funnel algoritması ise ipi köşelere yaslayarak matematiksel olarak en kısa yolu üretir — köşe noktaları hep bir portal ucudur.</p>
+
+      <h3>Çekirdek fikir</h3>
+      <p>Bir <strong>apex</strong> (tepe) noktasından açılan huninin <span style="color:var(--blue);font-weight:600">sol</span> ve <span style="color:var(--pink);font-weight:600">sağ</span> kenarları vardır. Her yeni portalda huni yalnızca <em>daralabilir</em>:</p>
+      <ul style="margin:0;padding-left:20px;">
+        <li>Yeni köşe huniyi daraltıyorsa, ilgili kenar içeri çekilir.</li>
+        <li>Bir kenar diğerini <em>aşarsa</em>, aşılan köşe yola <strong>kilitlenir</strong>, apex oraya taşınır ve huni yeniden açılır.</li>
+      </ul>
+      <p>Bu, <span class="mono">O(n)</span> karmaşıklıkla çalışan <em>Simple Stupid Funnel Algorithm</em>'dir (Mikko Mononen). Sağ/sol kararları, işaretli üçgen alanı ile verilir:</p>
+      <pre><span class="cm"># iki katı işaretli alan → dönüş yönü</span>
+<span class="fn">triarea2</span>(a,b,c) =
+   (b.x-a.x)*(c.y-a.y)
+ - (c.x-a.x)*(b.y-a.y)
+
+<span class="kw">for</span> her portal (sol, sağ):
+   <span class="cm"># sağ kenarı güncelle</span>
+   <span class="kw">if</span> triarea2(apex, sağK, sağ) &lt;= 0:
+     <span class="kw">if</span> apex==sağK <span class="kw">or</span> triarea2(apex, solK, sağ) &gt; 0:
+        sağK = sağ            <span class="cm"># daralt</span>
+     <span class="kw">else</span>:
+        yola solK ekle         <span class="cm"># SOL köşe kilitle</span>
+        apex = solK; huniyi sıfırla
+   <span class="cm"># sol kenarı güncelle (simetrik)</span>
+   ...</pre>
+      <p class="hint">Bu ders materyali BYZ502 kapsamındadır. Renkler ve tipografi ders marka sistemine uygundur.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const W = 800, H = 430, HALF_W = 40;
+  // S biçimli koridor merkez hattı (kemer + oluk) — her iki duvara köşe kilitler
+  const CENTER = [[60,235],[150,175],[250,145],[350,150],[440,205],[520,280],[610,315],[690,300],[740,235]];
+  let start = CENTER[0].slice();
+  let goal  = CENTER[CENTER.length-1].slice();
+
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = W*dpr; cv.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  function triarea2(a,b,c){ return (b[0]-a[0])*(c[1]-a[1]) - (c[0]-a[0])*(b[1]-a[1]); }
+  function eq(a,b){ return Math.abs(a[0]-b[0])<1e-6 && Math.abs(a[1]-b[1])<1e-6; }
+  function dist(a,b){ return Math.hypot(a[0]-b[0], a[1]-b[1]); }
+  function pathLen(p){ let s=0; for(let k=1;k<p.length;k++) s+=dist(p[k],p[k-1]); return s; }
+
+  function buildPortals(){
+    const cl = CENTER.map(p=>p.slice());
+    cl[0] = start.slice(); cl[cl.length-1] = goal.slice();
+    const portals = [{left:start.slice(), right:start.slice()}];
+    for(let i=1;i<cl.length-1;i++){
+      const p0=cl[i-1], p1=cl[i+1];
+      let dx=p1[0]-p0[0], dy=p1[1]-p0[1];
+      const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L;
+      const n=[-dy,dx];
+      const a=[cl[i][0]+n[0]*HALF_W, cl[i][1]+n[1]*HALF_W];
+      const b=[cl[i][0]-n[0]*HALF_W, cl[i][1]-n[1]*HALF_W];
+      const ta=triarea2(cl[i],[cl[i][0]+dx,cl[i][1]+dy],a);
+      // doğrulanmış sarım: ta>0 ise 'a' aslında sağ tarafta → sol/sağ takas
+      if(ta>0) portals.push({left:b,right:a});
+      else     portals.push({left:a,right:b});
+    }
+    portals.push({left:goal.slice(), right:goal.slice()});
+    return portals;
+  }
+
+  function computeSteps(portals){
+    const steps=[]; const path=[];
+    let apex=portals[0].left.slice(), pL=portals[0].left.slice(), pR=portals[0].right.slice();
+    let apexIdx=0, lIdx=0, rIdx=0;
+    path.push(apex.slice());
+    const snap=(i,desc,hl)=>steps.push({apex:apex.slice(),pL:pL.slice(),pR:pR.slice(),i:i,path:path.map(p=>p.slice()),desc:desc,hl:hl});
+    snap(0,'Başlangıç: apex = başlangıç noktası. Huninin sol ve sağ kenarı da buradan başlar.','init');
+    let i=1, guard=0;
+    while(i<portals.length){
+      if(++guard>3000) break;
+      const left=portals[i].left, right=portals[i].right;
+      // sağ kenarı güncelle
+      if(triarea2(apex,pR,right)<=0){
+        if(eq(apex,pR) || triarea2(apex,pL,right)>0){
+          pR=right.slice(); rIdx=i;
+          snap(i,'Portal '+i+': sağ köşe huniyi daraltıyor → sağ kenar içeri çekildi.','R');
+        } else {
+          path.push(pL.slice()); const li=lIdx;
+          apex=pL.slice(); apexIdx=lIdx; pL=apex.slice(); pR=apex.slice(); lIdx=apexIdx; rIdx=apexIdx;
+          snap(li,'Sağ kenar sol kenarı aştı → SOL duvardaki köşe yola kilitlendi; apex bu köşeye taşındı.','lock');
+          i=apexIdx+1; continue;
+        }
+      }
+      // sol kenarı güncelle
+      if(triarea2(apex,pL,left)>=0){
+        if(eq(apex,pL) || triarea2(apex,pR,left)<0){
+          pL=left.slice(); lIdx=i;
+          snap(i,'Portal '+i+': sol köşe huniyi daraltıyor → sol kenar içeri çekildi.','L');
+        } else {
+          path.push(pR.slice()); const ri=rIdx;
+          apex=pR.slice(); apexIdx=rIdx; pL=apex.slice(); pR=apex.slice(); lIdx=apexIdx; rIdx=apexIdx;
+          snap(ri,'Sol kenar sağ kenarı aştı → SAĞ duvardaki köşe yola kilitlendi; apex bu köşeye taşındı.','lock');
+          i=apexIdx+1; continue;
+        }
+      }
+      i++;
+    }
+    path.push(portals[portals.length-1].left.slice());
+    const dd=[path[0].slice()];
+    for(let k=1;k<path.length;k++) if(!eq(path[k],dd[dd.length-1])) dd.push(path[k].slice());
+    steps.push({apex:apex.slice(),pL:pL.slice(),pR:pR.slice(),i:portals.length-1,path:dd,desc:'Bitiş: hedef yola eklendi. En kısa (gergin ip) yol tamamlandı.',hl:'done'});
+    return {steps, finalPath:dd};
+  }
+
+  let portals, steps, finalPath, cur=0, playing=false, playTimer=null;
+
+  function recompute(keepIndex){
+    portals = buildPortals();
+    const r = computeSteps(portals);
+    steps = r.steps; finalPath = r.finalPath;
+    if(keepIndex) cur = Math.min(cur, steps.length-1);
+    else cur = steps.length-1;
+    updateMetrics();
+    render();
+  }
+
+  function naivePath(){ return portals.map(p=>[(p.left[0]+p.right[0])/2,(p.left[1]+p.right[1])/2]); }
+
+  function updateMetrics(){
+    document.getElementById('mLen').textContent   = Math.round(pathLen(finalPath));
+    document.getElementById('mNaive').textContent = Math.round(pathLen(naivePath()));
+    document.getElementById('mCorners').textContent = Math.max(0, finalPath.length-2);
+  }
+
+  // ---- çizim yardımcıları ----
+  function line(a,b,color,w,dash){
+    ctx.beginPath(); ctx.setLineDash(dash||[]); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]);
+    ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  function poly(pts,color,w){
+    if(pts.length<2) return;
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+    for(let k=1;k<pts.length;k++) ctx.lineTo(pts[k][0],pts[k][1]);
+    ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+  }
+  function disc(p,r,fill,stroke){
+    ctx.beginPath(); ctx.arc(p[0],p[1],r,0,Math.PI*2);
+    ctx.fillStyle=fill; ctx.fill();
+    if(stroke){ ctx.lineWidth=2; ctx.strokeStyle=stroke; ctx.stroke(); }
+  }
+
+  function render(){
+    const showPortals = document.getElementById('tgPortals').checked;
+    const showNaive   = document.getElementById('tgNaive').checked;
+    const onlyResult  = document.getElementById('tgResult').checked;
+    ctx.clearRect(0,0,W,H);
+
+    // 1) koridor dolgusu
+    const lefts = portals.map(p=>p.left), rights = portals.map(p=>p.right);
+    ctx.beginPath();
+    ctx.moveTo(lefts[0][0],lefts[0][1]);
+    for(let k=1;k<lefts.length;k++) ctx.lineTo(lefts[k][0],lefts[k][1]);
+    for(let k=rights.length-1;k>=0;k--) ctx.lineTo(rights[k][0],rights[k][1]);
+    ctx.closePath();
+    ctx.fillStyle='rgba(68,112,153,0.08)'; ctx.fill();
+    ctx.strokeStyle='rgba(68,112,153,0.38)'; ctx.lineWidth=2; ctx.stroke();
+
+    const s = onlyResult ? steps[steps.length-1] : steps[cur];
+
+    // 2) portallar
+    if(showPortals){
+      for(let k=1;k<portals.length-1;k++){
+        const hi = (!onlyResult && s.hl!=='init' && s.hl!=='done' && s.i===k);
+        line(portals[k].left, portals[k].right, hi?'rgba(255,111,32,.85)':'#cdd6df', hi?3:1.5, hi?[]:[5,5]);
+      }
+      for(let k=1;k<portals.length-1;k++){
+        disc(portals[k].left, 4.5, '#447099', '#fff');
+        disc(portals[k].right,4.5, '#FF3D7F', '#fff');
+      }
+    }
+
+    // 3) naif yol
+    if(showNaive){ ctx.setLineDash([6,6]); poly(naivePath(),'#aeb8c2',2); ctx.setLineDash([]); }
+
+    // 4) huni (yalnız ara adımlarda)
+    if(!onlyResult && s.hl!=='done'){
+      const degenerate = eq(s.apex,s.pL) && eq(s.apex,s.pR);
+      if(!degenerate){
+        ctx.beginPath();
+        ctx.moveTo(s.apex[0],s.apex[1]); ctx.lineTo(s.pL[0],s.pL[1]); ctx.lineTo(s.pR[0],s.pR[1]); ctx.closePath();
+        ctx.fillStyle='rgba(255,111,32,0.10)'; ctx.fill();
+      }
+      line(s.apex, s.pL, '#447099', 2.5);      // sol kenar
+      line(s.apex, s.pR, '#FF3D7F', 2.5);      // sağ kenar
+      disc(s.pL,5,'#447099','#fff');
+      disc(s.pR,5,'#FF3D7F','#fff');
+    }
+
+    // 5) kilitlenmiş / nihai yol
+    poly(s.path, '#FF6F20', 4);
+    for(let k=1;k<s.path.length-1;k++) disc(s.path[k],4.5,'#FF6F20','#fff');
+
+    // 6) apex
+    if(!onlyResult && s.hl!=='done') disc(s.apex,6,'#FF6F20','#fff');
+
+    // 7) başlangıç / hedef tutamaçları
+    disc(start,8,'#2f9e6b','#fff');
+    ctx.beginPath(); ctx.arc(goal[0],goal[1],8,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill(); ctx.lineWidth=3.5; ctx.strokeStyle='#FF6F20'; ctx.stroke();
+
+    // etiketler
+    ctx.font='600 12px "Open Sans"'; ctx.fillStyle='#2f9e6b'; ctx.fillText('Başlangıç', start[0]-16, start[1]+24);
+    ctx.fillStyle='#c85a12'; ctx.fillText('Hedef', goal[0]-12, goal[1]+24);
+
+    // adım metni
+    document.getElementById('stepNum').textContent = onlyResult
+      ? ('Sonuç • '+ (steps.length) +' adım') : ('Adım '+ (cur) +' / '+ (steps.length-1));
+    document.getElementById('stepDesc').textContent = s.desc;
+    document.getElementById('btnPrev').disabled = onlyResult || cur<=0;
+    document.getElementById('btnNext').disabled = onlyResult || cur>=steps.length-1;
+  }
+
+  // ---- kontroller ----
+  function stop(){ playing=false; clearInterval(playTimer); document.getElementById('btnPlay').textContent='▶ Oynat'; }
+  document.getElementById('btnReset').onclick=()=>{ stop(); cur=0; render(); };
+  document.getElementById('btnPrev').onclick =()=>{ stop(); if(cur>0){cur--; render();} };
+  document.getElementById('btnNext').onclick =()=>{ stop(); if(cur<steps.length-1){cur++; render();} };
+  document.getElementById('btnPlay').onclick =function(){
+    if(playing){ stop(); return; }
+    if(cur>=steps.length-1) cur=0;
+    playing=true; this.textContent='⏸ Duraklat';
+    playTimer=setInterval(()=>{
+      if(cur>=steps.length-1){ stop(); return; }
+      cur++; render();
+    }, 950);
+  };
+  document.getElementById('tgPortals').onchange=render;
+  document.getElementById('tgResult').onchange =()=>{ stop(); render(); };
+  document.getElementById('tgNaive').onchange  =render;
+
+  // ---- sürükleme ----
+  function toCanvas(e){
+    const r=cv.getBoundingClientRect();
+    const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+    const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+    return [cx*W/r.width, cy*H/r.height];
+  }
+  let drag=null;
+  function pickHandle(p){
+    if(dist(p,start)<16) return 'start';
+    if(dist(p,goal)<16) return 'goal';
+    return null;
+  }
+  function down(e){ const p=toCanvas(e); const h=pickHandle(p); if(h){ drag=h; stop(); e.preventDefault(); } }
+  function move(e){
+    if(!drag) return; e.preventDefault();
+    const p=toCanvas(e);
+    p[0]=Math.max(14,Math.min(W-14,p[0])); p[1]=Math.max(14,Math.min(H-14,p[1]));
+    if(drag==='start') start=p; else goal=p;
+    recompute(false);
+  }
+  function up(){ drag=null; }
+  cv.addEventListener('mousedown',down); window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  cv.addEventListener('touchstart',down,{passive:false}); window.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',up);
+  cv.addEventListener('mousemove',e=>{ cv.style.cursor = pickHandle(toCanvas(e)) ? 'grab' : 'default'; });
+
+  // başlat
+  recompute(false);
+  cur=0; render();
+})();
+</script>
+</body>
+</html>

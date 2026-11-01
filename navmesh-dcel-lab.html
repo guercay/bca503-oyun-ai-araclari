@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NavMesh & DCEL Laboratuvarı — BYZ502</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099;
+    --blue-deep:#2f5070;
+    --orange:#FF6F20;
+    --pink:#FF3D7F;
+    --ink:#1e2933;
+    --muted:#5a6b7a;
+    --line:#d8e0e8;
+    --paper:#f4f6f8;
+    --card:#ffffff;
+    --good:#2e9e6b;
+    --bad:#e23d3d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Open Sans',sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 64px;}
+
+  header.hero{
+    border-left:6px solid var(--orange);
+    padding:6px 0 6px 18px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:'Fira Code',monospace;
+    font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--blue);font-weight:500;
+  }
+  h1{
+    font-family:'Roboto Slab',serif;font-weight:700;
+    font-size:1.85rem;line-height:1.15;margin:.18em 0 .12em;
+  }
+  .sub{color:var(--muted);font-size:1rem;max-width:62ch;}
+
+  .tabs{display:flex;gap:8px;margin:26px 0 18px;flex-wrap:wrap;}
+  .tab{
+    font-family:'Roboto Slab',serif;font-weight:500;font-size:.92rem;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);
+    padding:10px 16px;border-radius:10px;cursor:pointer;transition:.18s;
+  }
+  .tab[aria-selected="true"]{
+    background:var(--blue);border-color:var(--blue);color:#fff;
+    box-shadow:0 4px 14px rgba(68,112,153,.28);
+  }
+  .tab:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
+
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:20px;margin-bottom:16px;
+  }
+  h2{font-family:'Roboto Slab',serif;font-weight:700;font-size:1.22rem;margin:.1em 0 .5em;}
+  p.lead{color:var(--muted);font-size:.96rem;margin:0 0 14px;}
+
+  .stage{
+    background:#eef2f6;border-radius:12px;border:1px solid var(--line);
+    width:100%;display:block;touch-action:none;
+  }
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 4px;}
+  .btn{
+    font-family:'Open Sans',sans-serif;font-weight:600;font-size:.9rem;
+    border:none;border-radius:9px;padding:10px 15px;cursor:pointer;transition:.16s;
+    background:var(--card);color:var(--blue);border:1px solid var(--line);
+  }
+  .btn.primary{background:var(--orange);color:#fff;}
+  .btn.primary:hover{background:#e85f14;}
+  .btn[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
+
+  .verdict{
+    font-family:'Fira Code',monospace;font-size:.9rem;font-weight:500;
+    padding:10px 14px;border-radius:9px;margin-top:12px;display:inline-block;
+  }
+  .verdict.good{background:rgba(46,158,107,.12);color:var(--good);}
+  .verdict.bad{background:rgba(226,61,61,.12);color:var(--bad);}
+
+  .hint{font-size:.86rem;color:var(--muted);margin-top:10px;}
+  .hint b{color:var(--ink);}
+
+  /* DCEL data panel */
+  .dcel-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+  @media(max-width:680px){.dcel-grid{grid-template-columns:1fr;}}
+  .data{
+    font-family:'Fira Code',monospace;font-size:.85rem;
+    background:#1e2933;color:#e8eef4;border-radius:12px;padding:16px;
+  }
+  .data .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #33414e;}
+  .data .row:last-child{border-bottom:none;}
+  .data .k{color:#9ab4cc;}
+  .data .v{font-weight:500;}
+  .data .v.twin{color:var(--pink);}
+  .data .v.face{color:var(--orange);}
+  .data .empty{color:#6c7d8c;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:12px;}
+  .swatch{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;}
+
+  footer{margin-top:30px;font-family:'Fira Code',monospace;font-size:.76rem;color:var(--muted);text-align:center;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">BYZ502 · Hafta 02 · İnteraktif Eklenti</div>
+    <h1>NavMesh &amp; DCEL Laboratuvarı</h1>
+    <p class="sub">Ders notundaki iki soyut kavramı elle deneyin: dışbükey poligonların sağladığı <b>Çizgi Görüşü Garantisi</b> ve komşu üçgenleri sabit zamanda bulan <b>DCEL Yarım-Kenar</b> yapısı.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Laboratuvar bölümleri">
+    <button class="tab" role="tab" id="tab1" aria-selected="true" aria-controls="panel1">1 · Çizgi Görüşü Garantisi</button>
+    <button class="tab" role="tab" id="tab2" aria-selected="false" aria-controls="panel2">2 · DCEL Yarım-Kenar Gezgini</button>
+  </div>
+
+  <!-- ============ PANEL 1 ============ -->
+  <section class="panel active" id="panel1" role="tabpanel" aria-labelledby="tab1">
+    <div class="card">
+      <h2>"L" Şeklindeki Odada Yol Bulma</h2>
+      <p class="lead">Turuncu nokta NPC, pembe nokta hedef. Hedefi sürükleyin. Aynı haritayı iki farklı şekilde temsil edip NPC'nin köşeyi dönerken ne yaptığını izleyin.</p>
+
+      <svg id="stage1" class="stage" viewBox="0 0 400 320" role="img" aria-label="L şeklinde oda ve yol bulma simülasyonu"></svg>
+
+      <div class="controls" role="group" aria-label="Temsil seçimi">
+        <button class="btn" id="modeConcave" aria-pressed="true">Tek İçbükey Poligon</button>
+        <button class="btn" id="modeConvex" aria-pressed="false">Dışbükey Parçalama</button>
+      </div>
+      <div id="verdict1" class="verdict bad">NPC duvara çarptı — rota poligon dışına taştı.</div>
+      <p class="hint" id="hint1"><b>İçbükey mod:</b> motor "hedef aynı poligonda, demek ki engel yok" der ve dümdüz yürür — ama L'nin iç köşesindeki duvara çarpar.</p>
+    </div>
+  </section>
+
+  <!-- ============ PANEL 2 ============ -->
+  <section class="panel" id="panel2" role="tabpanel" aria-labelledby="tab2">
+    <div class="card">
+      <h2>Yarım-Kenarlar Arasında Gezinme</h2>
+      <p class="lead">İki üçgen, ortak bir kenarı paylaşıyor. Herhangi bir oka (yarım kenar) tıklayın: motorun o kenardan <b>Next</b>, <b>Prev</b>, ait olduğu <b>Yüz</b> ve en önemlisi komşuya açılan <b>Twin</b> köprüsünü nasıl bulduğunu görün.</p>
+
+      <div class="dcel-grid">
+        <svg id="stage2" class="stage" viewBox="0 0 400 320" role="img" aria-label="İki üçgenli DCEL yarım-kenar yapısı"></svg>
+        <div class="data" id="dcelData" aria-live="polite">
+          <div class="row"><span class="k">// Bir yarım kenar seçin</span></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span class="swatch"><span class="dot" style="background:var(--blue)"></span>Seçili kenar</span>
+        <span class="swatch"><span class="dot" style="background:var(--pink)"></span>Twin (ikiz)</span>
+        <span class="swatch"><span class="dot" style="background:var(--orange)"></span>Next</span>
+        <span class="swatch"><span class="dot" style="background:#8a4fd6"></span>Prev</span>
+      </div>
+      <p class="hint">Ortak kenarın <b>Twin</b>'ine tıkladığınızda sistem hiçbir arama yapmadan, tek pointer atlamasıyla komşu yüze geçer — bu, <b>O(1)</b> (sabit zaman) karmaşıklığıdır.</p>
+    </div>
+  </section>
+
+  <footer>BYZ502 — Oyun Motorunda Yapay Zekâ Uygulamaları · Hacettepe Üniversitesi</footer>
+</div>
+
+<script>
+/* ---------- Tab switching ---------- */
+const tabs=[document.getElementById('tab1'),document.getElementById('tab2')];
+const panels=[document.getElementById('panel1'),document.getElementById('panel2')];
+tabs.forEach((t,i)=>t.addEventListener('click',()=>{
+  tabs.forEach((tt,j)=>{tt.setAttribute('aria-selected',j===i);panels[j].classList.toggle('active',j===i);});
+}));
+
+/* ================= DEMO 1: Line of Sight ================= */
+(function(){
+  const svg=document.getElementById('stage1');
+  const NS='http://www.w3.org/2000/svg';
+  // L polygon (içbükey) — reflex vertex at index 2: (220,160)
+  const L=[[40,40],[220,40],[220,160],[360,160],[360,280],[40,280]];
+  const REFLEX=[220,160];
+  const NPC=[130,75];
+  let target=[315,240];
+  let mode='concave';
+  let dragging=false;
+  function toSvg(evt){
+    const r=svg.getBoundingClientRect();
+    const x=((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)/r.width*400;
+    const y=((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)/r.height*320;
+    return [x,y];
+  }
+
+  function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+  function pathFromPts(pts){return 'M'+pts.map(p=>p.join(',')).join(' L ')+' Z';}
+
+  // segment proper intersection
+  function ccw(a,b,c){return (c[1]-a[1])*(b[0]-a[0])-(b[1]-a[1])*(c[0]-a[0]);}
+  function segInt(p1,p2,p3,p4){
+    const d1=ccw(p3,p4,p1),d2=ccw(p3,p4,p2),d3=ccw(p1,p2,p3),d4=ccw(p1,p2,p4);
+    return ((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0));
+  }
+  function segInsideL(a,b){
+    for(let i=0;i<L.length;i++){
+      const e1=L[i],e2=L[(i+1)%L.length];
+      if(segInt(a,b,e1,e2))return false;
+    }
+    return true;
+  }
+  function pointInL(p){
+    let inside=false;
+    for(let i=0,j=L.length-1;i<L.length;j=i++){
+      const xi=L[i][0],yi=L[i][1],xj=L[j][0],yj=L[j][1];
+      if(((yi>p[1])!==(yj>p[1]))&&(p[0]<(xj-xi)*(p[1]-yi)/(yj-yi)+xi))inside=!inside;
+    }
+    return inside;
+  }
+
+  function render(){
+    svg.innerHTML='';
+    // floor
+    svg.appendChild(el('path',{d:pathFromPts(L),fill:'#ffffff',stroke:'#c2cdd8','stroke-width':2}));
+    // wall hatch on the notch (the missing corner) for clarity
+    svg.appendChild(el('rect',{x:222,y:42,width:136,height:116,fill:'#dfe6ed',rx:6}));
+    const notchTxt=el('text',{x:290,y:104,'text-anchor':'middle','font-family':'Open Sans','font-size':12,fill:'#8aa0b3'});
+    notchTxt.textContent='DUVAR';svg.appendChild(notchTxt);
+
+    const direct=segInsideL(NPC,target);
+    const verdict=document.getElementById('verdict1');
+    const hint=document.getElementById('hint1');
+
+    if(mode==='concave'){
+      // straight line always attempted
+      const line=el('line',{x1:NPC[0],y1:NPC[1],x2:target[0],y2:target[1],'stroke-width':3,'stroke-linecap':'round'});
+      line.setAttribute('stroke',direct?'var(--good)':'var(--bad)');
+      if(!direct)line.setAttribute('stroke-dasharray','7 5');
+      svg.appendChild(line);
+      if(!direct){
+        // mark collision-ish point: x=220 crossing
+        verdict.className='verdict bad';
+        verdict.textContent='NPC duvara çarptı — rota poligon dışına taştı.';
+        hint.innerHTML='<b>İçbükey mod:</b> motor "hedef aynı poligonda, demek ki engel yok" der ve dümdüz yürür — ama L\'nin iç köşesindeki duvara çarpar.';
+      }else{
+        verdict.className='verdict good';
+        verdict.textContent='Bu konumda düz çizgi tesadüfen içeride kaldı.';
+        hint.innerHTML='<b>İçbükey mod:</b> hedefi alt-sağ kola sürükleyin; düz çizgi duvara taşacak.';
+      }
+    }else{
+      // convex split: draw split line and route via reflex if needed
+      svg.appendChild(el('line',{x1:220,y1:160,x2:220,y2:280,stroke:'var(--blue)','stroke-width':2,'stroke-dasharray':'4 4'}));
+      const portalTxt=el('text',{x:228,y:200,'font-family':'Fira Code','font-size':10,fill:'var(--blue)'});
+      portalTxt.textContent='portal';svg.appendChild(portalTxt);
+      let pts;
+      if(direct){pts=[NPC,target];}
+      else{pts=[NPC,REFLEX,target];}
+      svg.appendChild(el('path',{d:'M'+pts.map(p=>p.join(',')).join(' L '),fill:'none',stroke:'var(--good)','stroke-width':3,'stroke-linecap':'round','stroke-linejoin':'round'}));
+      if(!direct)svg.appendChild(el('circle',{cx:REFLEX[0],cy:REFLEX[1],r:5,fill:'var(--good)'}));
+      verdict.className='verdict good';
+      verdict.textContent=direct?'Tek poligon yeterliydi — düz ve güvenli rota.':'Köşe iç açıdan (reflex köşe) güvenle dönüldü.';
+      hint.innerHTML='<b>Dışbükey mod:</b> L iki dışbükey parçaya bölündü. NPC önce ortak kenara (portal), sonra hedefe yürür; iç köşeyi pürüzsüzce döner.';
+    }
+    // NPC & target
+    svg.appendChild(el('circle',{cx:NPC[0],cy:NPC[1],r:8,fill:'var(--orange)',stroke:'#fff','stroke-width':2}));
+    const npcT=el('text',{x:NPC[0],y:NPC[1]-13,'text-anchor':'middle','font-family':'Fira Code','font-size':10,fill:'var(--ink)'});
+    npcT.textContent='NPC';svg.appendChild(npcT);
+    const tg=el('circle',{cx:target[0],cy:target[1],r:9,fill:'var(--pink)',stroke:'#fff','stroke-width':2,cursor:'grab',tabindex:0,role:'slider','aria-label':'Hedef noktası, sürükleyerek veya ok tuşlarıyla taşıyın'});
+    svg.appendChild(tg);
+    const tgT=el('text',{x:target[0],y:target[1]+22,'text-anchor':'middle','font-family':'Fira Code','font-size':10,fill:'var(--ink)'});
+    tgT.textContent='Hedef';svg.appendChild(tgT);
+
+    // drag (element-level only; window listeners attached once below)
+    tg.addEventListener('pointerdown',()=>{dragging=true;tg.setAttribute('cursor','grabbing');});
+    tg.addEventListener('keydown',e=>{
+      const step=8;let np=[...target];
+      if(e.key==='ArrowLeft')np[0]-=step;else if(e.key==='ArrowRight')np[0]+=step;
+      else if(e.key==='ArrowUp')np[1]-=step;else if(e.key==='ArrowDown')np[1]+=step;else return;
+      e.preventDefault();if(pointInL(np)){target=np;render();}
+    });
+  }
+  window.addEventListener('pointermove',evt=>{
+    if(!dragging)return;evt.preventDefault();
+    const p=toSvg(evt);
+    if(pointInL(p)){target=[Math.round(p[0]),Math.round(p[1])];render();}
+  });
+  window.addEventListener('pointerup',()=>{dragging=false;});
+  document.getElementById('modeConcave').addEventListener('click',function(){mode='concave';this.setAttribute('aria-pressed',true);document.getElementById('modeConvex').setAttribute('aria-pressed',false);render();});
+  document.getElementById('modeConvex').addEventListener('click',function(){mode='convex';this.setAttribute('aria-pressed',true);document.getElementById('modeConcave').setAttribute('aria-pressed',false);render();});
+  render();
+})();
+
+/* ================= DEMO 2: DCEL Half-Edge ================= */
+(function(){
+  const svg=document.getElementById('stage2');
+  const NS='http://www.w3.org/2000/svg';
+  const dataBox=document.getElementById('dcelData');
+  const V={V0:[80,60],V1:[320,60],V2:[320,260],V3:[80,260]};
+  // half-edges
+  const HE={
+    a0:{origin:'V0',to:'V1',face:'Yüz A',next:'a1',prev:'a2',twin:null},
+    a1:{origin:'V1',to:'V3',face:'Yüz A',next:'a2',prev:'a0',twin:'b2'},
+    a2:{origin:'V3',to:'V0',face:'Yüz A',next:'a0',prev:'a1',twin:null},
+    b0:{origin:'V1',to:'V2',face:'Yüz B',next:'b1',prev:'b2',twin:null},
+    b1:{origin:'V2',to:'V3',face:'Yüz B',next:'b2',prev:'b0',twin:null},
+    b2:{origin:'V3',to:'V1',face:'Yüz B',next:'b0',prev:'b1',twin:'a1'}
+  };
+  const faceCentroid={'Yüz A':[160,127],'Yüz B':[240,193]};
+  let sel=null;
+
+  function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+  function lerp(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];}
+  // offset a half-edge slightly toward its face centroid so twins are separable
+  function heGeom(id){
+    const h=HE[id];const o=V[h.origin],d=V[h.to];const c=faceCentroid[h.face];
+    const mid=lerp(o,d,0.5);
+    const nx=(c[0]-mid[0]),ny=(c[1]-mid[1]);const len=Math.hypot(nx,ny)||1;
+    const off=11;const ox=nx/len*off,oy=ny/len*off;
+    return {a:[o[0]+ox+(d[0]-o[0])*0.12,o[1]+oy+(d[1]-o[1])*0.12],
+            b:[d[0]+ox-(d[0]-o[0])*0.12,d[1]+oy-(d[1]-o[1])*0.12]};
+  }
+
+  function colorFor(id){
+    if(!sel)return '#9fb1c0';
+    if(id===sel)return 'var(--blue)';
+    if(id===HE[sel].twin)return 'var(--pink)';
+    if(id===HE[sel].next)return 'var(--orange)';
+    if(id===HE[sel].prev)return '#8a4fd6';
+    return '#cdd7e0';
+  }
+
+  function render(){
+    svg.innerHTML='';
+    // defs arrowheads
+    const defs=el('defs',{});
+    [['ah','#9fb1c0'],['ahb','#447099'],['aht','#FF3D7F'],['ahn','#FF6F20'],['ahp','#8a4fd6']].forEach(([id,col])=>{
+      const m=el('marker',{id,markerWidth:8,markerHeight:8,refX:6,refY:3,orient:'auto'});
+      m.appendChild(el('path',{d:'M0,0 L6,3 L0,6 Z',fill:col}));defs.appendChild(m);
+    });
+    svg.appendChild(defs);
+    // faces fill (highlight incident face of selection)
+    const fA=el('path',{d:`M${V.V0} L${V.V1} L${V.V3} Z`,'stroke':'#c2cdd8','stroke-width':1.5});
+    const fB=el('path',{d:`M${V.V1} L${V.V2} L${V.V3} Z`,'stroke':'#c2cdd8','stroke-width':1.5});
+    const selFace=sel?HE[sel].face:null;
+    fA.setAttribute('fill',selFace==='Yüz A'?'rgba(255,111,32,.10)':'#ffffff');
+    fB.setAttribute('fill',selFace==='Yüz B'?'rgba(255,111,32,.10)':'#ffffff');
+    svg.appendChild(fA);svg.appendChild(fB);
+    // face labels
+    ['Yüz A','Yüz B'].forEach(f=>{const c=faceCentroid[f];const t=el('text',{x:c[0],y:c[1],'text-anchor':'middle','font-family':'Roboto Slab','font-size':13,fill:'#7d8b98','font-weight':700});t.textContent=f;svg.appendChild(t);});
+
+    // half-edges
+    Object.keys(HE).forEach(id=>{
+      const g=heGeom(id);const col=colorFor(id);
+      let mk='ah';if(col==='var(--blue)')mk='ahb';else if(col==='var(--pink)')mk='aht';else if(col==='var(--orange)')mk='ahn';else if(col==='#8a4fd6')mk='ahp';
+      const ln=el('line',{x1:g.a[0],y1:g.a[1],x2:g.b[0],y2:g.b[1],stroke:col,'stroke-width':(id===sel||id===(sel&&HE[sel].twin))?4:2.5,'marker-end':`url(#${mk})`,cursor:'pointer',tabindex:0,role:'button','aria-label':`Yarım kenar ${id}, ${HE[id].origin} noktasından ${HE[id].to} noktasına`});
+      const hit=el('line',{x1:g.a[0],y1:g.a[1],x2:g.b[0],y2:g.b[1],stroke:'transparent','stroke-width':16,cursor:'pointer'});
+      const pick=()=>{sel=id;render();updateData();};
+      ln.addEventListener('click',pick);hit.addEventListener('click',pick);
+      ln.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick();}});
+      svg.appendChild(hit);svg.appendChild(ln);
+      // label
+      const mid=lerp(g.a,g.b,0.5);
+      const t=el('text',{x:mid[0],y:mid[1]-4,'text-anchor':'middle','font-family':'Fira Code','font-size':11,fill:col==='#9fb1c0'||col==='#cdd7e0'?'#7d8b98':col,'font-weight':500});
+      t.textContent=id;svg.appendChild(t);
+    });
+
+    // vertices
+    Object.keys(V).forEach(k=>{
+      svg.appendChild(el('circle',{cx:V[k][0],cy:V[k][1],r:5,fill:'#2f5070'}));
+      const t=el('text',{x:V[k][0]+(V[k][0]<200?-12:12),y:V[k][1]+(V[k][1]<160?-8:16),'text-anchor':'middle','font-family':'Fira Code','font-size':11,fill:'#2f5070'});
+      t.textContent=k;svg.appendChild(t);
+    });
+  }
+
+  function updateData(){
+    if(!sel){dataBox.innerHTML='<div class="row"><span class="k">// Bir yarım kenar seçin</span></div>';return;}
+    const h=HE[sel];
+    const twinHtml=h.twin?`<span class="v twin">${h.twin}</span>`:'<span class="v empty">∅ (sınır)</span>';
+    const note=h.twin?`<div class="row"><span class="k">// Twin köprüsü → komşu yüze O(1) atlama</span></div>`:`<div class="row"><span class="k">// Twin yok → bu kenar haritanın dış sınırında</span></div>`;
+    dataBox.innerHTML=`
+      <div class="row"><span class="k">Seçili kenar</span><span class="v">${sel}</span></div>
+      <div class="row"><span class="k">Origin (başlangıç)</span><span class="v">${h.origin}</span></div>
+      <div class="row"><span class="k">Incident Face (yüz)</span><span class="v face">${h.face}</span></div>
+      <div class="row"><span class="k">Next (sonraki)</span><span class="v">${h.next}</span></div>
+      <div class="row"><span class="k">Prev (önceki)</span><span class="v">${h.prev}</span></div>
+      <div class="row"><span class="k">Twin (ikiz)</span>${twinHtml}</div>
+      ${note}`;
+  }
+  render();updateData();
+})();
+</script>
+</body>
+</html>

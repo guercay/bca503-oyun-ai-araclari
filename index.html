@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bilgisayar Oyunlarında Yapay Zeka — İnteraktif Araçlar</title>
+<style>
+  :root{
+    --ink:#161a1f; --paper:#ffffff; --muted:#5b6470;
+    --accent:#2454ff; --accent-tint:#eaf0ff; --line:#e3e6eb;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ink:#eef1f5; --paper:#14161a; --muted:#9aa3b0; --accent:#6f93ff; --accent-tint:#1b2440; --line:#272b33; }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:48px 20px 80px;}
+  header{margin-bottom:40px;}
+  .eyebrow{color:var(--accent); font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase;}
+  h1{font-size:clamp(28px,4vw,40px); margin:8px 0 10px; letter-spacing:-0.01em;}
+  .sub{color:var(--muted); font-size:16px; max-width:640px;}
+  .group{margin-top:40px;}
+  .group h2{font-size:18px; margin:0 0 14px; border-bottom:1px solid var(--line); padding-bottom:10px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px;}
+  a.card{
+    display:block; padding:16px 18px; border:1px solid var(--line); border-radius:12px;
+    text-decoration:none; color:var(--ink); background:var(--paper);
+    transition:border-color .15s, transform .15s, background .15s;
+  }
+  a.card:hover{border-color:var(--accent); background:var(--accent-tint); transform:translateY(-1px);}
+  a.card .t{font-weight:600; font-size:15px; display:block;}
+  a.card .arrow{color:var(--accent); font-size:13px; margin-top:6px; display:inline-block; font-weight:600;}
+  footer{margin-top:56px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:13px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Hacettepe Üniversitesi · Bilgisayar Animasyonu ve Oyun Teknolojileri</div>
+    <h1>Bilgisayar Oyunlarında Yapay Zeka</h1>
+    <p class="sub">Ders kapsamında hazırlanan etkileşimli gösterim ve laboratuvar araçları. Her başlık, konuyu tarayıcıda canlı olarak deneyimlemeniz için ayrı bir sayfa açar — kurulum gerekmez.</p>
+  </header>
+
+  <section class="group">
+    <h2>Arama ve Yol Bulma</h2>
+    <div class="grid">
+      <a class="card" href="astar_interaktif_gosterim.html"><span class="t">A* Yol Bulma — İnteraktif Gösterim</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="flood_fill_algoritmasi.html"><span class="t">Flood-Fill Algoritması</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="hill_climbing_algoritmasi.html"><span class="t">Tırmanma Algoritması (Hill Climbing)</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="navigasyon.html"><span class="t">Izgara vs NavMesh Simülatörü</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="navmesh-dcel-lab.html"><span class="t">NavMesh &amp; DCEL Laboratuvarı</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="funnel_algoritmasi.html"><span class="t">Funnel (Huni) Algoritması — Anlatım</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="funnel-pathfinding-lab.html"><span class="t">Funnel &amp; Sezgisel Laboratuvarı</span><span class="arrow">Aç →</span></a>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2>Karar Verme ve Planlama</h2>
+    <div class="grid">
+      <a class="card" href="goap_planlayici_demo.html"><span class="t">GOAP Planlayıcı Demosu</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="minimax_alfabeta_oyunu.html"><span class="t">Minimax ve α-β Budama Oyunu</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="the_sims_fayda_demo.html"><span class="t">The Sims — Akıllı Nesneler &amp; Fayda</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="gorev_kisitlari_interaktif.html"><span class="t">Görev Kısıtlarını Öğrenmek</span><span class="arrow">Aç →</span></a>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2>Hareket ve Çoklu Ajan Davranışı</h2>
+    <div class="grid">
+      <a class="card" href="rvo-velocity-obstacle-lab.html"><span class="t">Hız Engeli (RVO) Laboratuvarı</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="bakis_animasyonu_ml.html"><span class="t">Prosedürel Bakış Animasyonu</span><span class="arrow">Aç →</span></a>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2>Öğrenme ve Optimizasyon</h2>
+    <div class="grid">
+      <a class="card" href="evrimsel_algoritma_demo.html"><span class="t">Evrimsel Algoritma Laboratuvarı</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="gradyan_inisi_yaris.html"><span class="t">Yarış AI'ı: Gradyan İnişi</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="kfold_capraz_dogrulama.html"><span class="t">K-Katlı Çapraz Doğrulama</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="qd_map_elites_demo.html"><span class="t">Kalite-Çeşitlilik (QD) Laboratuvarı</span><span class="arrow">Aç →</span></a>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2>Prosedürel İçerik Üretimi</h2>
+    <div class="grid">
+      <a class="card" href="lsystem_algoritmasi.html"><span class="t">L-Sistemleri</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="mini_mario_markov.html"><span class="t">Mini-Mario Markov Bölüm Üreteci</span><span class="arrow">Aç →</span></a>
+      <a class="card" href="wfc-kisit-tabanli-demo.html"><span class="t">Kısıt Tabanlı PCGML — WaveFunctionCollapse</span><span class="arrow">Aç →</span></a>
+    </div>
+  </section>
+
+  <footer>Prof. Dr. Haşmet Gürçay · Hacettepe Üniversitesi</footer>
+</div>
+</body>
+</html>

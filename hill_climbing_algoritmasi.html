@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tırmanma Algoritması (Hill Climbing) — Etkileşimli Anlatım</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F;
+    --ink:#26333f; --muted:#66757f; --line:#e2e8ee; --bg:#f7f9fb; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Open Sans',system-ui,sans-serif; line-height:1.55; padding:24px 16px 56px;}
+  .wrap{max-width:1140px; margin:0 auto;}
+  header.top{border-left:6px solid var(--orange); padding:6px 0 6px 16px; margin-bottom:22px;}
+  header.top h1{font-family:'Roboto Slab',serif; font-weight:700; color:var(--blue); margin:0 0 4px; font-size:1.7rem;}
+  header.top p{margin:0; color:var(--muted); font-size:.95rem;}
+  .grid{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:22px;}
+  @media(max-width:900px){ .grid{grid-template-columns:1fr;} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 1px 3px rgba(38,51,63,.05);}
+  h2{font-family:'Roboto Slab',serif; color:var(--blue); font-size:1.15rem; margin:0 0 12px;}
+  h3{font-family:'Roboto Slab',serif; color:var(--ink); font-size:1rem; margin:18px 0 8px;}
+  canvas{width:100%; height:auto; display:block; border-radius:8px; background:#fff; cursor:crosshair; touch-action:none;}
+  .canvas-frame{border:1px solid var(--line); border-radius:12px; padding:10px; background:#fdfdfe;}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; margin-bottom:12px;}
+  .seg button{border:none; border-radius:0; background:#fff; color:var(--muted); padding:8px 13px; font-size:.85rem; font-weight:600; cursor:pointer; font-family:'Open Sans',sans-serif;}
+  .seg button.on{background:var(--blue); color:#fff;}
+  .controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px;}
+  button.act{font-family:'Open Sans',sans-serif; font-weight:600; font-size:.88rem; border:1px solid var(--blue); background:var(--blue); color:#fff; padding:8px 14px; border-radius:9px; cursor:pointer; transition:.15s;}
+  button.act.ghost{background:#fff; color:var(--blue);}
+  button.act.accent{background:var(--orange); border-color:var(--orange);}
+  button.act:hover{filter:brightness(1.06);}
+  .hint{font-size:.82rem; color:var(--muted); margin-top:10px; font-style:italic;}
+  .metrics{display:flex; gap:14px; margin-top:14px; flex-wrap:wrap;}
+  .metric{background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 14px; text-align:center; min-width:96px;}
+  .metric .v{font-family:'Roboto Slab',serif; font-size:1.2rem; color:var(--blue);}
+  .metric .k{font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
+  .tbar{margin-top:10px;}
+  .tbar .label{font-size:.78rem; color:var(--muted); display:flex; justify-content:space-between; margin-bottom:3px;}
+  .tbar .track{height:8px; border-radius:5px; background:#eef2f6; overflow:hidden;}
+  .tbar .fill{height:100%; background:linear-gradient(90deg,var(--pink),var(--orange)); width:100%; transition:width .1s linear;}
+  .legend{display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:14px; font-size:.82rem; color:var(--muted);}
+  .legend span{display:flex; align-items:center; gap:7px;}
+  .dot{width:12px; height:12px; border-radius:50%; display:inline-block; border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.08);}
+  p.lead{margin-top:0;}
+  ul.uses, ol.flow{margin:0; padding-left:20px;}
+  ul.uses li, ol.flow li{margin-bottom:7px;}
+  .mono{font-family:'Fira Code',monospace; font-size:.86em; background:#eef2f6; padding:1px 5px; border-radius:4px; color:#324a5e;}
+  .pill{display:inline-block; background:var(--pink); color:#fff; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:20px; vertical-align:middle; margin-left:6px;}
+  .log{margin-top:12px; max-height:150px; overflow-y:auto; font-family:'Fira Code',monospace; font-size:.74rem; background:#1f2b36; color:#e6edf3; border-radius:8px; padding:10px 12px; line-height:1.55;}
+  .log .g{color:#7fd1c9;} .log .b{color:#ffb199;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Tırmanma Algoritması (Hill Climbing) <span class="pill">Local Search</span></h1>
+    <p>Çok-tepeli bir arazi üzerinde üç strateji: düz tırmanma, rastgele yeniden başlatma, benzetimli tavlama.</p>
+  </header>
+
+  <div class="grid">
+    <!-- SOL: Görselleştirme -->
+    <div class="card">
+      <h2>Etkileşimli Arazi</h2>
+
+      <div class="seg" id="segMode">
+        <button data-v="plain" class="on">Düz Tırmanma</button>
+        <button data-v="restart">Rastgele Yeniden Başlatma</button>
+        <button data-v="sa">Benzetimli Tavlama</button>
+      </div>
+
+      <div class="canvas-frame">
+        <canvas id="cv" width="800" height="320"></canvas>
+      </div>
+
+      <div class="controls">
+        <button class="act ghost" id="btnReset">↻ Sıfırla</button>
+        <button class="act accent" id="btnRun">▶ Çalıştır</button>
+        <label style="font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:6px;">Hız
+          <input type="range" id="speed" min="1" max="10" value="5">
+        </label>
+      </div>
+
+      <div id="saTempBox" class="tbar" style="display:none;">
+        <div class="label"><span>Sıcaklık (T)</span><span id="tempVal">—</span></div>
+        <div class="track"><div class="fill" id="tempFill"></div></div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="v" id="mCurrent">—</div><div class="k">Mevcut f(x)</div></div>
+        <div class="metric"><div class="v" id="mBest">—</div><div class="k">En iyi bulunan</div></div>
+        <div class="metric"><div class="v" id="mTries">0</div><div class="k">Deneme/Adım</div></div>
+        <div class="metric"><div class="v" id="mStatus">—</div><div class="k">Durum</div></div>
+      </div>
+
+      <div class="legend">
+        <span><span class="dot" style="background:#447099"></span>Aktif tırmanıcı</span>
+        <span><span class="dot" style="background:#cdd6df"></span>Denenen / tamamlanan</span>
+        <span><span class="dot" style="background:#FF6F20"></span>En iyi sonuç</span>
+        <span><span class="dot" style="background:#FF3D7F"></span>Global maksimum (gizli)</span>
+      </div>
+      <p class="hint" id="hintText">İpucu: Arazi üzerine tıklayarak tırmanıcının başlangıç noktasını seçin, sonra "Çalıştır"a basın.</p>
+
+      <div class="log" id="logBox"></div>
+    </div>
+
+    <!-- SAĞ: Açıklama -->
+    <div class="card">
+      <h2>Üç strateji, tek problem</h2>
+      <p class="lead">Aynı çok-tepeli arazide üç farklı arama stratejisini karşılaştırın. Hepsi aynı temel harekete dayanır — <span class="mono">f(x+adım)</span> mevcut değerden iyiyse oraya geç — ama "iyi değilse ne yap?" sorusuna verdikleri cevap farklıdır.</p>
+
+      <h3>1. Düz Tırmanma</h3>
+      <p>Tek bir tırmanıcı, yalnızca komşularına bakar ve <strong>hiçbir zaman</strong> daha kötü bir noktaya geçmez. Başlangıç noktasına tamamen bağımlıdır — arazideki en yakın tepeye çıkar, o tepe global maksimum olmasa bile orada durur. <strong>Farklı başlangıç noktalarını deneyerek</strong> bu bağımlılığı gözlemleyin.</p>
+
+      <h3>2. Rastgele Yeniden Başlatma</h3>
+      <p>Aynı algoritma, <strong>8 farklı rastgele noktadan</strong> paralel çalıştırılır; her biri kendi yerel tepesine tırmanır, en sonunda <strong>en iyi sonucu veren</strong> tutulur. Garanti vermez ama "yeterince çok dene" mantığıyla global maksimumu bulma olasılığını artırır.</p>
+
+      <h3>3. Benzetimli Tavlama (Simulated Annealing)</h3>
+      <p>Tek bir tırmanıcı, başlangıçta <strong>yüksek "sıcaklık"</strong> ile bazen <em>daha kötü</em> bir komşuya da geçebilir (pembe yanıp sönme ile gösterilir) — bu, onu yerel tepelerden "sıçrayarak" kurtarır. Sıcaklık zamanla düşer; sona doğru düz tırmanma gibi davranarak bulduğu bölgeyi ince ayarlar. <strong>Olasılıksaldır</strong> — her çalıştırmada farklı bir sonuç bulabilir.</p>
+
+      <h3>Neden önemli?</h3>
+      <ul class="uses">
+        <li>Bir önceki haftanın Civilization/Polytopia harita dengesi örneği, aslında düz tırmanmaya çok benzer: küçük mutasyonlar yapılır, yalnızca iyileştirenler kabul edilir.</li>
+        <li>FI-2Pop ve QD gibi yöntemler, tırmanmanın "tek çözüm, tek yön" sınırlamasını bir <strong>popülasyon</strong> kullanarak aşar — birden fazla tırmanıcının aynı anda farklı tepelerde olması, rastgele yeniden başlatmanın doğal bir genellemesidir.</li>
+      </ul>
+
+      <h3>Kısıt tabanlı aramayla fark</h3>
+      <p>CSP'deki geri izleme <strong>deterministiktir</strong>: bir çıkmaza girildiğinde nereye dönüleceği bellidir. Tırmanmanın rastgele yeniden başlatması ise <strong>olasılıksaldır</strong> — hiçbir kesinlik vermez, yalnızca "yeterince dene, iyi ihtimalle iyi sonuç bulursun" der.</p>
+
+      <p class="hint">BYZ502 ders materyali · marka renkleri ve tipografisi.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const W = 800, H = 320;
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const PEAKS = [
+    {c:100, h:60,  w:40},
+    {c:260, h:85,  w:35},
+    {c:430, h:50,  w:30},
+    {c:620, h:100, w:45},
+    {c:720, h:40,  w:25},
+  ];
+  function f(x){
+    let s = 10;
+    for(const p of PEAKS) s += p.h * Math.exp(-((x-p.c)*(x-p.c))/(2*p.w*p.w));
+    return s;
+  }
+  const F_MAX = 120;
+  function yOf(fx){ return H - 20 - (fx/F_MAX)*(H-50); }
+
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a>>>15, 1 | a);
+      t = t + Math.imul(t ^ t>>>7, 61 | t) ^ t;
+      return ((t ^ t>>>14) >>> 0) / 4294967296;
+    };
+  }
+
+  let mode = 'plain';
+  let running = false;
+  let speed = 5;
+  let tries = 0;
+  let bestEver = null;
+  let log = [];
+
+  let plainState = null;
+  let restartState = null;
+  let saState = null;
+
+  function logMsg(html){ log.unshift(html); if(log.length>40) log.pop(); renderLog(); }
+  function renderLog(){ document.getElementById('logBox').innerHTML = log.join('<br>'); }
+
+  function resetAll(){
+    running=false; tries=0; bestEver=null; log=[];
+    plainState = mode==='plain' ? {x:400, path:[400], stuck:false} : null;
+    restartState=null; saState = mode==='sa' ? {x:400,T:250,i:0,rnd:mulberry32(1),worseFlash:0,polishing:false} : null;
+    document.getElementById('mCurrent').textContent='—';
+    document.getElementById('mBest').textContent='—';
+    document.getElementById('mTries').textContent='0';
+    document.getElementById('mStatus').textContent='—';
+    document.getElementById('saTempBox').style.display = mode==='sa' ? 'block':'none';
+    renderLog();
+    render();
+  }
+
+  function plainStep(){
+    if(!plainState || plainState.stuck) return false;
+    const step=4, x=plainState.x;
+    const cands=[x-step,x+step].filter(c=>c>=0&&c<=W);
+    let best=null, bestF=f(x);
+    for(const c of cands) if(f(c)>bestF){bestF=f(c); best=c;}
+    tries++;
+    if(best===null){
+      plainState.stuck=true;
+      const isGlobal = Math.abs(f(x)-110) < 1.5;
+      logMsg('<span class="'+(isGlobal?'g':'b')+'">Durdu: x='+Math.round(x)+', f='+f(x).toFixed(1)+' '+(isGlobal?'★ GLOBAL MAKSİMUM':'(yerel maksimum — sıkıştı)')+'</span>');
+      bestEver = {x, f:f(x)};
+      return false;
+    }
+    plainState.x = best; plainState.path.push(best);
+    return true;
+  }
+
+  const COLORS = ['#447099','#FF6F20','#FF3D7F','#2f9e6b','#8a63d2','#3a9bd6','#e0a800','#c0554a'];
+  function initRestart(seed){
+    const rnd = mulberry32(seed);
+    const climbers=[];
+    for(let i=0;i<8;i++){
+      const x0 = Math.floor(rnd()*W);
+      climbers.push({x0, x:x0, stuck:false, color:COLORS[i%COLORS.length]});
+    }
+    restartState = {climbers, done:false};
+  }
+  function restartStep(){
+    if(!restartState || restartState.done) return false;
+    let anyMoved=false;
+    for(const c of restartState.climbers){
+      if(c.stuck) continue;
+      const step=4, x=c.x;
+      const cands=[x-step,x+step].filter(v=>v>=0&&v<=W);
+      let best=null, bestF=f(x);
+      for(const v of cands) if(f(v)>bestF){bestF=f(v); best=v;}
+      tries++;
+      if(best===null){ c.stuck=true; }
+      else { c.x=best; anyMoved=true; }
+    }
+    if(!anyMoved){
+      restartState.done=true;
+      let best=restartState.climbers[0];
+      for(const c of restartState.climbers) if(f(c.x)>f(best.x)) best=c;
+      restartState.bestIdx = restartState.climbers.indexOf(best);
+      bestEver = {x:best.x, f:f(best.x)};
+      const isGlobal = Math.abs(bestEver.f-110)<1.5;
+      logMsg('<span class="'+(isGlobal?'g':'b')+'">8 tırmanıcı tamamlandı. En iyi: x='+Math.round(best.x)+', f='+bestEver.f.toFixed(1)+' '+(isGlobal?'★ GLOBAL':'')+'</span>');
+      restartState.climbers.forEach(function(c,i){
+        logMsg('&nbsp;&nbsp;#'+(i+1)+' x0='+c.x0+' → x='+Math.round(c.x)+', f='+f(c.x).toFixed(1)+(i===restartState.bestIdx?' ← EN İYİ':''));
+      });
+    }
+    return anyMoved;
+  }
+
+  const SA_T0=250, SA_COOL=0.99, SA_ITERS=700;
+  function initSA(x0, seed){
+    saState = {x:x0, T:SA_T0, i:0, rnd:mulberry32(seed), worseFlash:0, polishing:false};
+  }
+  function saStep(){
+    if(!saState) return false;
+    const s = saState;
+    if(s.i >= SA_ITERS && !s.polishing){ s.polishing=true; }
+    if(s.polishing){
+      const step=2, x=s.x;
+      const cands=[x-step,x+step].filter(c=>c>=0&&c<=W);
+      let best=null, bestF=f(x);
+      for(const c of cands) if(f(c)>bestF){bestF=f(c); best=c;}
+      tries++;
+      if(best===null){
+        const isGlobal = Math.abs(f(x)-110)<1.5;
+        logMsg('<span class="'+(isGlobal?'g':'b')+'">Tavlama tamamlandı: x='+Math.round(x)+', f='+f(x).toFixed(1)+' '+(isGlobal?'★ GLOBAL MAKSİMUM':'(yerel bir tepede kaldı)')+'</span>');
+        bestEver={x, f:f(x)};
+        return false;
+      }
+      s.x=best;
+      return true;
+    }
+    const dir = s.rnd()<0.5 ? -1: 1;
+    const maxStep = Math.max(2, Math.round(s.T/3));
+    const step = 1+Math.floor(s.rnd()*maxStep);
+    const cand = Math.max(0, Math.min(W, s.x+dir*step));
+    const delta = f(cand)-f(s.x);
+    let accept = delta>0;
+    s.worseFlash=0;
+    if(!accept && s.T>0.01){
+      const p=Math.exp(delta/s.T);
+      if(s.rnd()<p){ accept=true; s.worseFlash=1; }
+    }
+    if(accept) s.x=cand;
+    s.T *= SA_COOL;
+    s.i++;
+    tries++;
+    return true;
+  }
+
+  function drawLandscape(){
+    ctx.clearRect(0,0,W,H);
+    ctx.beginPath();
+    for(let x=0;x<=W;x+=2){
+      const y=yOf(f(x));
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+    ctx.fillStyle='rgba(68,112,153,0.08)'; ctx.fill();
+    ctx.beginPath();
+    for(let x=0;x<=W;x+=2){
+      const y=yOf(f(x));
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle='#447099'; ctx.lineWidth=2.5; ctx.stroke();
+
+    if(bestEver){
+      const gx=620, gy=yOf(f(620));
+      ctx.beginPath(); ctx.arc(gx,gy,6,0,Math.PI*2);
+      ctx.fillStyle='#FF3D7F'; ctx.fill();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    }
+  }
+
+  function drawClimber(x, color, r){
+    const y=yOf(f(x));
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+  }
+
+  function render(){
+    drawLandscape();
+    if(mode==='plain' && plainState){
+      ctx.beginPath();
+      plainState.path.forEach(function(x,i){ const y=yOf(f(x)); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+      ctx.strokeStyle='rgba(68,112,153,0.35)'; ctx.lineWidth=2; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+      drawClimber(plainState.x, plainState.stuck?'#FF6F20':'#447099', 8);
+    }
+    if(mode==='restart' && restartState){
+      restartState.climbers.forEach(function(c,i){
+        const isBest = restartState.done && i===restartState.bestIdx;
+        drawClimber(c.x, isBest?'#FF6F20':(c.stuck?'#cdd6df':c.color), isBest?9:6);
+      });
+    }
+    if(mode==='sa' && saState){
+      const flashColor = saState.worseFlash ? '#FF3D7F' : '#447099';
+      drawClimber(saState.x, flashColor, 8);
+    }
+    let curF=null;
+    if(mode==='plain' && plainState) curF=f(plainState.x);
+    if(mode==='restart' && restartState) curF = restartState.done ? bestEver.f : null;
+    if(mode==='sa' && saState) curF=f(saState.x);
+    document.getElementById('mCurrent').textContent = curF!==null ? curF.toFixed(1) : '—';
+    document.getElementById('mBest').textContent = bestEver ? bestEver.f.toFixed(1) : '—';
+    document.getElementById('mTries').textContent = tries;
+    let status='—';
+    if(mode==='plain' && plainState) status = plainState.stuck ? 'Durdu' : 'Tırmanıyor';
+    if(mode==='restart' && restartState) status = restartState.done ? 'Tamamlandı' : 'Tırmanıyor';
+    if(mode==='sa' && saState) status = saState.polishing ? 'Son rötuş' : (saState.i>=SA_ITERS ? 'Tamamlandı':'Tavlanıyor');
+    document.getElementById('mStatus').textContent = status;
+
+    if(mode==='sa' && saState){
+      const pct = Math.max(0, Math.min(100, (saState.T/SA_T0)*100));
+      document.getElementById('tempFill').style.width = pct+'%';
+      document.getElementById('tempVal').textContent = saState.polishing ? 'soğudu' : saState.T.toFixed(1);
+    }
+  }
+
+  let timer=null;
+  function loop(){
+    let alive=false;
+    const stepsPerFrame = speed;
+    for(let k=0;k<stepsPerFrame;k++){
+      let moved=false;
+      if(mode==='plain') moved=plainStep();
+      else if(mode==='restart') moved=restartStep();
+      else if(mode==='sa') moved=saStep();
+      if(moved) alive=true; else break;
+    }
+    render();
+    if(alive){ timer=requestAnimationFrame(loop); }
+    else { running=false; timer=null; }
+  }
+
+  function seg(id,cb){
+    const el=document.getElementById(id);
+    el.querySelectorAll('button').forEach(function(b){
+      b.onclick=function(){
+        el.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+        b.classList.add('on'); cb(b.dataset.v);
+      };
+    });
+  }
+  seg('segMode', function(v){
+    mode=v;
+    document.getElementById('hintText').textContent =
+      mode==='plain' ? 'İpucu: Arazi üzerine tıklayarak tırmanıcının başlangıç noktasını seçin, sonra "Çalıştır"a basın.' :
+      mode==='restart' ? 'İpucu: "Çalıştır"a basın — 8 tırmanıcı rastgele noktalardan aynı anda başlar.' :
+      'İpucu: Arazi üzerine tıklayarak başlangıç noktasını seçin; pembe yanıp sönme "kötü ama kabul edilen" bir adımı gösterir.';
+    if(timer){ cancelAnimationFrame(timer); timer=null; }
+    resetAll();
+  });
+
+  document.getElementById('btnReset').onclick=function(){ if(timer){ cancelAnimationFrame(timer); timer=null; } resetAll(); };
+  document.getElementById('speed').oninput=function(e){ speed=+e.target.value; };
+
+  document.getElementById('btnRun').onclick=function(){
+    if(running) return;
+    running=true;
+    if(mode==='plain'){
+      if(!plainState) plainState={x:400, path:[400], stuck:false};
+      else plainState.stuck=false;
+    } else if(mode==='restart'){
+      initRestart(Math.floor(Math.random()*1e6));
+    } else if(mode==='sa'){
+      if(!saState) initSA(400, Math.floor(Math.random()*1e6));
+      else if(saState.i>=SA_ITERS) initSA(saState.x, Math.floor(Math.random()*1e6));
+      else saState.polishing=false;
+    }
+    loop();
+  };
+
+  cv.addEventListener('click', function(e){
+    if(mode==='restart') return;
+    const r=cv.getBoundingClientRect();
+    const x=Math.max(0,Math.min(W,(e.clientX-r.left)*W/r.width));
+    if(mode==='plain'){ plainState={x:x, path:[x], stuck:false}; bestEver=null; tries=0; log=[]; renderLog(); }
+    if(mode==='sa'){ initSA(x, Math.floor(Math.random()*1e6)); bestEver=null; tries=0; log=[]; renderLog(); }
+    render();
+  });
+
+  document.getElementById('saTempBox').style.display='none';
+  plainState={x:400, path:[400], stuck:false};
+  render();
+})();
+</script>
+</body>
+</html>

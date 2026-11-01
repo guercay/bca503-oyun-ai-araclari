@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kısıt Tabanlı PCGML — WaveFunctionCollapse Atölyesi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3EDE1;
+    --paper2:#EAE1D0;
+    --panel:#FBF7EE;
+    --ink:#2C271E;
+    --muted:#736854;
+    --line:#D8CDB7;
+    --line2:#C7BB9F;
+    --bark:#4A3F2C;
+    --accent:#B5602F;
+    --accent-d:#8F4820;
+    --olive:#6B7A3F;
+    --radius:10px;
+    /* karo renkleri */
+    --t0:#6E96A8; /* Su */
+    --t1:#D9B98A; /* Kum */
+    --t2:#8A9A4E; /* Çayır */
+    --t3:#4C5E2A; /* Orman */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"DM Sans",system-ui,sans-serif;
+    line-height:1.6;
+    font-size:16px;
+    background-image:radial-gradient(var(--line) 0.6px, transparent 0.6px);
+    background-size:22px 22px;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:34px 22px 80px}
+  header h1{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:clamp(28px,4.4vw,42px);
+    line-height:1.1;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  .kicker{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--accent-d);
+    margin:0 0 14px;
+  }
+  header p.lead{color:var(--muted);max-width:64ch;margin:0 0 8px;font-size:16.5px}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px 22px 24px;
+    margin-top:26px;
+    box-shadow:0 1px 0 #fff inset, 0 8px 24px -18px rgba(70,55,30,.5);
+  }
+  .step-head{display:flex;align-items:baseline;gap:12px;margin:0 0 4px}
+  .step-num{
+    font-family:"Fraunces",serif;font-weight:600;font-size:15px;
+    background:var(--bark);color:var(--paper);
+    width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;flex:none;
+    align-self:center;
+  }
+  .step-head h2{font-family:"Fraunces",serif;font-weight:500;font-size:21px;margin:0}
+  .panel p.note{color:var(--muted);font-size:14.5px;margin:6px 0 16px}
+  .panel p.note b{color:var(--bark);font-weight:600}
+
+  /* paletler */
+  .palette{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .swatch-btn{
+    display:flex;align-items:center;gap:8px;cursor:pointer;
+    border:1.5px solid var(--line2);background:var(--panel);
+    padding:7px 12px 7px 8px;border-radius:8px;
+    font-family:"DM Sans";font-size:14px;color:var(--ink);transition:.15s;
+  }
+  .swatch-btn:hover{border-color:var(--bark)}
+  .swatch-btn.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(181,96,47,.18)}
+  .swatch-btn .chip{width:18px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.18)}
+
+  .grids{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+  .grid-col{display:flex;flex-direction:column;gap:10px}
+  .grid-label{font-family:"IBM Plex Mono";font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+  /* giriş ızgarası */
+  #inputGrid{
+    display:grid;gap:2px;background:var(--line2);
+    border:3px solid var(--bark);border-radius:6px;padding:2px;
+    touch-action:none;user-select:none;width:max-content;
+  }
+  #inputGrid .icell{width:30px;height:30px;border-radius:2px;cursor:crosshair}
+
+  /* çıkış ızgarası */
+  #outputGrid{
+    display:grid;gap:2px;background:var(--line2);
+    border:3px solid var(--bark);border-radius:6px;padding:2px;width:max-content;
+  }
+  .ocell{
+    width:30px;height:30px;border-radius:2px;position:relative;
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+    gap:1.5px;padding:2px;background:#E9E0CE;transition:background .12s;
+  }
+  .ocell .sw{border-radius:1.5px;opacity:.16;transition:opacity .12s}
+  .ocell.collapsed{padding:0;gap:0}
+  .ocell.collapsed .sw{display:none}
+  .ocell.justcollapsed{box-shadow:0 0 0 2px var(--accent), 0 0 0 4px rgba(181,96,47,.35);z-index:3}
+  .ocell.changed{box-shadow:0 0 0 2px rgba(74,63,44,.55);z-index:2}
+
+  /* kontroller */
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
+  button.btn{
+    font-family:"DM Sans";font-weight:600;font-size:14.5px;cursor:pointer;
+    border:none;border-radius:8px;padding:10px 16px;color:#fff;transition:.15s;
+  }
+  button.btn.primary{background:var(--accent)}
+  button.btn.primary:hover{background:var(--accent-d)}
+  button.btn.dark{background:var(--bark)}
+  button.btn.dark:hover{background:#352d1e}
+  button.btn.ghost{background:transparent;color:var(--bark);border:1.5px solid var(--line2)}
+  button.btn.ghost:hover{border-color:var(--bark)}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  .speed{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+  input[type=range]{accent-color:var(--accent)}
+
+  .stats{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;font-family:"IBM Plex Mono";font-size:13px}
+  .stat b{display:block;font-size:22px;color:var(--bark);font-weight:500;font-family:"Fraunces",serif}
+  .stat span{color:var(--muted);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
+  #status{margin-top:12px;font-size:14px;min-height:22px;color:var(--olive);font-weight:500}
+  #status.warn{color:var(--accent-d)}
+
+  /* öğrenilen kurallar */
+  #ruleTiles{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .rule-tile{cursor:pointer;border:1.5px solid var(--line2);border-radius:8px;padding:6px 10px 6px 6px;display:flex;gap:8px;align-items:center;font-size:14px;transition:.15s;background:var(--panel)}
+  .rule-tile:hover{border-color:var(--bark)}
+  .rule-tile.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(181,96,47,.18)}
+  .rule-tile .chip{width:18px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.18)}
+  #neighborView{display:flex;gap:24px;flex-wrap:wrap;align-items:center}
+  .compass{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(3,64px);gap:6px}
+  .cslot{border-radius:6px;background:var(--paper2);border:1px dashed var(--line2);display:flex;flex-wrap:wrap;gap:3px;align-items:center;justify-content:center;padding:5px}
+  .cslot.center{background:var(--bark);border-style:solid;border-color:var(--bark)}
+  .cslot .mini{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.18)}
+  .cslot .dir{position:absolute;font-size:9px;color:var(--muted);font-family:"IBM Plex Mono"}
+  .cwrap{position:relative}
+  .clabel{position:absolute;font-family:"IBM Plex Mono";font-size:9.5px;color:var(--muted);letter-spacing:.06em}
+  .legend{font-size:13px;color:var(--muted);max-width:34ch}
+  .legend b{color:var(--bark)}
+
+  footer{margin-top:34px;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:18px}
+  footer code{font-family:"IBM Plex Mono";background:var(--paper2);padding:1px 5px;border-radius:4px;font-size:12.5px}
+  details summary{cursor:pointer;font-family:"Fraunces",serif;font-weight:500;font-size:16px;color:var(--bark)}
+  details p{margin:10px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Kısıt Tabanlı PCGML · Atölye</p>
+    <h1>WaveFunctionCollapse</h1>
+    <p class="lead">Küçük bir örnek desen çiz, makine <b>komşuluk kurallarını</b> (kısıtları) öğrensin, sonra bu kuralları çiğnemeyen yepyeni bir harita üretişini adım adım izle. Her hücre başta tüm karo olasılıklarını taşır; bir hücre tek karoya <i>çöktüğünde</i>, kararın komşulara nasıl <i>yayıldığını</i> ve seçenekleri nasıl elediğini göreceksin.</p>
+  </header>
+
+  <!-- 1. ÖRNEK DESEN -->
+  <section class="panel">
+    <div class="step-head"><div class="step-num">1</div><h2>Örnek deseni çiz</h2></div>
+    <p class="note">Bir karo türü seç, ardından ızgaraya tıkla ya da sürükleyerek boya. Tek kuralımız bu desenden çıkarılacak: <b>hangi karo, hangi karonun yanına gelebiliyor?</b> Aşağıdaki hazır "ada" deseni iyi bir başlangıç (su, çayıra dokunmaz; orman yalnız çayıra komşudur).</p>
+    <div class="palette" id="palette"></div>
+    <div class="grids">
+      <div class="grid-col">
+        <span class="grid-label">Örnek (8×8) — düzenlenebilir</span>
+        <div id="inputGrid"></div>
+      </div>
+      <div class="grid-col" style="gap:8px">
+        <button class="btn dark" id="learnBtn">Kuralları öğren →</button>
+        <button class="btn ghost" id="clearBtn">Tümünü temizle</button>
+        <button class="btn ghost" id="resetExampleBtn">Hazır adayı geri yükle</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. ÖĞRENİLEN KURALLAR -->
+  <section class="panel">
+    <div class="step-head"><div class="step-num">2</div><h2>Öğrenilen komşuluk kuralları</h2></div>
+    <p class="note">Bir karo seç; o karonun <b>her yönde</b> yanına gelebilecek karoları gör. Bunlar WFC'nin uygulayacağı <b>sert kısıtlardır</b>. Köşedeki sayı, karonun örnekteki frekansı (çökerken ağırlık olarak kullanılır).</p>
+    <div id="ruleTiles"></div>
+    <div id="neighborView"></div>
+  </section>
+
+  <!-- 3. ÜRET -->
+  <section class="panel">
+    <div class="step-head"><div class="step-num">3</div><h2>WFC ile üret</h2></div>
+    <p class="note">Her <b>adımda</b> en az seçeneğe sahip hücre seçilir (en düşük entropi), ağırlıklı rastgele tek bir karoya çöker (<span style="box-shadow:0 0 0 2px var(--accent);border-radius:2px;padding:0 4px">turuncu çerçeve</span>), sonra kısıt komşulara yayılır ve uyumsuz seçenekler elenir (<span style="box-shadow:0 0 0 2px rgba(74,63,44,.6);border-radius:2px;padding:0 4px">koyu çerçeve</span>). Sıfır seçeneğe düşen hücre olursa çelişki çıkar ve ızgara yeniden başlatılır.</p>
+    <div class="grids">
+      <div class="grid-col">
+        <span class="grid-label">Üretim (12×12)</span>
+        <div id="outputGrid"></div>
+      </div>
+      <div class="grid-col" style="gap:14px;min-width:230px">
+        <div class="controls">
+          <button class="btn primary" id="stepBtn">Tek adım</button>
+          <button class="btn dark" id="autoBtn">Otomatik ▶</button>
+          <button class="btn ghost" id="resetOutBtn">Sıfırla</button>
+        </div>
+        <div class="speed">Hız&nbsp; <input type="range" id="speed" min="20" max="400" value="110" style="width:130px"> <span id="speedVal">110ms</span></div>
+        <div class="stats">
+          <div class="stat"><b id="stCollapsed">0</b><span>çöken hücre</span></div>
+          <div class="stat"><b id="stRemaining">144</b><span>kalan</span></div>
+          <div class="stat"><b id="stRestart">0</b><span>yeniden başlatma</span></div>
+        </div>
+        <p class="legend">Çökmemiş hücrede <b>2×2 kutucuk</b> kalan seçenekleri gösterir: dolu kutucuk = hâlâ mümkün, soluk kutucuk = elenmiş. Tek seçenek kalınca hücre o karonun rengiyle dolar.</p>
+        <div id="status"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <details>
+      <summary>Bu neden "kısıt tabanlı PCGML"?</summary>
+      <p>Saf bir üretici model (GAN, Markov) örneklere benzeyen içerik üretir ama geçerliliği garanti etmez. WFC ise öğrendiği şeyin kendisini <b>kısıt</b> biçiminde tutar (komşuluk ilişkileri) ve üretimi bir <b>kısıt yayılımı</b> süreci olarak yürütür — bu, klasik kısıt tatminindeki <code>arc-consistency (AC-3)</code> algoritmasıyla aynı mantıktır. Tek bir örnekten istatistik çıkardığı için WFC'nin "ML" sayılıp sayılmadığı tartışılır; ancak örnek-güdümlü, kısıt tabanlı üretimin en açık ve öğretici örneğidir.</p>
+      <p>Burada uyguladığımız varyant <b>basit karo modelidir</b> (simple tiled model): komşuluk, örnekteki kenar-bitişikliklerinden öğrenilir. WFC'nin <i>örtüşen model</i> (overlapping) varyantı ise N×N desen parçalarından öğrenir ve daha zengin dokular üretir.</p>
+    </details>
+    <p style="margin-top:16px">Tek dosya · çevrimdışı çalışır · düzenleyip kendi karo türlerini ve örneklerini ekleyebilirsin (<code>TILES</code> dizisi ve <code>DEFAULT_EXAMPLE</code>).</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- Karo tanımları ---------- */
+const TILES = [
+  { name:"Su",     color:getComputedStyle(document.documentElement).getPropertyValue('--t0').trim() },
+  { name:"Kum",    color:getComputedStyle(document.documentElement).getPropertyValue('--t1').trim() },
+  { name:"Çayır",  color:getComputedStyle(document.documentElement).getPropertyValue('--t2').trim() },
+  { name:"Orman",  color:getComputedStyle(document.documentElement).getPropertyValue('--t3').trim() },
+];
+const NT = TILES.length;
+const W=0,S=1,G=2,F=3;
+
+const DEFAULT_EXAMPLE = [
+  [W,W,W,W,W,W,W,W],
+  [W,W,S,S,S,W,W,W],
+  [W,S,S,G,S,S,W,W],
+  [W,S,G,G,G,S,W,W],
+  [W,S,G,F,G,S,W,W],
+  [W,S,G,G,G,S,W,W],
+  [W,W,S,S,S,S,W,W],
+  [W,W,W,W,W,W,W,W],
+];
+const IN = 8;            // giriş ızgara boyutu
+const N  = 12;           // çıkış ızgara boyutu
+
+/* ---------- Durum ---------- */
+let example = DEFAULT_EXAMPLE.map(r=>r.slice());
+let selectedTile = G;
+let painting = false;
+// dirs: 0=yukarı,1=sağ,2=aşağı,3=sol
+let allowed = null;      // allowed[dir][t] = Set(uyumlu karolar)
+let weights = null;
+let selectedRuleTile = G;
+
+// çıkış
+let poss = null;         // poss[i] = Set
+let collapsedCount = 0;
+let restarts = 0;
+let autoTimer = null;
+
+/* ---------- Giriş ızgarası ---------- */
+const inputGrid = document.getElementById('inputGrid');
+inputGrid.style.gridTemplateColumns = `repeat(${IN},30px)`;
+const icells = [];
+for(let y=0;y<IN;y++) for(let x=0;x<IN;x++){
+  const c = document.createElement('div');
+  c.className='icell';
+  c.dataset.i = y*IN+x;
+  c.addEventListener('pointerdown', e=>{ painting=true; paint(c); inputGrid.setPointerCapture(e.pointerId); });
+  c.addEventListener('pointerenter', ()=>{ if(painting) paint(c); });
+  icells.push(c);
+  inputGrid.appendChild(c);
+}
+window.addEventListener('pointerup', ()=> painting=false);
+
+function paint(c){
+  const i = +c.dataset.i;
+  example[Math.floor(i/IN)][i%IN] = selectedTile;
+  renderInput();
+}
+function renderInput(){
+  for(let i=0;i<icells.length;i++){
+    icells[i].style.background = TILES[example[Math.floor(i/IN)][i%IN]].color;
+  }
+}
+
+/* ---------- Palet ---------- */
+const palette = document.getElementById('palette');
+TILES.forEach((t,ti)=>{
+  const b=document.createElement('button');
+  b.className='swatch-btn'+(ti===selectedTile?' sel':'');
+  b.innerHTML=`<span class="chip" style="background:${t.color}"></span>${t.name}`;
+  b.addEventListener('click',()=>{ selectedTile=ti; [...palette.children].forEach((x,xi)=>x.classList.toggle('sel',xi===ti)); });
+  palette.appendChild(b);
+});
+
+/* ---------- Kuralları öğren ---------- */
+function learn(){
+  allowed = [0,1,2,3].map(()=>Array.from({length:NT},()=>new Set()));
+  weights = new Array(NT).fill(0);
+  for(let y=0;y<IN;y++) for(let x=0;x<IN;x++){
+    const t=example[y][x]; weights[t]++;
+    if(x+1<IN){ const r=example[y][x+1]; allowed[1][t].add(r); allowed[3][r].add(t); }
+    if(y+1<IN){ const d=example[y+1][x]; allowed[2][t].add(d); allowed[0][d].add(t); }
+  }
+  renderRuleTiles();
+  renderNeighbors();
+  resetOutput();
+  setStatus('Kurallar öğrenildi. 3. adımda üretmeye başlayabilirsin.', false);
+}
+
+/* ---------- Kural görünümü ---------- */
+const ruleTiles = document.getElementById('ruleTiles');
+function renderRuleTiles(){
+  ruleTiles.innerHTML='';
+  TILES.forEach((t,ti)=>{
+    const b=document.createElement('div');
+    b.className='rule-tile'+(ti===selectedRuleTile?' sel':'');
+    b.innerHTML=`<span class="chip" style="background:${t.color}"></span>${t.name} <span style="font-family:'IBM Plex Mono';font-size:11px;color:var(--muted)">×${weights?weights[ti]:0}</span>`;
+    b.addEventListener('click',()=>{ selectedRuleTile=ti; renderRuleTiles(); renderNeighbors(); });
+    ruleTiles.appendChild(b);
+  });
+}
+function miniSwatches(set){
+  if(!set || set.size===0) return '<span style="font-size:10px;color:var(--muted)">—</span>';
+  return [...set].sort().map(t=>`<span class="mini" title="${TILES[t].name}" style="background:${TILES[t].color}"></span>`).join('');
+}
+function renderNeighbors(){
+  const nv=document.getElementById('neighborView');
+  if(!allowed){ nv.innerHTML='<span class="legend">Önce 1. adımda <b>Kuralları öğren</b> butonuna bas.</span>'; return; }
+  const t=selectedRuleTile;
+  // pusula: yukarı(0) sağ(1) aşağı(2) sol(3)
+  const cells = {
+    up:    allowed[0][t],
+    right: allowed[1][t],
+    down:  allowed[2][t],
+    left:  allowed[3][t],
+  };
+  nv.innerHTML = `
+    <div class="cwrap">
+      <div class="compass">
+        <div class="cslot"></div>
+        <div class="cslot" data-d="up">${miniSwatches(cells.up)}</div>
+        <div class="cslot"></div>
+        <div class="cslot" data-d="left">${miniSwatches(cells.left)}</div>
+        <div class="cslot center"><span class="mini" style="background:${TILES[t].color};width:22px;height:22px"></span></div>
+        <div class="cslot" data-d="right">${miniSwatches(cells.right)}</div>
+        <div class="cslot"></div>
+        <div class="cslot" data-d="down">${miniSwatches(cells.down)}</div>
+        <div class="cslot"></div>
+      </div>
+      <span class="clabel" style="top:-16px;left:84px">YUKARI</span>
+      <span class="clabel" style="bottom:-16px;left:88px">AŞAĞI</span>
+      <span class="clabel" style="top:88px;left:-2px">SOL</span>
+      <span class="clabel" style="top:88px;right:-6px">SAĞ</span>
+    </div>
+    <div class="legend"><b>${TILES[t].name}</b> karosunun komşusu olabilen karolar. Üretim sırasında bir hücre ${TILES[t].name} olursa, komşularında yalnızca bu kutucuklardaki karolar kalabilir; gerisi elenir.</div>
+  `;
+}
+
+/* ---------- Çıkış ızgarası ---------- */
+const outputGrid = document.getElementById('outputGrid');
+outputGrid.style.gridTemplateColumns = `repeat(${N},30px)`;
+const ocells=[];
+for(let i=0;i<N*N;i++){
+  const c=document.createElement('div');
+  c.className='ocell';
+  for(let t=0;t<NT;t++){
+    const sw=document.createElement('div');
+    sw.className='sw';
+    sw.style.background=TILES[t].color;
+    c.appendChild(sw);
+  }
+  ocells.push(c);
+  outputGrid.appendChild(c);
+}
+
+function resetOutput(){
+  stopAuto();
+  poss = Array.from({length:N*N},()=>new Set([0,1,2,3]));
+  collapsedCount=0; restarts=0;
+  renderOutput([], -1);
+  updateStats();
+  setStatus(allowed?'Hazır. "Tek adım" ya da "Otomatik" ile başla.':'Önce 1. adımda kuralları öğren.', false);
+}
+
+function renderOutput(changed, justCollapsed){
+  const chSet = new Set(changed);
+  for(let i=0;i<N*N;i++){
+    const c=ocells[i], p=poss[i];
+    c.classList.toggle('justcollapsed', i===justCollapsed);
+    c.classList.toggle('changed', chSet.has(i) && i!==justCollapsed);
+    if(p.size===1){
+      const t=[...p][0];
+      c.classList.add('collapsed');
+      c.style.background=TILES[t].color;
+    } else {
+      c.classList.remove('collapsed');
+      c.style.background='#E9E0CE';
+      for(let t=0;t<NT;t++){
+        c.children[t].style.opacity = p.has(t) ? '1' : '0.13';
+      }
+    }
+  }
+}
+
+/* ---------- WFC adımı ---------- */
+function findMinEntropy(){
+  let best=-1, bestE=Infinity;
+  for(let i=0;i<N*N;i++){
+    const s=poss[i].size;
+    if(s>1){
+      const e=s+Math.random()*0.45;
+      if(e<bestE){bestE=e;best=i;}
+    }
+  }
+  return best;
+}
+function collapse(i){
+  const opts=[...poss[i]];
+  let total=0; for(const t of opts) total+=weights[t];
+  let r=Math.random()*total, pick=opts[0];
+  for(const t of opts){ r-=weights[t]; if(r<=0){pick=t;break;} }
+  poss[i]=new Set([pick]);
+}
+function propagate(start, changedOut){
+  const stack=[start];
+  const dirs=[[0,0,-1],[1,1,0],[2,0,1],[3,-1,0]];
+  while(stack.length){
+    const c=stack.pop();
+    const cx=c%N, cy=(c-cx)/N;
+    for(const [d,dx,dy] of dirs){
+      const nx=cx+dx, ny=cy+dy;
+      if(nx<0||ny<0||nx>=N||ny>=N) continue;
+      const ni=ny*N+nx;
+      if(poss[ni].size===1) continue;
+      const allow=new Set();
+      for(const t of poss[c]) for(const a of allowed[d][t]) allow.add(a);
+      let changed=false;
+      for(const t of [...poss[ni]]) if(!allow.has(t)){ poss[ni].delete(t); changed=true; }
+      if(poss[ni].size===0) return false; // çelişki
+      if(changed){ stack.push(ni); changedOut.add(ni); }
+    }
+  }
+  return true;
+}
+
+function step(){
+  if(!allowed){ setStatus('Önce kuralları öğren (1. adım).', true); return false; }
+  const i=findMinEntropy();
+  if(i===-1){
+    stopAuto();
+    setStatus('✓ Tamamlandı — tüm hücreler kurallara uygun şekilde çöktü.', false);
+    renderOutput([], -1);
+    return false;
+  }
+  collapse(i);
+  const changed=new Set();
+  const ok=propagate(i, changed);
+  if(!ok){
+    // çelişki: yeniden başlat
+    restarts++;
+    poss = Array.from({length:N*N},()=>new Set([0,1,2,3]));
+    collapsedCount=0;
+    renderOutput([], -1);
+    updateStats();
+    setStatus('⚠ Çelişki oluştu (bir hücre 0 seçeneğe düştü). Izgara yeniden başlatıldı.', true);
+    return true;
+  }
+  collapsedCount = poss.reduce((a,p)=>a+(p.size===1?1:0),0);
+  renderOutput([...changed], i);
+  updateStats();
+  setStatus(`Hücre (${i%N}, ${Math.floor(i/N)}) çöktü → ${changed.size} komşu hücrede seçenek elendi.`, false);
+  return true;
+}
+
+function updateStats(){
+  document.getElementById('stCollapsed').textContent=collapsedCount;
+  document.getElementById('stRemaining').textContent=(N*N - collapsedCount);
+  document.getElementById('stRestart').textContent=restarts;
+}
+function setStatus(msg, warn){
+  const el=document.getElementById('status');
+  el.textContent=msg;
+  el.classList.toggle('warn', !!warn);
+}
+
+/* ---------- Otomatik çalıştırma ---------- */
+function startAuto(){
+  if(!allowed){ setStatus('Önce kuralları öğren (1. adım).', true); return; }
+  if(autoTimer) return;
+  document.getElementById('autoBtn').textContent='Duraklat ⏸';
+  const speed=+document.getElementById('speed').value;
+  autoTimer=setInterval(()=>{ const cont=step(); if(!cont) stopAuto(); }, speed);
+}
+function stopAuto(){
+  if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+  document.getElementById('autoBtn').textContent='Otomatik ▶';
+}
+
+/* ---------- Olaylar ---------- */
+document.getElementById('learnBtn').addEventListener('click', learn);
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  example = Array.from({length:IN},()=>new Array(IN).fill(W));
+  renderInput();
+});
+document.getElementById('resetExampleBtn').addEventListener('click', ()=>{
+  example = DEFAULT_EXAMPLE.map(r=>r.slice());
+  renderInput();
+});
+document.getElementById('stepBtn').addEventListener('click', ()=>{ stopAuto(); step(); });
+document.getElementById('autoBtn').addEventListener('click', ()=>{ autoTimer?stopAuto():startAuto(); });
+document.getElementById('resetOutBtn').addEventListener('click', resetOutput);
+document.getElementById('speed').addEventListener('input', e=>{
+  document.getElementById('speedVal').textContent=e.target.value+'ms';
+  if(autoTimer){ stopAuto(); startAuto(); }
+});
+
+/* ---------- Başlangıç ---------- */
+renderInput();
+learn();
+</script>
+</body>
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalite-Çeşitlilik Laboratuvarı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Open+Sans:wght@400;600;700&family=Roboto+Slab:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#447099; --blue-l:#e6eef6; --orange:#FF6F20; --orange-l:#fff0e6; --pink:#FF3D7F; --pink-l:#ffe8f0;
+  --ink:#1f2933; --muted:#5f6b78; --line:#d9e1e8; --bg:#f5f7fa; --card:#ffffff; --ok:#2e9e6a; --bad:#c9364f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Open Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+header{background:var(--blue);color:#fff;padding:14px 20px;border-bottom:4px solid var(--orange)}
+header h1{font-family:'Roboto Slab',serif;margin:0;font-size:22px}
+header p{margin:4px 0 0;opacity:.92;font-size:13px}
+.wrap{display:grid;grid-template-columns:370px 1fr;gap:14px;padding:14px;max-width:1500px;margin:0 auto}
+@media (max-width:1000px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.card h2{font-family:'Roboto Slab',serif;font-size:15px;margin:0 0 8px;color:var(--blue)}
+.card h3{font-family:'Roboto Slab',serif;font-size:13px;margin:10px 0 4px;color:var(--ink)}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+label span.v{font-family:'Fira Code',monospace;color:var(--orange);min-width:42px;text-align:right}
+input[type=range]{flex:1}
+input[type=number]{width:84px;font-family:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--line);border-radius:6px}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+button{font-family:inherit;font-weight:600;font-size:13px;border:0;border-radius:6px;padding:7px 11px;cursor:pointer;background:var(--blue);color:#fff}
+button.alt{background:var(--orange)}
+button.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+button:disabled{opacity:.4;cursor:default}
+.formula{font-family:'Fira Code',monospace;font-size:12px;border-radius:6px;padding:8px;margin-top:6px;line-height:1.55}
+.formula.q{background:var(--orange-l);border-left:3px solid var(--orange)}
+.formula.d{background:var(--blue-l);border-left:3px solid var(--blue)}
+.formula b{font-family:'Open Sans',sans-serif}
+.pseudo{font-family:'Fira Code',monospace;font-size:12px}
+.pseudo div{padding:2px 6px;border-left:3px solid transparent;border-radius:3px;white-space:pre}
+.pseudo div.on{background:var(--orange-l);border-left-color:var(--orange);font-weight:600}
+.pseudo .n{color:var(--muted);display:inline-block;width:24px}
+.pseudo .kw{color:var(--pink)}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media (max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--blue-l);border-radius:8px;padding:6px 8px;text-align:center}
+.stat b{display:block;font-family:'Fira Code',monospace;font-size:18px;color:var(--blue)}
+.stat small{color:var(--muted);font-size:11.5px}
+.stat.o{background:var(--orange-l)} .stat.o b{color:var(--orange)}
+#explain{background:var(--orange-l);border-left:4px solid var(--orange);border-radius:6px;padding:10px 12px;min-height:64px}
+#explain code,.mono{font-family:'Fira Code',monospace;font-size:12.5px}
+#explain ul{margin:6px 0 0;padding-left:18px}
+.two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+@media (max-width:1250px){.two{grid-template-columns:1fr}}
+canvas{display:block;max-width:100%}
+.legend{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;align-items:center}
+.legend i{display:inline-block;width:14px;height:10px;vertical-align:middle;margin-right:4px;border-radius:2px}
+.ramp{width:120px;height:10px;border-radius:2px;background:linear-gradient(90deg,#f1e4d8,#FF6F20 45%,#447099 100%)}
+.note{font-size:12px;color:var(--muted)}
+.log{font-size:12.5px;max-height:240px;overflow:auto;font-family:'Fira Code',monospace}
+.log div{padding:2px 0;border-bottom:1px dashed var(--line)}
+.ok{color:var(--ok);font-weight:700}.up{color:var(--blue);font-weight:700}.no{color:var(--bad);font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:center}
+th{background:var(--blue-l);color:var(--blue);font-size:12px}
+td:first-child,th:first-child{text-align:left}
+.chk{display:flex;align-items:center;gap:6px;justify-content:flex-start;font-size:13px}
+.det{font-size:12.5px}
+.det .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;background:var(--pink-l);color:var(--pink)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Kalite-Çeşitlilik (QD) Laboratuvarı — MAP-Elites ile Platform Seviyesi Üretimi</h1>
+  <p>Genotip: 16 sütunun yüksekliği (0 = çukur, 1–3 = zemin). Kalite ve çeşitlilik <b>farklı</b> metriklerle ölçülür. MAP-Elites'i adım adım yürütün ve aynı değerlendirme bütçesiyle standart EA ile karşılaştırın.</p>
+</header>
+
+<div class="wrap">
+<aside>
+  <div class="card">
+    <h2>İki bileşen</h2>
+    <div class="formula q"><b>Kalite bileşeni f (oynanabilirlik)</b><br>
+      f = max(0, 20 − C<sub>çukur</sub> − C<sub>basamak</sub> − C<sub>uç</sub>)<br>
+      C<sub>çukur</sub> = Σ 3·(r−1), r ≥ 2 uzunluklu her çukur dizisi<br>
+      C<sub>basamak</sub> = Σ 2·(Δh−1), ardışık zeminler arasında Δh ≥ 2 yükselme<br>
+      C<sub>uç</sub> = 2 × (ilk / son sütun çukursa)</div>
+    <div class="formula d"><b>Çeşitlilik bileşeni b (davranış boyutları)</b><br>
+      b₁ = çukur sayısı → sütun 0…7 (≥7 → 7)<br>
+      b₂ = engebelilik = Σ|h<sub>j</sub> − h<sub>i</sub>| (ardışık zeminler)<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;→ satır ⌊b₂/2⌋, en fazla 7 (8×8 = 64 niş)</div>
+    <div class="note" style="margin-top:6px">f bir seviyenin <i>ne kadar iyi</i> olduğunu, b ise <i>ne tür</i> bir seviye olduğunu ölçer. İki seviye aynı f'ye sahip olup çok farklı nişlerde bulunabilir.</div>
+  </div>
+
+  <div class="card">
+    <h2>Parametreler</h2>
+    <label>Başlangıç birey sayısı N₀ <span class="v" id="vN0"></span></label><input type="range" id="n0" min="5" max="100" step="5" value="20">
+    <label>Gen başına mutasyon p<sub>m</sub> <span class="v" id="vPm"></span></label><input type="range" id="pm" min="0.02" max="0.4" step="0.02" value="0.10">
+    <label>Değerlendirme bütçesi <input type="number" id="budget" min="50" max="50000" step="50" value="2000"></label>
+    <label>Karşılaştırma EA'sı popülasyonu μ <span class="v" id="vMu"></span></label><input type="range" id="mu" min="4" max="64" step="4" value="20">
+    <label>Rastgele tohum (seed) <input type="number" id="seed" value="502"></label>
+    <div class="btns"><button class="ghost" id="bReset">↺ Sıfırla (yeni ayarlar)</button></div>
+    <div class="note" style="margin-top:6px">EA: turnuva (k=2), tek noktalı çaprazlama (p<sub>c</sub>=0.9), aynı mutasyon, (μ+λ) elde tutma — önceki laboratuvardaki yapı.</div>
+  </div>
+
+  <div class="card">
+    <h2>MAP-Elites sözde kodu</h2>
+    <div class="pseudo" id="pseudo"></div>
+    <div class="btns">
+      <button id="bStep">▶ Adım (1 satır)</button>
+      <button id="bCand">⏭ 1 aday</button>
+      <button class="alt" id="bPlay">⏵ Oynat</button>
+      <button class="ghost" id="b100">+100</button>
+      <button class="ghost" id="bEnd">⏩ Bütçe sonu</button>
+    </div>
+    <label>Oynatma hızı <span class="v" id="vSp"></span></label><input type="range" id="speed" min="1" max="10" value="6">
+  </div>
+</aside>
+
+<main>
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><b id="sEval">0</b><small>Değerlendirme</small></div>
+      <div class="stat"><b id="sCov">0 / 64</b><small>Kapsama (dolu niş)</small></div>
+      <div class="stat"><b id="sQD">0</b><small>QD-skoru Σf</small></div>
+      <div class="stat"><b id="sBest">–</b><small>En iyi f</small></div>
+      <div class="stat o"><b id="sRB">0</b><small>Reddedilen ama başka nişteki bir elitten iyi aday</small></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="exTitle">Şu anki adım</h2>
+    <div id="explain">“Adım” düğmesiyle 1. satırdan başlayın.</div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2>Elitler haritası (8 × 8 niş)</h2>
+      <canvas id="map" width="460" height="440"></canvas>
+      <div class="legend">
+        <span>f: 0</span><span class="ramp"></span><span>20</span>
+        <span><i style="border:2px solid #FF3D7F;background:transparent"></i>adayın hedef nişi</span>
+        <span><i style="border:2px solid #1f2933;background:transparent"></i>seçili niş</span>
+        <span><i style="background:#1f2933;border-radius:50%;width:9px;height:9px"></i>EA popülasyonu</span>
+      </div>
+      <label class="chk"><input type="checkbox" id="ovGA" checked> Aynı bütçedeki EA popülasyonunu üstüne bindir</label>
+      <div class="note">Bir hücreye tıklayın: o nişin elitini sağda görürsünüz.</div>
+    </div>
+    <div class="card det">
+      <h2>Aday ve niş ayrıntısı</h2>
+      <div id="detail"><span class="note">Henüz aday yok.</span></div>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2>Aynı bütçe: MAP-Elites ve standart EA</h2>
+      <canvas id="chart" width="560" height="250"></canvas>
+      <div class="legend"><span><i style="background:#FF6F20"></i>MAP-Elites — dolu niş sayısı</span><span><i style="background:#447099"></i>EA popülasyonunun kapladığı niş sayısı</span></div>
+    </div>
+    <div class="card">
+      <h2>Karşılaştırma tablosu (şu anki bütçe)</h2>
+      <div id="cmp"></div>
+      <div class="note" style="margin-top:6px">EA'nın çıktısı popülasyonudur; seçilim baskısı onu tek bir yüksek-f bölgesine toplar. MAP-Elites'in çıktısı haritadır: her niş kendi içinde mini elitizm uygular.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Karar günlüğü (son 80 aday)</h2>
+    <div class="log" id="log"><span class="note">Henüz karar yok.</span></div>
+  </div>
+</main>
+</div>
+
+<script>
+// ==CORE_START==
+const NC=16, BX=8, BY=8, FMAX=20, HMAX=3;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function randomLevel(rng){const h=[];for(let i=0;i<NC;i++)h.push(Math.floor(rng()*(HMAX+1)));return h;}
+function evalLevel(h){
+  let gaps=0,cGap=0,cStep=0,cEnd=0,rough=0,run=0,prev=-1;const gapRuns=[],steps=[];
+  for(let i=0;i<NC;i++){
+    if(h[i]===0){gaps++;run++;}
+    else{
+      if(run>=2){cGap+=3*(run-1);gapRuns.push(run);} run=0;
+      if(prev>=0){const d=h[i]-h[prev];rough+=Math.abs(d);if(d>=2){cStep+=2*(d-1);steps.push(i);}}
+      prev=i;
+    }
+  }
+  if(run>=2){cGap+=3*(run-1);gapRuns.push(run);}
+  if(h[0]===0)cEnd+=2; if(h[NC-1]===0)cEnd+=2;
+  const f=Math.max(0,FMAX-cGap-cStep-cEnd);
+  const bx=Math.min(BX-1,gaps), by=Math.min(BY-1,Math.floor(rough/2));
+  return {f,cGap,cStep,cEnd,gaps,rough,bx,by,key:bx+by*BX,gapRuns,steps};
+}
+function mutate(h,pm,rng){
+  const out=h.slice(),ch=[];
+  for(let i=0;i<NC;i++)if(rng()<pm){let v=Math.floor(rng()*HMAX);if(v>=out[i])v++;out[i]=v;ch.push(i);}
+  if(!ch.length){const i=Math.floor(rng()*NC);let v=Math.floor(rng()*HMAX);if(v>=out[i])v++;out[i]=v;ch.push(i);}
+  return {h:out,ch};
+}
+// MAP-Elites ekleme kuralı: boşsa yerleş, doluysa yalnızca daha yüksek f kazanır
+function tryInsert(arch,ind){
+  const inc=arch[ind.e.key];
+  if(!inc){arch[ind.e.key]=ind;return {status:'new',inc:null};}
+  if(ind.e.f>inc.e.f){arch[ind.e.key]=ind;return {status:'imp',inc};}
+  return {status:'rej',inc};
+}
+function archStats(arch){let cov=0,qd=0,best=-1,worst=Infinity,wk=-1;
+  arch.forEach((a,k)=>{if(a){cov++;qd+=a.e.f;if(a.e.f>best)best=a.e.f;if(a.e.f<worst){worst=a.e.f;wk=k;}}});
+  return {cov,qd,best,worst,wk};}
+// Karşılaştırma: standart EA (turnuva k=2, tek noktalı çaprazlama, (μ+λ))
+function runGA(seed,budget,mu,pm){
+  const rng=mulberry32(seed^0x9e3779b9);
+  let pop=[];for(let i=0;i<mu;i++){const h=randomLevel(rng);pop.push({h,e:evalLevel(h)});}
+  let ev=mu;const trace=[snap(pop,ev)];
+  const tour=()=>{const a=pop[Math.floor(rng()*mu)],b=pop[Math.floor(rng()*mu)];return b.e.f>a.e.f?b:a;};
+  while(ev<budget){
+    const off=[];
+    while(off.length<mu&&ev<budget){
+      const p1=tour(),p2=tour();let c1=p1.h.slice(),c2=p2.h.slice();
+      if(rng()<0.9){const cut=1+Math.floor(rng()*(NC-1));c1=p1.h.slice(0,cut).concat(p2.h.slice(cut));c2=p2.h.slice(0,cut).concat(p1.h.slice(cut));}
+      for(const c of [c1,c2]){if(off.length<mu&&ev<budget){const m=mutate(c,pm,rng).h;off.push({h:m,e:evalLevel(m)});ev++;}}
+    }
+    const all=pop.concat(off);all.sort((a,b)=>b.e.f-a.e.f);pop=all.slice(0,mu);
+    trace.push(snap(pop,ev));
+  }
+  return trace;
+}
+function snap(pop,ev){const cells={};pop.forEach(p=>{const k=p.e.key;cells[k]=Math.max(cells[k]||0,p.e.f);});
+  const ks=Object.keys(cells);return {ev,keys:ks.map(Number),cov:ks.length,qd:ks.reduce((s,k)=>s+cells[k],0),best:Math.max(...pop.map(p=>p.e.f)),n:pop.length};}
+// ==CORE_END==
+
+const $=id=>document.getElementById(id);
+const PSEUDO=[
+ ['1','Davranış boyutlarını tanımla, 8×8 boş ızgara oluştur'],
+ ['2','<span class="kw">for</span> i = 1..N₀: rastgele bir birey x üret'],
+ ['3','    f(x), b(x) hesapla → hücreye ekle-ya-da-değiştir'],
+ ['4','<span class="kw">while</span> bütçe bitmedi <span class="kw">do</span>'],
+ ['5','    haritadan rastgele bir elit seç'],
+ ['6','    mutasyonla aday x′ üret'],
+ ['7','    f(x′) ve b(x′) hesapla → hedef hücre c'],
+ ['8','    <span class="kw">if</span> c boş veya f(x′) > f(elit_c): c ← x′'],
+ ['9','<span class="kw">end while</span>'],
+ ['10','<span class="kw">return</span> elitler haritası']];
+let S,P,GA,timer=null,selKey=null,quiet=false;
+
+function readP(){return {n0:+$('n0').value,pm:+$('pm').value,budget:Math.max(50,+$('budget').value||2000),mu:+$('mu').value,seed:+$('seed').value||0};}
+function syncLabels(){$('vN0').textContent=$('n0').value;$('vPm').textContent=(+$('pm').value).toFixed(2);$('vMu').textContent=$('mu').value;$('vSp').textContent=$('speed').value;}
+function reset(){
+  stop();P=readP();if(P.n0>P.budget)P.n0=P.budget;
+  S={rng:mulberry32(P.seed),arch:new Array(BX*BY).fill(null),ev:0,line:0,next:1,init:0,cand:null,parentKey:null,
+     cnt:{new:0,imp:0,rej:0,rb:0},hist:[{ev:0,cov:0,qd:0}],log:[],done:false,last:null,rbEx:null};
+  GA=runGA(P.seed,P.budget,P.mu,P.pm);selKey=null;
+  $('explain').innerHTML='“Adım” düğmesiyle 1. satırdan başlayın.';$('exTitle').textContent='Şu anki adım';
+  render();
+}
+function insertCand(){
+  const c=S.cand;S.ev++;const before=archStats(S.arch);const r=tryInsert(S.arch,c);
+  S.cnt[r.status]++;S.last={...r,key:c.e.key,f:c.e.f,ev:S.ev,pk:S.parentKey};
+  if(r.status==='rej'){ // daha düşük f'li başka bir elit haritada yaşıyor mu?
+    let wk=-1,wf=Infinity;S.arch.forEach((a,k)=>{if(a&&k!==c.e.key&&a.e.f<wf){wf=a.e.f;wk=k;}});
+    if(wk>=0&&c.e.f>wf){S.cnt.rb++;S.last.rb={wk,wf};S.rbEx={f:c.e.f,key:c.e.key,incf:r.inc.e.f,wk,wf,ev:S.ev};}
+  }
+  const st=archStats(S.arch);S.hist.push({ev:S.ev,cov:st.cov,qd:st.qd});
+  const cell=`(${c.e.bx},${c.e.by})`;
+  const msg=r.status==='new'?`<span class="ok">YENİ NİŞ</span>`:r.status==='imp'?`<span class="up">İYİLEŞTİ</span> ${r.inc.e.f}→${c.e.f}`:`<span class="no">RED</span> (sahip f=${r.inc.e.f})${S.last.rb?' <span class="badge">başka nişte f='+S.last.rb.wf+' yaşıyor</span>':''}`;
+  S.log.unshift(`#${S.ev} ${S.parentKey!=null?'ebeveyn '+kc(S.parentKey):'rastgele'} → aday f=${c.e.f}, niş ${cell}: ${msg}`);
+  if(S.log.length>80)S.log.pop();
+}
+function kc(k){return `(${k%BX},${Math.floor(k/BX)})`;}
+function step(){
+  if(S.done)return;const ln=S.next;S.line=ln;
+  if(ln===1){S.next=2;}
+  else if(ln===2){const h=randomLevel(S.rng);S.cand={h,e:evalLevel(h),ch:[]};S.cand.e=null;S.parentKey=null;S.init++;S.next=3;}
+  else if(ln===3){S.cand.e=evalLevel(S.cand.h);insertCand();S.next=(S.init<P.n0&&S.ev<P.budget)?2:4;}
+  else if(ln===4){S.next=S.ev<P.budget?5:10;}
+  else if(ln===5){const ks=[];S.arch.forEach((a,k)=>{if(a)ks.push(k);});S.parentKey=ks[Math.floor(S.rng()*ks.length)];S.cand=null;S.next=6;}
+  else if(ln===6){const m=mutate(S.arch[S.parentKey].h,P.pm,S.rng);S.cand={h:m.h,ch:m.ch,e:null};S.next=7;}
+  else if(ln===7){S.cand.e=evalLevel(S.cand.h);S.next=8;}
+  else if(ln===8){insertCand();S.next=4;}
+  else if(ln===10){S.done=true;stop();}
+  if(!quiet)render();
+}
+function oneCand(){if(S.done)return;let g=0;do{step();g++;}while(!S.done&&S.line!==3&&S.line!==8&&g<20);}
+function many(n){quiet=true;const target=S.ev+n;let g=0;while(!S.done&&g<n*8+20){step();g++;if(S.ev>=target&&(S.line===3||S.line===8))break;}quiet=false;render();}
+function toEnd(){stop();quiet=true;let g=0;while(!S.done&&g<500000){step();g++;}quiet=false;render();}
+function play(){if(timer){stop();return;}$('bPlay').textContent='⏸ Duraklat';
+  const tick=()=>{if(S.done){stop();return;}const sp=+$('speed').value;
+    if(sp>=9){quiet=true;for(let i=0;i<(sp===10?20:5)&&!S.done;i++)oneCand();quiet=false;render();}else oneCand();
+    timer=setTimeout(tick,sp>=9?30:1050-sp*110);};tick();}
+function stop(){if(timer)clearTimeout(timer);timer=null;$('bPlay').textContent='⏵ Oynat';}
+
+// ---------- çizim ----------
+function setup(cv){const dpr=window.devicePixelRatio||1;const w=+cv.getAttribute('width'),h=+cv.getAttribute('height');
+  if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+'px';}
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w,h};}
+function lerp(a,b,t){return a+(b-a)*t;}
+function hex(c){return [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];}
+function ramp(f){const t=f/FMAX;const stops=[[0,'#f1e4d8'],[0.45,'#FF6F20'],[1,'#447099']];
+  for(let i=0;i<stops.length-1;i++){const [t0,c0]=stops[i],[t1,c1]=stops[i+1];if(t<=t1){const u=(t-t0)/(t1-t0),a=hex(c0),b=hex(c1);return `rgb(${a.map((v,j)=>Math.round(lerp(v,b[j],u))).join(',')})`;}}
+  return '#447099';}
+const MAPG={x0:56,y0:12,cs:48};
+function gaSnapAt(ev){let s=GA[0];for(const t of GA){if(t.ev<=ev)s=t;else break;}return s;}
+function renderMap(){
+  const {ctx,w,h}=setup($('map'));ctx.clearRect(0,0,w,h);const {x0,y0,cs}=MAPG;
+  for(let by=0;by<BY;by++)for(let bx=0;bx<BX;bx++){
+    const k=bx+by*BX,a=S.arch[k],x=x0+bx*cs,y=y0+(BY-1-by)*cs;
+    if(a){ctx.fillStyle=ramp(a.e.f);ctx.fillRect(x+1,y+1,cs-2,cs-2);ctx.fillStyle=a.e.f>11?'#fff':'#1f2933';ctx.font='bold 13px Fira Code';ctx.textAlign='center';ctx.fillText(a.e.f,x+cs/2,y+cs/2+5);}
+    else{ctx.fillStyle='#eef1f4';ctx.fillRect(x+1,y+1,cs-2,cs-2);}
+  }
+  ctx.fillStyle='#5f6b78';ctx.font='11px Open Sans';ctx.textAlign='center';
+  for(let bx=0;bx<BX;bx++)ctx.fillText(bx===BX-1?'7+':bx,x0+bx*cs+cs/2,y0+BY*cs+14);
+  ctx.fillText('b₁ = çukur sayısı',x0+BX*cs/2,y0+BY*cs+30);
+  ctx.textAlign='right';for(let by=0;by<BY;by++)ctx.fillText(by===BY-1?'14+':`${2*by}–${2*by+1}`,x0-6,y0+(BY-1-by)*cs+cs/2+4);
+  ctx.save();ctx.translate(12,y0+BY*cs/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText('b₂ = engebelilik Σ|Δh|',0,0);ctx.restore();
+  if($('ovGA').checked&&S.ev>0){const g=gaSnapAt(S.ev);ctx.fillStyle='#1f2933';
+    g.keys.forEach(k=>{const bx=k%BX,by=Math.floor(k/BX);ctx.beginPath();ctx.arc(x0+bx*cs+cs-9,y0+(BY-1-by)*cs+9,4.5,0,7);ctx.fill();});}
+  const box=(k,col,lw)=>{const bx=k%BX,by=Math.floor(k/BX);ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.strokeRect(x0+bx*cs+2,y0+(BY-1-by)*cs+2,cs-4,cs-4);};
+  if(S.parentKey!=null&&(S.line>=5&&S.line<=7))box(S.parentKey,'#2e9e6a',3);
+  if(S.cand&&S.cand.e&&(S.line===3||S.line===7||S.line===8))box(S.cand.e.key,'#FF3D7F',3.5);
+  if(selKey!=null)box(selKey,'#1f2933',2);
+}
+function drawLevel(cv,hh,ch,mark){
+  const {ctx,w,h}=setup(cv);ctx.clearRect(0,0,w,h);const cw=w/NC,u=(h-14)/(HMAX+1.2);
+  ctx.fillStyle='#d8ecfb';ctx.fillRect(0,0,w,h);
+  const e=evalLevel(hh);let run=0;
+  for(let i=0;i<NC;i++){const x=i*cw;
+    if(hh[i]>0){const top=h-hh[i]*u;ctx.fillStyle='#b5652b';ctx.fillRect(x,top,cw,hh[i]*u);ctx.fillStyle='#5fae4a';ctx.fillRect(x,top,cw,4);
+      if(e.steps.includes(i)){ctx.fillStyle='#c9364f';ctx.fillRect(x,top-4,cw,3);}}
+    else{ctx.fillStyle='#1f2933';ctx.fillRect(x,h-5,cw,5);}
+    if(ch&&ch.includes(i)){ctx.strokeStyle='#FF3D7F';ctx.lineWidth=2;ctx.strokeRect(x+1,1,cw-2,h-2);}
+  }
+  // uzun çukur dizilerini işaretle
+  for(let i=0;i<=NC;i++){if(i<NC&&hh[i]===0)run++;else{if(run>=2){ctx.fillStyle='rgba(201,54,79,.35)';ctx.fillRect((i-run)*cw,0,run*cw,h);}run=0;}}
+  ctx.fillStyle='#1f2933';ctx.font='10px Fira Code';ctx.textAlign='center';
+  for(let i=0;i<NC;i++)ctx.fillText(hh[i],i*cw+cw/2,11);
+}
+function fLine(e){return `f = max(0, 20 − ${e.cGap} − ${e.cStep} − ${e.cEnd}) = <b>${e.f}</b>`;}
+function bLine(e){return `b₁ = ${e.gaps} çukur → sütun ${e.bx}; b₂ = Σ|Δh| = ${e.rough} → satır ⌊${e.rough}/2⌋=${Math.floor(e.rough/2)}${Math.floor(e.rough/2)>7?'→7':''} ⇒ niş <b>(${e.bx},${e.by})</b>`;}
+function renderDetail(){
+  let h='';
+  if(S.cand){const e=S.cand.e;
+    h+=`<h3>Aday ${S.parentKey!=null?'(ebeveyn: niş '+kc(S.parentKey)+')':'(rastgele)'}</h3><canvas id="lvC" width="400" height="92"></canvas>`;
+    h+=e?`<div class="mono">${fLine(e)}<br>${bLine(e)}</div>`:`<div class="note">f ve b henüz hesaplanmadı.</div>`;}
+  if(selKey!=null){const a=S.arch[selKey];
+    h+=`<h3>Seçili niş ${kc(selKey)}</h3>`+(a?`<canvas id="lvS" width="400" height="92"></canvas><div class="mono">${fLine(a.e)}<br>${bLine(a.e)}</div>`:'<div class="note">Bu niş boş — henüz hiçbir aday bu davranışı göstermedi.</div>');}
+  if(!h)h='<span class="note">Henüz aday yok. Haritada bir hücreye tıklayarak elitini görebilirsiniz.</span>';
+  h+='<div class="legend" style="margin-top:8px"><span><i style="background:#b5652b"></i>zemin (sayı = yükseklik)</span><span><i style="background:rgba(201,54,79,.35)"></i>uzun çukur (ceza)</span><span><i style="background:#c9364f"></i>tırmanılamaz basamak</span><span><i style="border:2px solid #FF3D7F"></i>mutasyonla değişen gen</span></div>';
+  $('detail').innerHTML=h;
+  if(S.cand&&$('lvC'))drawLevel($('lvC'),S.cand.h,S.cand.ch);
+  if(selKey!=null&&S.arch[selKey]&&$('lvS'))drawLevel($('lvS'),S.arch[selKey].h,null);
+}
+function renderChart(){
+  const {ctx,w,h}=setup($('chart'));ctx.clearRect(0,0,w,h);const pl=36,pr=12,pt=10,pb=28,W=w-pl-pr,H=h-pt-pb;
+  ctx.font='11px Open Sans';ctx.strokeStyle='#d9e1e8';ctx.fillStyle='#5f6b78';ctx.lineWidth=1;
+  for(let v=0;v<=64;v+=16){const y=pt+H*(1-v/64);ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(w-pr,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(v,pl-5,y+4);}
+  ctx.textAlign='center';for(let i=0;i<=5;i++){const ev=Math.round(P.budget*i/5);ctx.fillText(ev,pl+W*i/5,h-12);}
+  ctx.fillText('değerlendirme sayısı',pl+W/2,h-1);
+  const X=ev=>pl+W*ev/P.budget,Y=v=>pt+H*(1-v/64);
+  ctx.strokeStyle='#447099';ctx.lineWidth=2.2;ctx.beginPath();let first=true;
+  for(const t of GA){if(t.ev>S.ev)break;first?ctx.moveTo(X(t.ev),Y(t.cov)):ctx.lineTo(X(t.ev),Y(t.cov));first=false;}ctx.stroke();
+  ctx.strokeStyle='#FF6F20';ctx.beginPath();const hs=S.hist,stepN=Math.max(1,Math.floor(hs.length/600));
+  hs.forEach((t,i)=>{if(i%stepN&&i!==hs.length-1)return;i?ctx.lineTo(X(t.ev),Y(t.cov)):ctx.moveTo(X(t.ev),Y(t.cov));});ctx.stroke();
+}
+function renderCmp(){
+  const st=archStats(S.arch),g=S.ev>0?gaSnapAt(S.ev):null;
+  const r=(a,b,c)=>`<tr><td>${a}</td><td>${b}</td><td>${c}</td></tr>`;
+  $('cmp').innerHTML=`<table><tr><th>Ölçüt (${S.ev} değerlendirme)</th><th>MAP-Elites</th><th>EA (μ=${P.mu})</th></tr>`+
+   r('Çıktıdaki birey sayısı',st.cov,g?g.n:'–')+
+   r('Kapladığı niş sayısı',`${st.cov} / 64`,g?`${g.cov} / 64`:'–')+
+   r('QD-skoru (niş başına en iyi f toplamı)',st.qd,g?g.qd:'–')+
+   r('En iyi f',st.best<0?'–':st.best,g?g.best:'–')+'</table>';
+}
+function renderPseudo(){$('pseudo').innerHTML=PSEUDO.map(([n,t])=>`<div class="${S.line===+n?'on':''}"><span class="n">${n}:</span>${t}</div>`).join('');}
+function renderStats(){const st=archStats(S.arch);$('sEval').textContent=S.ev;$('sCov').textContent=`${st.cov} / 64`;$('sQD').textContent=st.qd;$('sBest').textContent=st.best<0?'–':st.best;$('sRB').textContent=S.cnt.rb;}
+function renderLog(){if(S.log.length)$('log').innerHTML=S.log.map(l=>`<div>${l}</div>`).join('');else $('log').innerHTML='<span class="note">Henüz karar yok.</span>';}
+
+function explain(){
+  const ln=S.line,ex=$('explain'),st=archStats(S.arch);
+  $('exTitle').textContent=`Satır ${ln} — ${{1:'Izgarayı kur',2:'Rastgele birey',3:'Değerlendir ve yerleştir',4:'Bütçe kontrolü',5:'Ebeveyn: haritadan rastgele elit',6:'Mutasyon',7:'Kalite ve davranışı hesapla',8:'Niş içi elitizm kararı',10:'Sonuç'}[ln]}`;
+  const decide=()=>{const L=S.last,c=S.cand.e;
+    if(L.status==='new')return `Niş (${c.bx},${c.by}) boştu → aday f=${c.f} ile <b>yerleşti</b>. Kapsama ${st.cov}/64 oldu. f'nin düşük olması önemli değil: o davranış için şu an tek ve dolayısıyla en iyi örnek.`;
+    if(L.status==='imp')return `Niş (${c.bx},${c.by}) dolu (elit f=${L.inc.e.f}); aday f=${c.f} > ${L.inc.e.f} → <b>eski elitin yerini aldı</b>. Kapsama değişmedi (${st.cov}), QD-skoru +${c.f-L.inc.e.f} arttı.`;
+    let s=`Niş (${c.bx},${c.by}) dolu (elit f=${L.inc.e.f}); aday f=${c.f} ≤ ${L.inc.e.f} → <b>reddedildi</b>.`;
+    if(L.rb)s+=`<br><span class="badge">QD'nin kilit noktası</span> Bu aday (f=${c.f}), niş ${kc(L.rb.wk)}'de yaşayan f=${L.rb.wf} elitten daha kalitelidir; yine de elendi, çünkü kendi nişinde “fazlalık”. MAP-Elites ham kaliteyi değil niş başına en iyiyi ödüllendirir.`;
+    return s;};
+  if(ln===1)ex.innerHTML=`Tasarımcı çeşitlilik bileşenini iki davranış boyutuna dönüştürür: b₁ (çukur sayısı, 8 aralık) × b₂ (engebelilik, 8 aralık) = <b>64 niş</b>. Her niş en fazla <b>bir</b> elit tutar. Kalite f bu boyutlardan bağımsızdır: f oynanabilirlik ihlallerini cezalandırır, b ise seviyenin türünü tarif eder.`;
+  else if(ln===2)ex.innerHTML=`Başlangıç bireyi ${S.init}/${P.n0} rastgele üretildi: <code>[${S.cand.h.join(',')}]</code> (her sütun 0–3 eşit olasılıklı). Henüz değerlendirilmedi.`;
+  else if(ln===3){const c=S.cand.e;ex.innerHTML=`<ul><li>Kalite: ${fLine(c)}</li><li>Davranış: ${bLine(c)}</li></ul>${decide()}`;}
+  else if(ln===4)ex.innerHTML=`Kullanılan bütçe ${S.ev} / ${P.budget} → ${S.ev<P.budget?'döngü devam ediyor (satır 5).':'bütçe bitti, harita döndürülecek (satır 10).'}`;
+  else if(ln===5){const a=S.arch[S.parentKey];ex.innerHTML=`Dolu ${st.cov} nişten biri eşit olasılıkla (1/${st.cov} = ${(1/st.cov).toFixed(3)}) seçildi: niş ${kc(S.parentKey)}, f=${a.e.f}. Seçim f'ye <b>bakmaz</b> — standart EA'daki turnuva/rulet baskısı burada yoktur; düşük f'li bir niş de keşfi başlatabilir.`;}
+  else if(ln===6)ex.innerHTML=`Ebeveyn kopyalandı; her gen p<sub>m</sub>=${P.pm} olasılıkla başka bir yüksekliğe çevrildi (beklenen ${(P.pm*NC).toFixed(1)} gen, en az 1 garanti). Değişen sütun(lar): {${S.cand.ch.map(i=>i+1).join(', ')}} → aday <code>[${S.cand.h.join(',')}]</code>.`;
+  else if(ln===7){const c=S.cand.e;ex.innerHTML=`<ul><li>Kalite: ${fLine(c)}${c.gapRuns.length?` — uzun çukur dizileri: ${c.gapRuns.join(', ')}`:''}${c.steps.length?` — tırmanılamaz basamak sütun(lar)ı: ${c.steps.map(i=>i+1).join(', ')}`:''}</li><li>Davranış: ${bLine(c)}</li></ul>Hedef hücre pembe çerçeveyle işaretli.`;}
+  else if(ln===8)ex.innerHTML=decide();
+  else if(ln===10){const g=gaSnapAt(S.ev);ex.innerHTML=`Bütçe (${S.ev} değerlendirme) bitti. Sonuç tek bir “en iyi” değil, <b>${st.cov} nişlik bir elitler haritası</b>: QD-skoru ${st.qd}, en iyi f=${st.best}. Aynı bütçeyle EA ${g.n} bireylik popülasyonunda yalnızca ${g.cov} niş kapsadı (en iyi f=${g.best}).<br>Kararlar: ${S.cnt.new} yeni niş, ${S.cnt.imp} iyileştirme, ${S.cnt.rej} red; reddedilenlerin ${S.cnt.rb} tanesi başka nişteki bir elitten daha yüksek f'ye sahipti.`;}
+}
+function render(){renderPseudo();renderStats();renderMap();renderDetail();renderChart();renderCmp();renderLog();if(S.line)explain();
+  ['bStep','bCand','b100','bEnd','bPlay'].forEach(b=>$(b).disabled=S.done);}
+
+$('map').addEventListener('click',ev=>{const r=$('map').getBoundingClientRect(),sc=(+$('map').getAttribute('width'))/r.width;
+  const x=(ev.clientX-r.left)*sc,y=(ev.clientY-r.top)*sc,{x0,y0,cs}=MAPG;const bx=Math.floor((x-x0)/cs),row=Math.floor((y-y0)/cs);
+  if(bx<0||bx>=BX||row<0||row>=BY)return;selKey=bx+(BY-1-row)*BX;renderMap();renderDetail();});
+['n0','pm','budget','mu','seed'].forEach(id=>$(id).addEventListener('change',()=>{syncLabels();reset();}));
+['n0','pm','mu','speed'].forEach(id=>$(id).addEventListener('input',syncLabels));
+$('ovGA').addEventListener('change',renderMap);
+$('bReset').onclick=reset;$('bStep').onclick=()=>{stop();step();};$('bCand').onclick=()=>{stop();oneCand();};
+$('b100').onclick=()=>{stop();many(100);};$('bEnd').onclick=toEnd;$('bPlay').onclick=play;
+syncLabels();reset();
+</script>
+</body>
+</html>

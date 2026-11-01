@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funnel & Sezgisel Laboratuvarı — BYZ502</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099;--blue-deep:#2f5070;--orange:#FF6F20;--pink:#FF3D7F;
+    --ink:#1e2933;--muted:#5a6b7a;--line:#d8e0e8;--paper:#f4f6f8;--card:#fff;
+    --good:#2e9e6b;--bad:#e23d3d;--violet:#8a4fd6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Open Sans',sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:940px;margin:0 auto;padding:28px 20px 64px;}
+  header.hero{border-left:6px solid var(--orange);padding:6px 0 6px 18px;margin-bottom:8px;}
+  .eyebrow{font-family:'Fira Code',monospace;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:500;}
+  h1{font-family:'Roboto Slab',serif;font-weight:700;font-size:1.85rem;line-height:1.15;margin:.18em 0 .12em;}
+  .sub{color:var(--muted);font-size:1rem;max-width:64ch;}
+  .tabs{display:flex;gap:8px;margin:26px 0 18px;flex-wrap:wrap;}
+  .tab{font-family:'Roboto Slab',serif;font-weight:500;font-size:.92rem;border:1px solid var(--line);background:var(--card);color:var(--muted);padding:10px 16px;border-radius:10px;cursor:pointer;transition:.18s;}
+  .tab[aria-selected="true"]{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(68,112,153,.28);}
+  .tab:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;}
+  h2{font-family:'Roboto Slab',serif;font-weight:700;font-size:1.22rem;margin:.1em 0 .5em;}
+  p.lead{color:var(--muted);font-size:.96rem;margin:0 0 14px;}
+  .stage{background:#eef2f6;border-radius:12px;border:1px solid var(--line);width:100%;display:block;touch-action:none;}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 4px;}
+  .btn{font-family:'Open Sans',sans-serif;font-weight:600;font-size:.9rem;border-radius:9px;padding:10px 15px;cursor:pointer;transition:.16s;background:var(--card);color:var(--blue);border:1px solid var(--line);}
+  .btn.primary{background:var(--orange);color:#fff;border-color:var(--orange);}
+  .btn.primary:hover{background:#e85f14;}
+  .btn[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
+  .step-readout{font-family:'Fira Code',monospace;font-size:.88rem;background:#1e2933;color:#e8eef4;border-radius:10px;padding:12px 14px;margin-top:12px;min-height:2.6em;}
+  .step-readout b{color:var(--orange);}
+  .step-readout .brk{color:var(--pink);}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:12px;}
+  .swatch{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;}
+  .meta{font-family:'Fira Code',monospace;font-size:.82rem;color:var(--muted);margin-top:6px;}
+  .hint{font-size:.86rem;color:var(--muted);margin-top:10px;}
+  .hint b{color:var(--ink);}
+  footer{margin-top:30px;font-family:'Fira Code',monospace;font-size:.76rem;color:var(--muted);text-align:center;}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">BYZ502 · Hafta 02 · İnteraktif Eklenti</div>
+    <h1>Funnel &amp; Sezgisel Laboratuvarı</h1>
+    <p class="sub">A*'ın verdiği üçgen koridorunu adım adım gergin bir ipe dönüştüren <b>Huni (Funnel) algoritmasını</b> ve NavMesh için doğru sezgisel fonksiyonun neden Euclidean olduğunu elle deneyin.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Bölümler">
+    <button class="tab" role="tab" id="tab1" aria-selected="true" aria-controls="panel1">1 · Funnel Algoritması (Adım Adım)</button>
+    <button class="tab" role="tab" id="tab2" aria-selected="false" aria-controls="panel2">2 · Sezgisel: Euclidean vs Manhattan</button>
+  </div>
+
+  <!-- PANEL 1 -->
+  <section class="panel active" id="panel1" role="tabpanel" aria-labelledby="tab1">
+    <div class="card">
+      <h2>İpi Çekmek: Koridordan En Kısa Rotaya</h2>
+      <p class="lead">"L" odası dört üçgene bölündü. A*, başlangıçtan (NPC) hedefe giden üçgen koridorunu buldu; ortak kenarlar birer <b>portal</b>. İleri tuşuyla huninin nasıl daralıp iç köşede <b>kırıldığını</b> izleyin.</p>
+
+      <svg id="stage1" class="stage" viewBox="0 0 460 380" role="img" aria-label="Funnel algoritması adım adım görselleştirme"></svg>
+
+      <div class="controls">
+        <button class="btn" id="prev" aria-label="Önceki adım">‹ Geri</button>
+        <button class="btn primary" id="next" aria-label="Sonraki adım">İleri ›</button>
+        <button class="btn" id="play">Otomatik oynat</button>
+        <button class="btn" id="reset">Sıfırla</button>
+        <button class="btn" id="toggleNaive" aria-pressed="false">Naif rotayı göster</button>
+      </div>
+      <div class="step-readout" id="readout" aria-live="polite"></div>
+      <div class="meta" id="lengths"></div>
+      <div class="legend">
+        <span class="swatch"><span class="dot" style="background:var(--orange)"></span>Apeks (huni tepesi)</span>
+        <span class="swatch"><span class="dot" style="background:var(--blue)"></span>Sol sınır</span>
+        <span class="swatch"><span class="dot" style="background:var(--pink)"></span>Sağ sınır</span>
+        <span class="swatch"><span class="dot" style="background:var(--good)"></span>Kesin rota</span>
+      </div>
+      <p class="hint"><b>Dikkat:</b> geniş dışbükey alan üçgenlere bölününce uzun çapraz portallar oluşur — funnel ipi bu portalların ortasını hedeflemez, içlerinden <b>dümdüz</b> geçer ve yalnızca gerçekten dönülmesi gereken iç köşede kırılır.</p>
+    </div>
+  </section>
+
+  <!-- PANEL 2 -->
+  <section class="panel" id="panel2" role="tabpanel" aria-labelledby="tab2">
+    <div class="card">
+      <h2>Doğru Sezgisel Neden Euclidean?</h2>
+      <p class="lead">Turuncu noktayı sürükleyin. Aynı iki nokta için iki sezgiselin tahminini karşılaştırın. NavMesh'te hareket serbest açılı olduğu için gerçek mesafe kuş uçuşudur.</p>
+      <svg id="stage2" class="stage" viewBox="0 0 460 300" role="img" aria-label="Euclidean ve Manhattan mesafe karşılaştırması"></svg>
+      <div class="step-readout" id="heur" aria-live="polite"></div>
+      <p class="hint"><b>Kabul edilebilirlik (admissibility):</b> A*'ın optimal rotayı garanti etmesi için sezgisel <b>gerçek maliyeti asla aşmamalıdır</b>. Euclidean (kuş uçuşu) gerçek yürüyüş mesafesini asla aşmaz → kabul edilebilir. Manhattan, serbest harekette mesafeyi fazla tahmin eder → kabul edilemez → A* optimalliği bozulur.</p>
+    </div>
+  </section>
+
+  <footer>BYZ502 — Oyun Motorunda Yapay Zekâ Uygulamaları · Hacettepe Üniversitesi</footer>
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+function el(tag,a){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function dist(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+
+/* tabs */
+const tabs=[document.getElementById('tab1'),document.getElementById('tab2')];
+const panels=[document.getElementById('panel1'),document.getElementById('panel2')];
+tabs.forEach((t,i)=>t.addEventListener('click',()=>tabs.forEach((tt,j)=>{tt.setAttribute('aria-selected',j===i);panels[j].classList.toggle('active',j===i);})));
+
+/* ============ GEOMETRY CORE ============ */
+function triarea2(a,b,c){return (b[0]-a[0])*(c[1]-a[1])-(c[0]-a[0])*(b[1]-a[1]);}
+function signedArea(p){let s=0;for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];s+=a[0]*b[1]-b[0]*a[1];}return s/2;}
+function pointInTri(p,a,b,c){const d1=triarea2(p,a,b),d2=triarea2(p,b,c),d3=triarea2(p,c,a);const neg=d1<0||d2<0||d3<0,pos=d1>0||d2>0||d3>0;return !(neg&&pos);}
+function earClip(poly){let V=poly.map((p,i)=>i);if(signedArea(poly)<0)V.reverse();const tris=[];let g=0;
+  while(V.length>2&&g++<999){let clip=false;
+    for(let i=0;i<V.length;i++){const a=poly[V[(i+V.length-1)%V.length]],b=poly[V[i]],c=poly[V[(i+1)%V.length]];
+      if(triarea2(a,b,c)<=0)continue;let ear=true;
+      for(let j=0;j<V.length;j++){const vj=V[j];if(vj===V[(i+V.length-1)%V.length]||vj===V[i]||vj===V[(i+1)%V.length])continue;if(pointInTri(poly[vj],a,b,c)){ear=false;break;}}
+      if(ear){tris.push([V[(i+V.length-1)%V.length],V[i],V[(i+1)%V.length]]);V.splice(i,1);clip=true;break;}}
+    if(!clip)break;}
+  return tris;}
+function sharedEdge(t1,t2){const s=t1.filter(v=>t2.includes(v));return s.length===2?s:null;}
+function findTri(poly,tris,p){for(let i=0;i<tris.length;i++){const t=tris[i];if(pointInTri(p,poly[t[0]],poly[t[1]],poly[t[2]]))return i;}return -1;}
+function corridor(tris,si,ei){const adj=tris.map(()=>[]);for(let i=0;i<tris.length;i++)for(let j=i+1;j<tris.length;j++)if(sharedEdge(tris[i],tris[j])){adj[i].push(j);adj[j].push(i);}
+  const prev=new Array(tris.length).fill(-2);prev[si]=-1;const q=[si];
+  while(q.length){const u=q.shift();if(u===ei)break;for(const v of adj[u])if(prev[v]===-2){prev[v]=u;q.push(v);}}
+  const path=[];let c=ei;while(c!==-1){path.unshift(c);c=prev[c];}return path;}
+function buildPortals(poly,tris,corr,start,end){
+  const portals=[[start,start]];
+  for(let i=0;i<corr.length-1;i++){const e=sharedEdge(tris[corr[i]],tris[corr[i+1]]);portals.push([poly[e[0]],poly[e[1]]]);}
+  portals.push([end,end]);
+  for(let i=1;i<portals.length-1;i++){const L=portals[i][0],R=portals[i][1];
+    const prevMid=[(portals[i-1][0][0]+portals[i-1][1][0])/2,(portals[i-1][0][1]+portals[i-1][1][1])/2];
+    const mid=[(L[0]+R[0])/2,(L[1]+R[1])/2];
+    if(triarea2(prevMid,mid,L)>0)portals[i]=[R,L];}
+  return portals;}
+/* SSF with snapshots */
+function stringPullSteps(portals){
+  const snaps=[];const pts=[portals[0][0].slice()];
+  let apex=portals[0][0],pL=portals[1][0],pR=portals[1][1],apexI=0,lI=1,rI=1;
+  snaps.push({apex:apex.slice(),pL:pL.slice(),pR:pR.slice(),committed:pts.map(p=>p.slice()),pi:1,note:'Huni başlatıldı: apeks = NPC. İlk portalın sol/sağ köşeleri sınır oldu.',brk:false});
+  for(let i=2;i<portals.length;i++){
+    const left=portals[i][0],right=portals[i][1];let note='';let brk=false;
+    if(triarea2(apex,pR,right)<=0){
+      if((apex[0]===pR[0]&&apex[1]===pR[1])||triarea2(apex,pL,right)>0){pR=right;rI=i;note='Sağ sınır daraldı (huni sıkıştı).';}
+      else{pts.push(pL.slice());apex=pL;apexI=lI;pL=apex;pR=apex;lI=apexI;rI=apexI;i=apexI;brk=true;note='KIRILMA: sağ köşe sol sınırı aştı → sol köşe yeni apeks, rotaya eklendi.';
+        snaps.push({apex:apex.slice(),pL:pL.slice(),pR:pR.slice(),committed:pts.map(p=>p.slice()),pi:i+1,note,brk});continue;}
+    }
+    if(triarea2(apex,pL,left)>=0){
+      if((apex[0]===pL[0]&&apex[1]===pL[1])||triarea2(apex,pR,left)<0){pL=left;lI=i;note=note?note+' Sol sınır daraldı.':'Sol sınır daraldı (huni sıkıştı).';}
+      else{pts.push(pR.slice());apex=pR;apexI=rI;pL=apex;pR=apex;lI=apexI;rI=apexI;i=apexI;brk=true;note='KIRILMA: sol köşe sağ sınırı aştı → sağ köşe yeni apeks, rotaya eklendi.';
+        snaps.push({apex:apex.slice(),pL:pL.slice(),pR:pR.slice(),committed:pts.map(p=>p.slice()),pi:i+1,note,brk});continue;}
+    }
+    if(!note)note='Bu portalda sınırlar değişmedi.';
+    snaps.push({apex:apex.slice(),pL:pL.slice(),pR:pR.slice(),committed:pts.map(p=>p.slice()),pi:i,note,brk});
+  }
+  pts.push(portals[portals.length-1][1].slice());
+  snaps.push({apex:pts[pts.length-1].slice(),pL:pts[pts.length-1].slice(),pR:pts[pts.length-1].slice(),committed:pts.map(p=>p.slice()),pi:portals.length-1,note:'Hedefe ulaşıldı. Gergin ip = en kısa, pürüzsüz rota.',brk:false,done:true});
+  return {snaps,path:pts};
+}
+
+/* ============ DEMO 1 ============ */
+(function(){
+  const svg=document.getElementById('stage1');
+  const poly=[[40,50],[420,50],[420,340],[300,340],[300,180],[40,180]];
+  const REFLEX=[300,180];const S=[90,115],E=[360,300];
+  const tris=earClip(poly);
+  const corr=corridor(tris,findTri(poly,tris,S),findTri(poly,tris,E));
+  const portals=buildPortals(poly,tris,corr,S,E);
+  const {snaps,path}=stringPullSteps(portals);
+  // naive path = portal midpoints
+  const naive=[S].concat(portals.slice(1,-1).map(p=>[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2])).concat([E]);
+  let step=0,showNaive=false,timer=null;
+
+  function plen(pts){let s=0;for(let i=1;i<pts.length;i++)s+=dist(pts[i-1],pts[i]);return s;}
+
+  function render(){
+    svg.innerHTML='';
+    // all triangles
+    tris.forEach((t,i)=>{
+      const inCorr=corr.includes(i);
+      svg.appendChild(el('path',{d:`M${poly[t[0]]} L${poly[t[1]]} L${poly[t[2]]} Z`,fill:inCorr?'rgba(68,112,153,.07)':'#ffffff',stroke:'#cdd7e0','stroke-width':1}));
+    });
+    // void label
+    const vt=el('text',{x:170,y:265,'text-anchor':'middle','font-family':'Open Sans','font-size':13,fill:'#aab8c4'});vt.textContent='ENGEL / DUVAR';svg.appendChild(vt);
+    // portals
+    portals.slice(1,-1).forEach((p,idx)=>{
+      const cur=snaps[step]&&snaps[step].pi===idx+1;
+      svg.appendChild(el('line',{x1:p[0][0],y1:p[0][1],x2:p[1][0],y2:p[1][1],stroke:cur?'var(--orange)':'#9fb6cb','stroke-width':cur?3:1.5,'stroke-dasharray':'5 4'}));
+    });
+    const s=snaps[step];
+    // funnel triangle
+    if(!s.done && (s.apex[0]!==s.pL[0]||s.apex[1]!==s.pL[1]||s.apex[0]!==s.pR[0]||s.apex[1]!==s.pR[1])){
+      svg.appendChild(el('path',{d:`M${s.apex} L${s.pL} L${s.pR} Z`,fill:'rgba(255,111,32,.10)',stroke:'none'}));
+      svg.appendChild(el('line',{x1:s.apex[0],y1:s.apex[1],x2:s.pL[0],y2:s.pL[1],stroke:'var(--blue)','stroke-width':2.5}));
+      svg.appendChild(el('line',{x1:s.apex[0],y1:s.apex[1],x2:s.pR[0],y2:s.pR[1],stroke:'var(--pink)','stroke-width':2.5}));
+      svg.appendChild(el('circle',{cx:s.pL[0],cy:s.pL[1],r:5,fill:'var(--blue)'}));
+      svg.appendChild(el('circle',{cx:s.pR[0],cy:s.pR[1],r:5,fill:'var(--pink)'}));
+    }
+    // naive
+    if(showNaive){
+      svg.appendChild(el('path',{d:'M'+naive.map(p=>p.join(',')).join(' L '),fill:'none',stroke:'#9aa7b3','stroke-width':2,'stroke-dasharray':'3 4'}));
+    }
+    // committed path
+    const cm=s.committed;
+    if(cm.length>1)svg.appendChild(el('path',{d:'M'+cm.map(p=>p.join(',')).join(' L '),fill:'none',stroke:'var(--good)','stroke-width':3.5,'stroke-linecap':'round','stroke-linejoin':'round'}));
+    cm.forEach((p,i)=>{if(i>0&&i<cm.length)svg.appendChild(el('circle',{cx:p[0],cy:p[1],r:4,fill:'var(--good)'}));});
+    // reflex corner marker
+    svg.appendChild(el('circle',{cx:REFLEX[0],cy:REFLEX[1],r:4,fill:'none',stroke:'var(--violet)','stroke-width':2}));
+    const rt=el('text',{x:REFLEX[0]+8,y:REFLEX[1]-6,'font-family':'Fira Code','font-size':10,fill:'var(--violet)'});rt.textContent='iç köşe';svg.appendChild(rt);
+    // apex
+    if(!s.done)svg.appendChild(el('circle',{cx:s.apex[0],cy:s.apex[1],r:7,fill:'var(--orange)',stroke:'#fff','stroke-width':2}));
+    // S & E
+    svg.appendChild(el('circle',{cx:S[0],cy:S[1],r:7,fill:'var(--blue-deep)',stroke:'#fff','stroke-width':2}));
+    const st=el('text',{x:S[0],y:S[1]-12,'text-anchor':'middle','font-family':'Fira Code','font-size':10,fill:'var(--ink)'});st.textContent='NPC';svg.appendChild(st);
+    svg.appendChild(el('circle',{cx:E[0],cy:E[1],r:7,fill:'var(--good)',stroke:'#fff','stroke-width':2}));
+    const et=el('text',{x:E[0],y:E[1]+20,'text-anchor':'middle','font-family':'Fira Code','font-size':10,fill:'var(--ink)'});et.textContent='Hedef';svg.appendChild(et);
+
+    // readout
+    const r=document.getElementById('readout');
+    r.innerHTML=`<b>Adım ${step+1}/${snaps.length}</b> — ${s.brk?'<span class="brk">'+s.note+'</span>':s.note}`;
+    document.getElementById('prev').disabled=step===0;
+    document.getElementById('next').disabled=step===snaps.length-1;
+    // lengths
+    document.getElementById('lengths').textContent=
+      `Funnel rota: ${plen(path).toFixed(0)} br, ${path.length} nokta   ·   Naif (portal ortası) rota: ${plen(naive).toFixed(0)} br, ${naive.length} nokta`;
+  }
+  document.getElementById('next').onclick=()=>{if(step<snaps.length-1){step++;render();}};
+  document.getElementById('prev').onclick=()=>{if(step>0){step--;render();}};
+  document.getElementById('reset').onclick=()=>{step=0;stopPlay();render();};
+  document.getElementById('toggleNaive').onclick=function(){showNaive=!showNaive;this.setAttribute('aria-pressed',showNaive);render();};
+  function stopPlay(){if(timer){clearInterval(timer);timer=null;document.getElementById('play').textContent='Otomatik oynat';}}
+  document.getElementById('play').onclick=function(){
+    if(timer){stopPlay();return;}
+    if(step===snaps.length-1)step=0;
+    this.textContent='Durdur';
+    timer=setInterval(()=>{if(step<snaps.length-1){step++;render();}else stopPlay();},900);
+  };
+  render();
+})();
+
+/* ============ DEMO 2 ============ */
+(function(){
+  const svg=document.getElementById('stage2');
+  const G=[380,210];let N=[100,90];let dragging=false;
+  function toSvg(evt){const r=svg.getBoundingClientRect();return [((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)/r.width*460,((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)/r.height*300];}
+  function render(){
+    svg.innerHTML='';
+    svg.appendChild(el('rect',{x:30,y:30,width:400,height:240,fill:'#ffffff',stroke:'#cdd7e0','stroke-width':1,rx:8}));
+    // Manhattan dogleg
+    svg.appendChild(el('path',{d:`M${N[0]},${N[1]} L${G[0]},${N[1]} L${G[0]},${G[1]}`,fill:'none',stroke:'var(--pink)','stroke-width':2.5,'stroke-dasharray':'6 4','stroke-linejoin':'round'}));
+    // Euclidean line
+    svg.appendChild(el('line',{x1:N[0],y1:N[1],x2:G[0],y2:G[1],stroke:'var(--good)','stroke-width':3}));
+    // points
+    svg.appendChild(el('circle',{cx:G[0],cy:G[1],r:7,fill:'var(--blue-deep)',stroke:'#fff','stroke-width':2}));
+    const gt=el('text',{x:G[0],y:G[1]+22,'text-anchor':'middle','font-family':'Fira Code','font-size':10,fill:'var(--ink)'});gt.textContent='Hedef';svg.appendChild(gt);
+    const nc=el('circle',{cx:N[0],cy:N[1],r:9,fill:'var(--orange)',stroke:'#fff','stroke-width':2,cursor:'grab',tabindex:0,role:'slider','aria-label':'Düğüm noktası, sürükleyin'});svg.appendChild(nc);
+    const nt=el('text',{x:N[0],y:N[1]-13,'text-anchor':'middle','font-family':'Fira Code','font-size':10,fill:'var(--ink)'});nt.textContent='n';svg.appendChild(nt);
+    nc.addEventListener('pointerdown',()=>dragging=true);
+    nc.addEventListener('keydown',e=>{const s=10;let p=[...N];if(e.key==='ArrowLeft')p[0]-=s;else if(e.key==='ArrowRight')p[0]+=s;else if(e.key==='ArrowUp')p[1]-=s;else if(e.key==='ArrowDown')p[1]+=s;else return;e.preventDefault();p[0]=Math.max(35,Math.min(425,p[0]));p[1]=Math.max(35,Math.min(265,p[1]));N=p;render();});
+    const euc=dist(N,G),man=Math.abs(N[0]-G[0])+Math.abs(N[1]-G[1]);
+    const over=((man-euc)/euc*100);
+    document.getElementById('heur').innerHTML=
+      `<b style="color:var(--good)">Euclidean</b> (gerçek mesafe) = ${euc.toFixed(0)} br &nbsp;·&nbsp; <b style="color:var(--pink)">Manhattan</b> = ${man.toFixed(0)} br &nbsp;→&nbsp; Manhattan, gerçeği %${over.toFixed(0)} fazla tahmin ediyor.`;
+  }
+  window.addEventListener('pointermove',e=>{if(!dragging)return;e.preventDefault();const p=toSvg(e);N=[Math.max(35,Math.min(425,Math.round(p[0]))),Math.max(35,Math.min(265,Math.round(p[1])))];render();});
+  window.addEventListener('pointerup',()=>dragging=false);
+  render();
+})();
+</script>
+</body>
+</html>

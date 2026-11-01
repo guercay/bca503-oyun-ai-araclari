@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BYZ502 · Mini-Mario Markov Bölüm Üreteci</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --mavi:#447099; --mavi-koyu:#2d4d6b; --mavi-acik:#e8eff5;
+  --turuncu:#FF6F20; --pembe:#FF3D7F;
+  --zemin:#f7f9fb; --kart:#fff; --metin:#26343f; --gri:#6b7a87; --cizgi:#dbe4ec;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Open Sans',sans-serif;background:var(--zemin);color:var(--metin);line-height:1.6}
+header{background:linear-gradient(135deg,var(--mavi-koyu),var(--mavi));color:#fff;padding:30px 24px 26px;text-align:center}
+header .ders{font-family:'Fira Code',monospace;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:#bcd3e6;margin-bottom:8px}
+header h1{font-family:'Roboto Slab',serif;font-size:1.55rem;font-weight:700;margin-bottom:6px}
+header p{max-width:820px;margin:0 auto;color:#dce8f2;font-size:.93rem}
+main{max-width:1080px;margin:0 auto;padding:24px 16px 60px}
+section{margin-bottom:38px}
+.bolum-baslik{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.bolum-no{font-family:'Roboto Slab',serif;font-weight:700;background:var(--mavi);color:#fff;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bolum-baslik h2{font-family:'Roboto Slab',serif;font-size:1.22rem;color:var(--mavi-koyu)}
+.aciklama{color:var(--gri);font-size:.92rem;margin-bottom:14px;max-width:880px}
+.panel{background:var(--kart);border:1px solid var(--cizgi);border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(45,77,107,.06)}
+.iki-sutun{display:grid;grid-template-columns:1fr 330px;gap:18px}
+@media(max-width:880px){.iki-sutun{grid-template-columns:1fr}}
+.kutu{border-left:4px solid var(--mavi);background:var(--mavi-acik);border-radius:0 10px 10px 0;padding:11px 15px;margin:12px 0;font-size:.9rem}
+.kutu.ipucu{border-color:var(--turuncu);background:#fff3ea}
+.kutu.dikkat{border-color:var(--pembe);background:#ffeef4}
+.kutu b:first-child{display:block;margin-bottom:2px}
+button{font-family:'Open Sans',sans-serif;font-weight:700;font-size:.87rem;border:none;border-radius:8px;padding:9px 14px;cursor:pointer;transition:transform .08s,box-shadow .08s}
+button:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.12)}
+.btn-mavi{background:var(--mavi);color:#fff}
+.btn-turuncu{background:var(--turuncu);color:#fff}
+.btn-pembe{background:var(--pembe);color:#fff}
+.btn-gri{background:#e4ebf1;color:var(--mavi-koyu)}
+.buton-grubu{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+textarea{
+  width:100%;font-family:'Fira Code',monospace;font-size:1.02rem;letter-spacing:.22em;
+  border:2px solid var(--cizgi);border-radius:10px;padding:10px 12px;resize:vertical;min-height:58px;
+  color:var(--mavi-koyu);
+}
+textarea:focus{outline:none;border-color:var(--mavi)}
+.hata{color:var(--pembe);font-size:.84rem;font-weight:600;min-height:20px;margin-top:4px}
+table.gecis{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:8px}
+table.gecis th,table.gecis td{border:1px solid var(--cizgi);padding:7px 8px;text-align:center}
+table.gecis th{background:var(--mavi-acik);color:var(--mavi-koyu);font-family:'Roboto Slab',serif;font-weight:600}
+table.gecis td{font-family:'Fira Code',monospace}
+table.gecis td .say{color:var(--gri);font-size:.76rem;display:block}
+.sembol{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;font-family:'Fira Code',monospace;font-weight:700;color:#fff}
+.sZ{background:#5a8f4e}.sB{background:#7aa7c7}.sD{background:var(--pembe)}
+.kontrol{margin-bottom:12px}
+.kontrol label{display:flex;justify-content:space-between;font-size:.85rem;font-weight:600;color:var(--mavi-koyu);margin-bottom:4px}
+.kontrol label .deger{font-family:'Fira Code',monospace;color:var(--turuncu)}
+input[type=range]{width:100%;accent-color:var(--mavi)}
+.onay{display:flex;align-items:center;gap:8px;font-size:.86rem;font-weight:600;color:var(--mavi-koyu);margin-bottom:10px}
+.onay input{accent-color:var(--turuncu);width:16px;height:16px}
+canvas{width:100%;height:auto;display:block;border-radius:10px;border:1px solid var(--cizgi)}
+.cikti-dizi{
+  font-family:'Fira Code',monospace;font-size:.95rem;letter-spacing:.2em;
+  background:#f0f5f9;border:1px dashed var(--mavi);border-radius:8px;padding:9px 12px;margin-top:10px;
+  color:var(--mavi-koyu);word-break:break-all;
+}
+.sonuc{font-family:'Roboto Slab',serif;font-size:1rem;font-weight:600;margin-top:10px}
+.sonuc.iyi{color:#3d7a34}.sonuc.kotu{color:var(--pembe)}
+.stat-tablo{width:100%;border-collapse:collapse;font-size:.86rem;margin-top:8px}
+.stat-tablo td{padding:6px 8px;border-bottom:1px solid var(--cizgi)}
+.stat-tablo td:last-child{text-align:right;font-family:'Fira Code',monospace;font-weight:600;color:var(--mavi-koyu)}
+.lejant{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--gri);margin-top:8px;align-items:center}
+.lejant span{display:inline-flex;align-items:center;gap:6px}
+footer{text-align:center;color:var(--gri);font-size:.8rem;padding:18px;border-top:1px solid var(--cizgi)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="ders">BYZ502 · Hafta 04-02 · PCGML</div>
+  <h1>🍄 Mini-Mario Markov Bölüm Üreteci</h1>
+  <p>Ders notundaki sütun modelinin canlı hali: usta tasarımcının bölümünden geçiş tablosunu öğren,
+  zar atarak yeni bölümler üret ve <b>"istatistiksel benzerlik ≠ oynanabilirlik"</b> sorununu kendi gözlerinle gör.</p>
+</header>
+
+<main>
+
+<!-- ═══════ 1. EĞİTİM VERİSİ ═══════ -->
+<section>
+  <div class="bolum-baslik"><div class="bolum-no">1</div><h2>Eğitim Verisi → Geçiş Tablosu</h2></div>
+  <p class="aciklama">
+    Bölümü soldan sağa sütun tipleriyle yazın:
+    <span class="sembol sZ">Z</span> zemin &nbsp;·&nbsp;
+    <span class="sembol sB">B</span> boşluk &nbsp;·&nbsp;
+    <span class="sembol sD">D</span> düşman.
+    Tablo her tuşta yeniden hesaplanır — kendi bölümünüzü yazıp modelin nasıl değiştiğini deneyin.
+  </p>
+  <div class="panel iki-sutun">
+    <div>
+      <textarea id="txtData" spellcheck="false">Z Z B Z Z Z B B Z D Z Z</textarea>
+      <div class="hata" id="txtErr"></div>
+      <div class="buton-grubu">
+        <button class="btn-mavi" id="btnLecture">📘 Ders örneği</button>
+        <button class="btn-gri" id="btnHomework">📝 Ödev örneği</button>
+      </div>
+      <div id="trainCanvasWrap">
+        <canvas id="trainCanvas" width="900" height="150"></canvas>
+        <div class="lejant"><span>Eğitim bölümünün görünümü</span></div>
+      </div>
+    </div>
+    <div>
+      <div id="tableWrap"></div>
+      <div class="kutu">
+        <b>🎯 Kavram</b>
+        Her satır bir soruya cevaptır: <i>"Şu sütundayken, sıradaki sütun ne olasılıkla ne olur?"</i>
+        Satır toplamı daima 1'dir. Modelimizin tüm "bilgisi" bu tablodan ibarettir.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 2. ÜRETİM ═══════ -->
+<section>
+  <div class="bolum-baslik"><div class="bolum-no">2</div><h2>Bölüm Üret ve Oynanabilirliği Test Et</h2></div>
+  <p class="aciklama">
+    Model <b>Z</b>'den başlar, her adımda tablodan zar atarak bir sonraki sütunu seçer.
+    Karakterimiz en fazla <b>atlama menzili</b> kadar ardışık boşluğu aşabilir; daha uzun uçurumlar bölümü oynanamaz yapar.
+  </p>
+  <div class="panel iki-sutun">
+    <div>
+      <canvas id="genCanvas" width="900" height="170"></canvas>
+      <div class="lejant">
+        <span><i style="width:14px;height:14px;border-radius:3px;background:rgba(255,61,127,.35);border:1.5px solid #FF3D7F;display:inline-block"></i> Oynanamaz uçurum (menzil aşıldı)</span>
+      </div>
+      <div class="cikti-dizi" id="genString">—</div>
+      <div class="sonuc" id="genVerdict"></div>
+    </div>
+    <div>
+      <div class="kontrol">
+        <label>Bölüm uzunluğu <span class="deger" id="lblLen">30</span></label>
+        <input type="range" id="sldLen" min="10" max="60" value="30" step="1">
+      </div>
+      <div class="kontrol">
+        <label>Atlama menzili (maks. ardışık B) <span class="deger" id="lblJump">2</span></label>
+        <input type="range" id="sldJump" min="1" max="4" value="2" step="1">
+      </div>
+      <div class="onay">
+        <input type="checkbox" id="chkConstraint">
+        <label for="chkConstraint" style="cursor:pointer">Kısıt modu: menzili aşacak B'yi üretme</label>
+      </div>
+      <div class="buton-grubu">
+        <button class="btn-turuncu" id="btnGen">🎲 Bölüm Üret</button>
+      </div>
+      <div class="kutu ipucu">
+        <b>💡 Deneyin</b>
+        Kısıt kapalıyken art arda üretim yapın: ara sıra pembe işaretli, geçilemez uçurumlar çıkacak.
+        Kısıtı açın: model aynı tabloyu kullanır ama menzil dolunca B seçeneği yasaklanır —
+        ders notundaki <i>"kısıt + öğrenme karışımı"</i> çözümünün ta kendisi.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 3. MONTE CARLO DENEYİ ═══════ -->
+<section>
+  <div class="bolum-baslik"><div class="bolum-no">3</div><h2>Deney: 1000 Bölümde Oynanabilirlik Oranı</h2></div>
+  <p class="aciklama">
+    Tek bölüme bakmak yanıltıcı olabilir; asıl soru şu: bu model <b>uzun vadede</b> ne sıklıkla oynanamaz bölüm üretir?
+    Aşağıdaki düğme, mevcut ayarlarla 1000 bölüm üretip sayar — kısıtlı ve kısıtsız modu yan yana karşılaştırır.
+  </p>
+  <div class="panel">
+    <div class="buton-grubu">
+      <button class="btn-pembe" id="btnMC">⚗️ 1000 + 1000 Bölüm Üret ve Karşılaştır</button>
+    </div>
+    <table class="stat-tablo" id="mcTable" style="display:none">
+      <tr><td></td><td><b>Kısıtsız</b></td><td><b>Kısıtlı</b></td></tr>
+      <tr><td>Oynanabilir bölüm oranı</td><td id="mcFree">—</td><td id="mcCon">—</td></tr>
+      <tr><td>Ortalama Z / B / D yüzdesi</td><td id="mcFreeMix">—</td><td id="mcConMix">—</td></tr>
+    </table>
+    <div class="kutu dikkat" id="mcNote" style="display:none">
+      <b>⚠️ Tartışma</b>
+      Kısıtsız modelde oynanamazlık oranı sıfır değil — P(B|B) &gt; 0 olduğu sürece, yeterince bölüm üretildiğinde
+      geçilemez uçurumlar <i>kaçınılmazdır</i>. Kısıt bunu %100 çözer ama bedelsiz değil:
+      Z/B/D karışımına bakın — kısıtlı üretim, eğitim verisinin istatistiklerinden hafifçe sapar.
+      Garanti ile aslına sadakat arasında bir ödünleşim vardır.
+    </div>
+  </div>
+</section>
+
+</main>
+<footer>BYZ502 · Hafta 04-02 — Mini-Mario Markov Bölüm Üreteci (ders notu eşlikçisi)</footer>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const SYMS = ['Z','B','D'];
+const RENK = {Z:'#5a8f4e', B:'#7aa7c7', D:'#FF3D7F'};
+
+/* ── Model durumu ── */
+let seq = [];          // eğitim dizisi
+let counts = {};       // counts[a][b]
+let rowTot = {};       // toplam çıkış sayısı
+
+function parseInput(){
+  const raw = $('txtData').value.toUpperCase();
+  const chars = raw.replace(/[\s,;·|-]+/g,'').split('');
+  const bad = chars.filter(c => !SYMS.includes(c));
+  if(bad.length){
+    $('txtErr').textContent = 'Geçersiz karakter: ' + [...new Set(bad)].join(', ') + ' — yalnızca Z, B, D kullanın.';
+    return null;
+  }
+  if(chars.length < 2){
+    $('txtErr').textContent = 'En az 2 sütun gerekli.';
+    return null;
+  }
+  $('txtErr').textContent = '';
+  return chars;
+}
+
+function train(){
+  const s = parseInput();
+  if(!s) return;
+  seq = s;
+  counts = {}; rowTot = {};
+  for(const a of SYMS){ counts[a] = {Z:0,B:0,D:0}; rowTot[a]=0; }
+  for(let i=0;i<seq.length-1;i++){
+    counts[seq[i]][seq[i+1]]++;
+    rowTot[seq[i]]++;
+  }
+  renderTable();
+  drawLevel($('trainCanvas'), seq, +$('sldJump').value, false);
+}
+
+/* En büyük ortak bölen → kesir gösterimi */
+function frac(n, d){
+  if(d===0) return '—';
+  if(n===0) return '0';
+  const g=(a,b)=>b?g(b,a%b):a;
+  const k=g(n,d);
+  return (n/k)+'/'+(d/k);
+}
+
+function renderTable(){
+  let h = '<table class="gecis"><tr><th>Şimdiki ↓ \\ Sonraki →</th>';
+  for(const b of SYMS) h += '<th><span class="sembol s'+b+'">'+b+'</span></th>';
+  h += '</tr>';
+  for(const a of SYMS){
+    h += '<tr><th><span class="sembol s'+a+'">'+a+'</span> <span style="font-weight:400;font-size:.75rem">('+rowTot[a]+' çıkış)</span></th>';
+    for(const b of SYMS){
+      const c = counts[a][b], t = rowTot[a];
+      const p = t ? c/t : 0;
+      const bg = 'rgba(68,112,153,'+(0.06+0.5*p).toFixed(2)+')';
+      h += '<td style="background:'+(c? bg : '#fff')+'">'
+         + (t? frac(c,t) : '—')
+         + '<span class="say">'+(t? c+' kez' : 'gözlenmedi')+'</span></td>';
+    }
+    h += '</tr>';
+  }
+  h += '</table>';
+  $('tableWrap').innerHTML = h;
+}
+
+/* ── Örnekleme ── */
+function sampleNext(cur, banB){
+  const row = counts[cur];
+  let tot = rowTot[cur];
+  // Bu durumdan hiç çıkış gözlenmediyse: veride görülen semboller üzerinden tekdüze seç
+  if(tot === 0){
+    const seen = SYMS.filter(s => seq.includes(s) && !(banB && s==='B'));
+    return seen[Math.floor(Math.random()*seen.length)] || 'Z';
+  }
+  let pool = SYMS.filter(b => row[b]>0 && !(banB && b==='B'));
+  if(pool.length===0) pool = SYMS.filter(b => row[b]>0);   // kısıt her şeyi yasakladıysa geri çekil
+  const total = pool.reduce((s,b)=>s+row[b],0);
+  let r = Math.random()*total;
+  for(const b of pool){ r -= row[b]; if(r<=0) return b; }
+  return pool[pool.length-1];
+}
+
+function generate(len, jump, constrained){
+  const out = ['Z'];
+  let run = 0;
+  for(let i=1;i<len;i++){
+    const ban = constrained && run >= jump;
+    const nxt = sampleNext(out[i-1], ban);
+    out.push(nxt);
+    run = (nxt==='B') ? run+1 : 0;
+  }
+  return out;
+}
+
+/* Oynanamaz koşuları bul: jump'tan uzun ardışık B blokları */
+function badRuns(s, jump){
+  const runs = [];
+  let i=0;
+  while(i<s.length){
+    if(s[i]==='B'){
+      let j=i; while(j<s.length && s[j]==='B') j++;
+      if(j-i > jump) runs.push([i, j-1]);
+      i=j;
+    } else i++;
+  }
+  return runs;
+}
+
+/* ── Çizim ── */
+function drawLevel(cv, s, jump, markBad){
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  // gökyüzü
+  const sky = ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#cfe6f5'); sky.addColorStop(1,'#eaf4fb');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+
+  const n = s.length;
+  const cw = W/n;
+  const groundY = H-46, groundH = 40;
+
+  // bulutlar (deterministik, dizi uzunluğuna göre)
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  for(let c=0;c<3;c++){
+    const bx = (c*0.33+0.1)*W, by = 22+c*9;
+    ctx.beginPath();
+    ctx.arc(bx,by,11,0,Math.PI*2); ctx.arc(bx+13,by+3,9,0,Math.PI*2); ctx.arc(bx-13,by+4,8,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  const bad = markBad ? badRuns(s, jump) : [];
+
+  for(let i=0;i<n;i++){
+    const x = i*cw;
+    if(s[i]==='Z' || s[i]==='D'){
+      // zemin bloğu
+      ctx.fillStyle = '#8a5a33';
+      ctx.fillRect(x, groundY, cw+0.5, groundH);
+      ctx.fillStyle = '#5a8f4e';
+      ctx.fillRect(x, groundY, cw+0.5, 9);
+      // tuğla çizgisi
+      ctx.strokeStyle = 'rgba(0,0,0,.12)';
+      ctx.strokeRect(x+0.5, groundY+9, cw-1, groundH-9);
+      if(s[i]==='D'){
+        // düşman: basit yuvarlak canavar
+        const ex = x+cw/2, ey = groundY-11;
+        ctx.fillStyle = '#FF3D7F';
+        ctx.beginPath(); ctx.arc(ex,ey,Math.min(10,cw*0.38),0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff';
+        ctx.beginPath(); ctx.arc(ex-3.5,ey-2.5,2.4,0,Math.PI*2); ctx.arc(ex+3.5,ey-2.5,2.4,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#26343f';
+        ctx.beginPath(); ctx.arc(ex-3.5,ey-2.5,1.1,0,Math.PI*2); ctx.arc(ex+3.5,ey-2.5,1.1,0,Math.PI*2); ctx.fill();
+      }
+    }else{
+      // boşluk: aşağıda tehlike suyu
+      ctx.fillStyle = '#4f7ea3';
+      ctx.fillRect(x, H-14, cw+0.5, 14);
+    }
+  }
+
+  // oynanamaz koşu vurguları
+  ctx.lineWidth = 3;
+  for(const [a,b] of bad){
+    const x = a*cw, w = (b-a+1)*cw;
+    ctx.fillStyle = 'rgba(255,61,127,.22)';
+    ctx.fillRect(x, 8, w, H-16);
+    ctx.strokeStyle = '#FF3D7F';
+    ctx.strokeRect(x+1.5, 9.5, w-3, H-19);
+  }
+
+  // başlangıç karakteri
+  const px = cw*0.5, py = groundY-13;
+  ctx.fillStyle = '#FF6F20';
+  ctx.fillRect(px-7, py-8, 14, 20);
+  ctx.fillStyle = '#ffd9a8';
+  ctx.fillRect(px-5, py-6, 10, 7);
+
+  // sütun harfleri (yeterince genişse)
+  if(cw >= 15){
+    ctx.font = '600 '+Math.min(12, cw*0.55)+'px "Fira Code", monospace';
+    ctx.textAlign = 'center';
+    for(let i=0;i<n;i++){
+      ctx.fillStyle = RENK[s[i]];
+      ctx.fillText(s[i], i*cw+cw/2, H-2-16+12);
+    }
+  }
+}
+
+/* ── Bölüm üretimi UI ── */
+let lastGen = null;
+function doGenerate(){
+  const len = +$('sldLen').value;
+  const jump = +$('sldJump').value;
+  const con = $('chkConstraint').checked;
+  lastGen = generate(len, jump, con);
+  drawLevel($('genCanvas'), lastGen, jump, true);
+  $('genString').textContent = lastGen.join(' ');
+  const bad = badRuns(lastGen, jump);
+  const v = $('genVerdict');
+  if(bad.length === 0){
+    v.textContent = '✅ Oynanabilir: menzili aşan uçurum yok.';
+    v.className = 'sonuc iyi';
+  }else{
+    const enUzun = Math.max(...bad.map(([a,b])=>b-a+1));
+    v.textContent = '❌ Oynanamaz: ' + bad.length + ' uçurum menzili aşıyor (en uzunu ' + enUzun + ' sütun).';
+    v.className = 'sonuc kotu';
+  }
+}
+
+/* ── Monte Carlo ── */
+function monteCarlo(){
+  const len = +$('sldLen').value;
+  const jump = +$('sldJump').value;
+  const N = 1000;
+  const res = {};
+  for(const mode of ['free','con']){
+    let ok=0, mix={Z:0,B:0,D:0}, tot=0;
+    for(let r=0;r<N;r++){
+      const s = generate(len, jump, mode==='con');
+      if(badRuns(s,jump).length===0) ok++;
+      for(const c of s){ mix[c]++; tot++; }
+    }
+    res[mode] = {ok, mix, tot};
+  }
+  $('mcTable').style.display = '';
+  $('mcNote').style.display = '';
+  $('mcFree').textContent = (100*res.free.ok/N).toFixed(1) + '%';
+  $('mcCon').textContent  = (100*res.con.ok/N).toFixed(1) + '%';
+  const mixStr = m => SYMS.map(s2 => s2+':'+(100*m.mix[s2]/m.tot).toFixed(0)+'%').join(' ');
+  $('mcFreeMix').textContent = mixStr(res.free);
+  $('mcConMix').textContent  = mixStr(res.con);
+}
+
+/* ── Olaylar ── */
+$('txtData').addEventListener('input', train);
+$('btnLecture').addEventListener('click', ()=>{ $('txtData').value='Z Z B Z Z Z B B Z D Z Z'; train(); });
+$('btnHomework').addEventListener('click', ()=>{ $('txtData').value='Z Z B Z Z D Z B B Z Z Z Z B Z'; train(); });
+$('sldLen').addEventListener('input', ()=>{ $('lblLen').textContent=$('sldLen').value; });
+$('sldJump').addEventListener('input', ()=>{
+  $('lblJump').textContent=$('sldJump').value;
+  drawLevel($('trainCanvas'), seq, +$('sldJump').value, false);
+  if(lastGen){ drawLevel($('genCanvas'), lastGen, +$('sldJump').value, true);
+    const bad = badRuns(lastGen, +$('sldJump').value);
+    const v=$('genVerdict');
+    if(bad.length===0){ v.textContent='✅ Oynanabilir: menzili aşan uçurum yok.'; v.className='sonuc iyi'; }
+    else{ const eu=Math.max(...bad.map(([a,b])=>b-a+1));
+      v.textContent='❌ Oynanamaz: '+bad.length+' uçurum menzili aşıyor (en uzunu '+eu+' sütun).'; v.className='sonuc kotu'; }
+  }
+});
+$('btnGen').addEventListener('click', doGenerate);
+$('btnMC').addEventListener('click', monteCarlo);
+
+/* ── Başlat ── */
+train();
+doGenerate();
+</script>
+</body>
+</html>

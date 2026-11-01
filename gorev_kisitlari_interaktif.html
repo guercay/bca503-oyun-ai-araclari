@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Görev Kısıtlarını Öğrenmek — İnteraktif</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F; --gold:#FFB02E;
+    --ink:#1f2430; --muted:#5b6470; --bg:#eef1f4; --panel:#fff; --line:#dde3ea;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Open Sans",system-ui,sans-serif;line-height:1.5;padding:26px 18px 46px}
+  .wrap{max-width:1120px;margin:0 auto}
+  .eyebrow{font-family:"Fira Code",monospace;font-size:.72rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--blue);font-weight:600;margin:0 0 6px}
+  h1{font-family:"Roboto Slab",serif;font-weight:700;font-size:clamp(1.5rem,4vw,2.2rem);margin:0;line-height:1.1}
+  h1 .em{color:var(--orange)}
+  .lede{color:var(--muted);margin:8px 0 0;max-width:66ch;font-size:.96rem}
+  .layout{display:grid;grid-template-columns:290px 1fr;gap:20px;align-items:start;margin-top:18px}
+  @media (max-width:900px){.layout{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .panel + .panel{margin-top:14px}
+  .panel h2{font-family:"Roboto Slab",serif;font-size:1rem;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .panel h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--orange)}
+
+  .quest{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);
+    border-radius:10px;margin-bottom:8px;cursor:pointer;transition:.15s}
+  .quest:hover{border-color:var(--blue)}
+  .quest input{width:16px;height:16px;accent-color:var(--blue)}
+  .quest .qn{font-weight:700;font-size:.86rem;min-width:64px}
+  .quest .qs{font-family:"Fira Code",monospace;font-size:.72rem;color:var(--muted)}
+
+  .field{margin:14px 0}
+  .field label.lab{display:block;font-size:.76rem;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{flex:1;border:0;background:#fff;padding:8px 4px;cursor:pointer;font-family:"Open Sans";
+    font-weight:600;font-size:.82rem;color:var(--muted);transition:.15s}
+  .seg button + button{border-left:1px solid var(--line)}
+  .seg button.active{background:var(--blue);color:#fff}
+  .row{display:flex;align-items:center;gap:10px}
+  .row output{font-family:"Fira Code",monospace;font-weight:600;color:var(--blue);min-width:1.6em;text-align:right}
+  input[type=range]{width:100%;accent-color:var(--blue)}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:6px}
+  .btn{border:0;border-radius:10px;padding:10px;cursor:pointer;font-weight:700;font-size:.86rem;
+    font-family:"Open Sans";transition:.15s filter}
+  .btn-primary{background:var(--orange);color:#fff}.btn-primary:hover{filter:brightness(1.06)}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .btn.full{grid-column:1/-1}
+  .btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .stage + .stage{margin-top:14px}
+  .stage h2{font-family:"Roboto Slab",serif;font-size:1rem;margin:0 0 10px}
+  .hint{font-size:.82rem;color:var(--muted);margin:0 0 12px}
+
+  svg{width:100%;height:auto;display:block;max-height:280px}
+  .gnode{stroke:var(--line);stroke-width:2}
+  .glabel{font-family:"Roboto Slab",serif;font-weight:700;font-size:14px;fill:#fff;text-anchor:middle;dominant-baseline:central}
+  .gedge{stroke:var(--ink);stroke-width:2;fill:none;opacity:.75}
+  .gdim{opacity:.2}
+
+  /* slots */
+  .slots{display:flex;gap:8px;flex-wrap:wrap}
+  .slot{flex:1;min-width:92px;border:1.5px solid var(--line);border-radius:10px;padding:8px;min-height:96px;
+    display:flex;flex-direction:column;gap:5px;background:#fbfcfd;transition:.2s}
+  .slot .si{font-family:"Fira Code",monospace;font-size:.66rem;color:var(--muted)}
+  .slot.cur{outline:3px solid var(--gold);outline-offset:-2px}
+  .slot.done{border-color:var(--blue);background:#fff}
+  .chip{font-size:.72rem;font-weight:700;border-radius:6px;padding:2px 7px;color:#fff;text-align:center}
+  .slot.done .big{margin:auto;font-family:"Roboto Slab",serif;font-weight:700;font-size:1rem;
+    padding:6px 8px;border-radius:8px;color:#fff;width:100%;text-align:center}
+
+  .qtext{font-size:1rem;line-height:1.9;margin-top:4px}
+  .qtext ol{margin:0;padding-left:22px}
+  .qtext .v{font-weight:700;color:var(--orange)}
+  .status{font-family:"Fira Code",monospace;font-size:.82rem;background:#f5f8fa;border:1px solid var(--line);
+    border-left:4px solid var(--orange);border-radius:0 10px 10px 0;padding:9px 12px;margin-top:12px}
+
+  table.gs{width:100%;border-collapse:collapse;margin-top:4px}
+  table.gs th,table.gs td{border:1px solid var(--line);padding:7px 10px;font-size:.86rem;text-align:center}
+  table.gs th{background:#f5f8fa;font-weight:700}
+  table.gs td.n{font-family:"Fira Code",monospace;font-weight:600;color:var(--blue)}
+  table.gs tr.mem td{background:#fff3ec}
+  table.gs tr.mem td.n{color:var(--orange)}
+  .note{font-size:.82rem;color:var(--muted);margin-top:10px;border-left:3px solid var(--blue);padding-left:12px}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:.78rem;color:var(--muted)}
+  .legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">BYZ502 · Oyun Yapay Zekâsı · Kısıt Tabanlı PCGML</p>
+  <h1>Görev Kısıtlarını <span class="em">Öğrenmek</span></h1>
+  <p class="lede">Eğitim görevlerini seçin; sistem hangi işin hangisini takip edebileceğini (bigram) öğrensin. Sonra <b>kısıt yayılımıyla (WFC)</b> yeni bir görev şablonu üretip değişkenleri doldurun. Alttaki tablo, bağlam (n) arttıkça çeşitliliğin nasıl azalıp <b>ezberlemeye</b> döndüğünü gösterir.</p>
+
+  <div class="layout">
+    <div>
+      <div class="panel">
+        <h2>Eğitim Görevleri</h2>
+        <div id="quests"></div>
+        <p class="hint" id="qhint"></p>
+      </div>
+      <div class="panel">
+        <h2>Üretim Ayarları</h2>
+        <div class="field">
+          <label class="lab">Bağlam</label>
+          <div class="seg" id="ctx">
+            <button data-n="1">Yok (n=1)</button>
+            <button data-n="2" class="active">Bigram (n=2)</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lab">Görev uzunluğu (iş sayısı)</label>
+          <div class="row"><input type="range" id="len" min="3" max="8" value="5"><output id="lenout">5</output></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary full" id="gen">▶ Görev üret</button>
+          <button class="btn btn-ghost" id="refill">Değerleri yenile</button>
+          <button class="btn btn-ghost" id="reset">Sıfırla</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="stage">
+        <h2>Öğrenilen İş Geçişleri (bigram)</h2>
+        <p class="hint">Seçili görevlerden çıkarılan "hangi iş hangisini takip edebilir" grafiği. Görev ekleyip çıkararak değişimi izleyin.</p>
+        <svg id="graph" viewBox="0 0 440 300" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--blue)"></span>Git</span>
+          <span><span class="sw" style="background:var(--orange)"></span>Al</span>
+          <span><span class="sw" style="background:var(--pink)"></span>Öldür</span>
+          <span><span class="sw" style="background:var(--gold)"></span>Konuş</span>
+        </div>
+      </div>
+
+      <div class="stage">
+        <h2>Üretim: Kısıt Yayılımı</h2>
+        <p class="hint">Her yuva bir işi tutar. En çok kısıtlanmış (en az seçenekli) yuva seçilir, bir değere çökertilir ve kısıtlar yayılarak diğer yuvaların seçenekleri daralır.</p>
+        <div class="slots" id="slots"></div>
+        <div class="status" id="status">Hazır. "Görev üret"e basın.</div>
+      </div>
+
+      <div class="stage">
+        <h2>Üretilen Görev</h2>
+        <div class="qtext" id="qtext"><span class="hint">Şablon üretilince değişkenlerle doldurulmuş görev burada görünecek.</span></div>
+      </div>
+
+      <div class="stage">
+        <h2>Üretici Uzay (çeşitlilik vs ezberleme)</h2>
+        <table class="gs" id="gstable"></table>
+        <p class="note" id="gsnote"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- Eğitim görevleri (iş dizileri) ----
+  const QUESTS = {
+    Hunt:  {name:"Avlanma",  seq:["Git","Öldür","Al"]},
+    Fetch: {name:"Getirme",  seq:["Git","Al","Konuş"]},
+    Escort:{name:"Eşlik",    seq:["Git","Konuş","Git"]},
+    Assass:{name:"Suikast",  seq:["Git","Öldür","Git"]},
+  };
+  const TASKS = ["Git","Al","Öldür","Konuş"];
+  const TCOLOR = {"Git":"var(--blue)","Al":"var(--orange)","Öldür":"var(--pink)","Konuş":"var(--gold)"};
+  const RAWCOLOR = {"Git":"#447099","Al":"#FF6F20","Öldür":"#FF3D7F","Konuş":"#FFB02E"};
+
+  // Değişken değer havuzları
+  const POOL = {
+    konum:["kale","mağara","orman","meyhane","zindan","köy","liman"],
+    esya:["ayı pençesi","rün taşı","büyü kitabı","kırık kılıç","altın anahtar","iksir"],
+    npcKill:["ayı","prens","ejderha","haydut reisi","cadı"],
+    npcTalk:["ozan","komisyoncu","büyücü","demirci","han sahibi"],
+  };
+  const PHRASE = {
+    "Git":  ()=>[`{v}'a git`, pick(POOL.konum)],
+    "Al":   ()=>[`{v}'yı al`, pick(POOL.esya)],
+    "Öldür":()=>[`{v}'yi öldür`, pick(POOL.npcKill)],
+    "Konuş":()=>[`{v} ile konuş`, pick(POOL.npcTalk)],
+  };
+
+  let selected = {Hunt:true, Fetch:true, Escort:true, Assass:true};
+  let ctxN = 2, L = 5, timer=null, lastTemplate=null;
+
+  const rng = Math.random;
+  function pick(arr){ return arr[Math.floor(rng()*arr.length)]; }
+
+  // ================= SAF MANTIK (DOM'suz, test edilebilir) =================
+  function selectedSeqs(){ return Object.keys(QUESTS).filter(k=>selected[k]).map(k=>QUESTS[k].seq); }
+
+  function buildSucc(seqs){
+    const s={};
+    seqs.forEach(q=>{ for(let i=0;i<q.length-1;i++){ (s[q[i]] ||= new Set()).add(q[i+1]); }});
+    const out={}; for(const k in s) out[k]=[...s[k]]; return out;
+  }
+  function observedTasks(seqs){ return [...new Set(seqs.flat())]; }
+
+  // n=1/2/3 için benzersiz uzunluk-L şablon sayısı (DFS, kısıtlara saygılı)
+  function countSeqs(seqs, L, n){
+    const tasks = observedTasks(seqs);
+    if(tasks.length===0) return 0;
+    if(n===1) return Math.pow(tasks.length, L);
+    const succ={}; seqs.forEach(q=>{for(let i=0;i<q.length-1;i++){(succ[q[i]] ||= new Set()).add(q[i+1]);}});
+    const tri={};  seqs.forEach(q=>{for(let i=0;i<q.length-2;i++){(tri[q[i]+"|"+q[i+1]] ||= new Set()).add(q[i+2]);}});
+    let count=0;
+    (function dfs(path){
+      if(path.length===L){ count++; return; }
+      let nexts;
+      if(path.length===0) nexts=tasks;
+      else if(n===2 || path.length===1) nexts=[...(succ[path[path.length-1]]||[])];
+      else nexts=[...(tri[path[path.length-2]+"|"+path[path.length-1]]||[])];
+      for(const nx of nexts) dfs(path.concat(nx));
+    })([]);
+    return count;
+  }
+
+  // AC-3 yayılımı (bigram); domain boşalırsa false
+  function ac3(domains, succ){
+    let changed=true;
+    while(changed){ changed=false;
+      for(let i=0;i<domains.length;i++){
+        if(i<domains.length-1){
+          const nd=domains[i].filter(v => domains[i+1].some(w => (succ[v]||[]).includes(w)));
+          if(nd.length!==domains[i].length){ domains[i]=nd; changed=true; }
+        }
+        if(i>0){
+          const nd=domains[i].filter(v => domains[i-1].some(u => (succ[u]||[]).includes(v)));
+          if(nd.length!==domains[i].length){ domains[i]=nd; changed=true; }
+        }
+        if(domains[i].length===0) return false;
+      }
+    }
+    return true;
+  }
+  const clone = d => d.map(x=>x.slice());
+
+  // Adım adım üretim (yayılımlı, n=2). {success, template, steps[]}
+  function generateSteps(seqs, L){
+    const succ=buildSucc(seqs), tasks=observedTasks(seqs);
+    for(let attempt=0; attempt<80; attempt++){
+      let domains=Array.from({length:L},()=>tasks.slice());
+      const steps=[];
+      if(!ac3(domains,succ)) continue;
+      steps.push({dom:clone(domains), cur:-1});
+      let ok=true;
+      while(true){
+        let idx=-1, best=99;
+        for(let i=0;i<L;i++){ if(domains[i].length>1 && domains[i].length<best){best=domains[i].length; idx=i;} }
+        if(idx===-1) break;
+        domains[idx]=[ domains[idx][Math.floor(rng()*domains[idx].length)] ];
+        if(!ac3(domains,succ)){ ok=false; break; }
+        steps.push({dom:clone(domains), cur:idx});
+      }
+      if(ok && domains.every(d=>d.length===1))
+        return {success:true, template:domains.map(d=>d[0]), steps};
+    }
+    return {success:false};
+  }
+
+  // n=1 üretim: her yuvaya bağımsız rastgele iş
+  function generateN1(seqs, L){
+    const tasks=observedTasks(seqs);
+    if(!tasks.length) return {success:false};
+    const domains=Array.from({length:L},()=>tasks.slice());
+    const steps=[{dom:clone(domains),cur:-1}];
+    for(let i=0;i<L;i++){ domains[i]=[tasks[Math.floor(rng()*tasks.length)]]; steps.push({dom:clone(domains),cur:i}); }
+    return {success:true, template:domains.map(d=>d[0]), steps};
+  }
+
+  // ================= DOM / ARAYÜZ =================
+  const $=id=>document.getElementById(id);
+  if(typeof document==="undefined") return; // Node testinde çık
+
+  // Görev listesi
+  const qc=$("quests");
+  Object.keys(QUESTS).forEach(k=>{
+    const q=QUESTS[k];
+    const el=document.createElement("label"); el.className="quest";
+    el.innerHTML=`<input type="checkbox" ${selected[k]?"checked":""} data-k="${k}">
+      <span class="qn">${q.name}</span><span class="qs">${q.seq.join(" → ")}</span>`;
+    el.querySelector("input").addEventListener("change",e=>{ selected[k]=e.target.checked; refresh(); });
+    qc.appendChild(el);
+  });
+
+  $("ctx").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return;
+    document.querySelectorAll("#ctx button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); ctxN=+b.dataset.n; });
+  $("len").addEventListener("input",e=>{ L=+e.target.value; $("lenout").textContent=L; refreshGS(); });
+  $("gen").addEventListener("click",runGen);
+  $("refill").addEventListener("click",()=>{ if(lastTemplate) renderQuestText(lastTemplate); });
+  $("reset").addEventListener("click",()=>{ stop(); $("slots").innerHTML=""; $("status").textContent="Hazır.";
+    $("qtext").innerHTML='<span class="hint">Şablon üretilince burada görünecek.</span>'; lastTemplate=null; });
+
+  // Graf çizimi
+  const POS={"Git":{x:95,y:150},"Konuş":{x:300,y:70},"Al":{x:345,y:150},"Öldür":{x:300,y:235}};
+  function renderGraph(){
+    const seqs=selectedSeqs(), succ=buildSucc(seqs), obs=new Set(observedTasks(seqs));
+    let edges="";
+    const has=(a,b)=>(succ[a]||[]).includes(b);
+    for(const a of TASKS) for(const b of (succ[a]||[])){
+      const A=POS[a],B=POS[b]; const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy);
+      const ux=dx/len,uy=dy/len; const bidir=has(b,a);
+      const ox=bidir? -uy*7:0, oy=bidir? ux*7:0;         // çift yönlüyse kaydır
+      const sx=A.x+ux*46+ox, sy=A.y+uy*30+oy, ex=B.x-ux*46+ox, ey=B.y-uy*30+oy;
+      edges+=`<path class="gedge" d="M${sx.toFixed(1)},${sy.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}" marker-end="url(#arw)"/>`;
+    }
+    let nodes="";
+    for(const t of TASKS){ const p=POS[t]; const dim=obs.has(t)?"":"gdim";
+      nodes+=`<ellipse class="gnode ${dim}" cx="${p.x}" cy="${p.y}" rx="46" ry="27" fill="${RAWCOLOR[t]}"/>
+              <text class="glabel ${dim}" x="${p.x}" y="${p.y}">${t}</text>`; }
+    $("graph").innerHTML=`<defs><marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f2430" opacity="0.75"/></marker></defs>${edges}${nodes}`;
+  }
+
+  // Üretici uzay tablosu
+  function refreshGS(){
+    const seqs=selectedSeqs();
+    const trainLens=seqs.map(s=>s.length);
+    const rows=[1,2,3].map(n=>({n, c:countSeqs(seqs,L,n)}));
+    const trainCount=seqs.length;
+    let html=`<tr><th>Bağlam n</th><th>Benzersiz şablon (uzunluk ${L})</th><th>Durum</th></tr>`;
+    rows.forEach(r=>{
+      const mem = (r.n>=3 && r.c<=Math.max(trainCount,1)*2 && r.c>0);
+      const durum = r.n===1?"Bağlam yok — bol ama tutarsız"
+                  : r.n===2?"Gözlemlenen geçişlere uyar"
+                  : (r.c===0?"Bu uzunlukta üretilemez (çıkmaz)": (mem?"Ezberleme (≈ eğitim görevleri)":"Daraldı"));
+      html+=`<tr class="${mem?'mem':''}"><td>${r.n}</td><td class="n">${r.c.toLocaleString('tr-TR')}</td><td>${durum}</td></tr>`;
+    });
+    $("gstable").innerHTML=html;
+    const mn=Math.min(...trainLens), mx=Math.max(...trainLens);
+    $("gsnote").innerHTML = seqs.length===0 ? "Hiç eğitim görevi seçili değil."
+      : `Eğitim görevleri ${mn===mx?mn:mn+'–'+mx} iş uzunluğunda. Bağlam (n) küçükken çeşitlilik yüksek ama tutarsız; n büyüdükçe tutarlılık artar, ama örnek görevlerin uzunluğuna ulaşınca model onları <b>ezberler</b> (çeşitlilik düşer). Bu, Hafta 4'teki aşırı öğrenmenin görev karşılığıdır.`;
+  }
+
+  // Yuva çizimi
+  function renderSlots(step){
+    const box=$("slots"); box.innerHTML="";
+    step.dom.forEach((dom,i)=>{
+      const done=dom.length===1;
+      const el=document.createElement("div");
+      el.className="slot"+(done?" done":"")+(i===step.cur?" cur":"");
+      if(done){
+        el.innerHTML=`<span class="si">iş ${i+1}</span><div class="big" style="background:${RAWCOLOR[dom[0]]}">${dom[0]}</div>`;
+      }else{
+        el.innerHTML=`<span class="si">iş ${i+1} · ${dom.length} seçenek</span>`+
+          dom.map(t=>`<span class="chip" style="background:${RAWCOLOR[t]}">${t}</span>`).join("");
+      }
+      box.appendChild(el);
+    });
+  }
+
+  function renderQuestText(template){
+    const items=template.map(t=>{ const [tmpl,val]=PHRASE[t](); return {tmpl,val}; });
+    $("qtext").innerHTML="<ol>"+items.map(it=>
+      "<li>"+it.tmpl.replace("{v}",`<span class="v">${it.val}</span>`)+"</li>").join("")+"</ol>";
+  }
+
+  function stop(){ if(timer){clearTimeout(timer);timer=null;} $("gen").textContent="▶ Görev üret"; }
+
+  function runGen(){
+    stop();
+    const seqs=selectedSeqs();
+    if(!seqs.length){ $("status").textContent="Önce en az bir eğitim görevi seçin."; return; }
+    const res = ctxN===1 ? generateN1(seqs,L) : generateSteps(seqs,L);
+    if(!res.success){
+      $("status").innerHTML="Bu eğitim kümesi ve uzunlukla geçerli görev üretilemedi (çıkmaz sokak). Daha çok görev seçin ya da uzunluğu değiştirin.";
+      $("slots").innerHTML=""; return;
+    }
+    lastTemplate=res.template;
+    // adımları oynat
+    let k=0;
+    $("gen").textContent="… üretiliyor";
+    const play=()=>{
+      if(k>=res.steps.length){
+        $("status").innerHTML=`Şablon hazır: <b>${res.template.join(" → ")}</b>  ·  ${ctxN===1?"bağlamsız (n=1)":"bigram yayılımı (n=2)"}`;
+        renderQuestText(res.template); stop(); return;
+      }
+      renderSlots(res.steps[k]);
+      const s=res.steps[k];
+      $("status").textContent = s.cur<0 ? "Başlangıç: tüm yuvalar tüm işleri tutabilir."
+        : `İş ${s.cur+1} seçildi → kısıtlar yayıldı, diğer yuvaların seçenekleri daraldı.`;
+      k++; timer=setTimeout(play, 750);
+    };
+    play();
+  }
+
+  function refresh(){ renderGraph(); refreshGS(); updateHint(); }
+  function updateHint(){
+    const n=selectedSeqs().length;
+    $("qhint").textContent = n===0 ? "En az bir görev seçin."
+      : `${n} görev seçili — geçiş grafiği ve üretici uzay bunlardan öğreniliyor.`;
+  }
+
+  refresh();
+})();
+</script>
+</body>
+</html>

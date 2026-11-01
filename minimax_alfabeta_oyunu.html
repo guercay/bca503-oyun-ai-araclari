@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minimax ve α-β budama oyunu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Open+Sans:wght@400;600;700&family=Roboto+Slab:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #447099;   /* MAX */
+    --pink: #FF3D7F;   /* MIN */
+    --orange: #FF6F20; /* etkileşim, budama */
+    --ink: #1E2B38;
+    --muted: #5B6B7A;
+    --line: #C9D4DE;
+    --mist: #EEF3F7;
+    --paper: #FFFFFF;
+    --pink-ink: #C8175A; /* pembe metin için yeterli kontrast */
+    --orange-ink: #B84400;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body { font: 16px/1.55 "Open Sans", system-ui, sans-serif; }
+  button { font: inherit; }
+  :focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+  header.top {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px 24px; align-items: end;
+    padding: 20px 28px 12px; border-bottom: 1px solid var(--line);
+  }
+  h1 { font: 700 28px/1.15 "Roboto Slab", Georgia, serif; margin: 0; letter-spacing: -0.2px; }
+  h1 .sub { display: block; font: 400 15px/1.4 "Open Sans", sans-serif; color: var(--muted); margin-top: 4px; letter-spacing: 0; }
+  .scoreboard { display: flex; gap: 22px; align-items: baseline; font-size: 14px; color: var(--muted); }
+  .scoreboard b { font: 600 22px "Fira Code", monospace; color: var(--ink); margin-left: 6px; }
+  .scoreboard .score b { color: var(--orange-ink); }
+
+  nav.phases { display: flex; gap: 6px; padding: 12px 28px 0; flex-wrap: wrap; }
+  nav.phases button {
+    border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+    padding: 8px 14px; border-radius: var(--radius) var(--radius) 0 0; cursor: pointer;
+    border-bottom: 3px solid transparent;
+  }
+  nav.phases button .n { font-family: "Fira Code", monospace; color: var(--muted); margin-right: 6px; }
+  nav.phases button[aria-selected="true"] { border-bottom-color: var(--orange); font-weight: 700; background: var(--mist); }
+  nav.phases button:disabled { opacity: .45; cursor: not-allowed; }
+  nav.phases button.done .n::after { content: " ✓"; color: var(--blue); }
+
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: calc(100vh - 150px); }
+  .stage { position: relative; padding: 18px 20px 24px 28px; border-right: 1px solid var(--line); background: var(--mist); }
+  .stage-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .level-name { font: 700 18px "Roboto Slab", serif; }
+  .level-name span { font: 400 14px "Open Sans", sans-serif; color: var(--muted); margin-left: 8px; }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); align-items: center; flex-wrap: wrap; }
+  .legend svg { vertical-align: -3px; margin-right: 4px; }
+  .tree-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #tree { width: 100%; height: auto; display: block; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
+  #tree .node { cursor: default; }
+  #tree .node.clickable { cursor: pointer; }
+  #tree .node:focus { outline: none; }
+  #tree .node:focus-visible .shape { stroke: var(--orange); stroke-width: 4; }
+  .val { font-family: "Fira Code", monospace; font-weight: 600; }
+  .ab { font-family: "Fira Code", monospace; font-size: 12px; fill: var(--ink); paint-order: stroke; stroke: #fff; stroke-width: 5px; stroke-linejoin: round; }
+  .nm { font-size: 11px; fill: var(--muted); }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  .ring { fill: none; stroke: var(--orange); stroke-width: 2.5; stroke-dasharray: 5 4; }
+
+  .controls { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .btn {
+    border: 1px solid var(--ink); background: var(--paper); color: var(--ink); padding: 8px 14px;
+    border-radius: var(--radius); cursor: pointer; font-weight: 600;
+  }
+  .btn.primary { background: var(--ink); color: var(--paper); }
+  .btn.accent { background: var(--orange); border-color: var(--orange); color: var(--ink); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.icon { min-width: 42px; padding: 8px 10px; font-family: "Fira Code", monospace; }
+  .controls label { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+
+  aside.panel { padding: 18px 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+  aside h2 { font: 700 18px/1.3 "Roboto Slab", serif; margin: 0 0 6px; }
+  aside p { margin: 0 0 8px; }
+  .task { border-left: 4px solid var(--orange); padding: 2px 0 2px 14px; }
+  .feedback { min-height: 48px; padding: 10px 12px; border-radius: var(--radius); background: var(--mist); font-size: 15px; }
+  .feedback.good { background: #E3EDF5; border-left: 4px solid var(--blue); }
+  .feedback.bad { background: #FFE6EF; border-left: 4px solid var(--pink); }
+  .rules { font-size: 14px; color: var(--muted); }
+  .rules summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+  .rules ul { padding-left: 18px; margin: 8px 0 0; }
+  .stats { font-size: 14px; }
+  .stats table { border-collapse: collapse; width: 100%; }
+  .stats td { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .stats td:last-child { text-align: right; font-family: "Fira Code", monospace; font-weight: 600; }
+  .log { font: 13px/1.5 "Fira Code", monospace; max-height: 260px; overflow: auto; background: var(--mist); border-radius: var(--radius); padding: 8px 10px; margin: 0; list-style: none; }
+  .log li { padding: 2px 0; color: var(--muted); }
+  .log li.cur { color: var(--ink); font-weight: 600; }
+  .log li.cut { color: var(--orange-ink); }
+  .notice { border: 2px solid var(--orange); border-radius: var(--radius); padding: 12px; background: #FFF3EB; }
+  .notice .row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
+  .popover {
+    position: absolute; z-index: 5; background: var(--paper); border: 2px solid var(--ink); border-radius: var(--radius);
+    padding: 10px 12px; box-shadow: 0 6px 18px rgba(30,43,56,.18); min-width: 180px;
+  }
+  .popover .ttl { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .popover .opts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .popover .opts button { font: 600 18px "Fira Code", monospace; min-width: 46px; padding: 6px 10px; border: 1px solid var(--ink); background: var(--paper); border-radius: var(--radius); cursor: pointer; }
+  .popover .opts button:hover { background: var(--mist); }
+
+  .summary table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .summary th, .summary td { text-align: left; padding: 5px 4px; border-bottom: 1px solid var(--line); }
+  .summary td.num { text-align: right; font-family: "Fira Code", monospace; }
+  .sr { position: absolute; left: -9999px; }
+
+  @media (max-width: 920px) {
+    main { grid-template-columns: 1fr; }
+    .stage { border-right: 0; border-bottom: 1px solid var(--line); padding: 14px; }
+    header.top { grid-template-columns: 1fr; padding: 16px 14px 10px; }
+    nav.phases { padding: 10px 14px 0; }
+    aside.panel { padding: 16px 14px 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shake { animation: none; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Minimax ve α-β budama
+    <span class="sub">Ağacı aşağıdan yukarı çöz, budanacak dalları bul, sonra algoritmayı adım adım izle.</span>
+  </h1>
+  <div class="scoreboard" aria-live="polite">
+    <span>Seviye<b id="lvlNum">1/6</b></span>
+    <span class="score">Puan<b id="score">0</b></span>
+    <span>Hatasız seri<b id="streak">0</b></span>
+  </div>
+</header>
+
+<nav class="phases" role="tablist" aria-label="Aşamalar">
+  <button role="tab" id="tab1" aria-selected="true"><span class="n">1</span>Değerleri taşı</button>
+  <button role="tab" id="tab2" aria-selected="false" disabled><span class="n">2</span>Budananları bul</button>
+  <button role="tab" id="tab3" aria-selected="false"><span class="n">3</span>Algoritmayı izle</button>
+</nav>
+
+<main>
+  <section class="stage" aria-label="Oyun ağacı">
+    <div class="stage-head">
+      <div class="level-name" id="levelName">Ders örneği</div>
+      <div class="legend" aria-hidden="true">
+        <span><svg width="16" height="14"><polygon points="8,1 15,13 1,13" fill="#447099"/></svg>MAX en büyüğü seçer</span>
+        <span><svg width="16" height="14"><polygon points="1,1 15,1 8,13" fill="#FF3D7F"/></svg>MIN en küçüğü seçer</span>
+        <span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" fill="#fff" stroke="#1E2B38" stroke-width="1.5"/></svg>yaprak skoru</span>
+      </div>
+    </div>
+    <div class="tree-wrap"><svg id="tree" role="group" aria-label="Oyun ağacı"></svg></div>
+    <div class="controls" id="watchControls" hidden>
+      <button class="btn icon" id="wFirst" aria-label="Başa sar">|◀</button>
+      <button class="btn icon" id="wPrev" aria-label="Bir adım geri">◀</button>
+      <button class="btn primary" id="wPlay">Oynat</button>
+      <button class="btn icon" id="wNext" aria-label="Bir adım ileri">▶</button>
+      <button class="btn icon" id="wLast" aria-label="Sona git">▶|</button>
+      <label>Hız <input type="range" id="wSpeed" min="150" max="1500" step="50" value="700" aria-label="Oynatma hızı"></label>
+      <label><input type="checkbox" id="wSort"> Çocukları en iyi sıraya diz</label>
+    </div>
+    <div class="popover" id="popover" hidden role="dialog" aria-modal="false">
+      <div class="ttl" id="popTitle"></div>
+      <div class="opts" id="popOpts"></div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="task" id="task"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+    <div id="actions"></div>
+    <div class="stats" id="stats"></div>
+    <ol class="log" id="log" hidden aria-label="Algoritma adımları"></ol>
+    <details class="rules">
+      <summary>Kurallar</summary>
+      <ul>
+        <li>MAX düğümü çocuklarının en büyük değerini, MIN düğümü en küçüğünü alır. Önce alt düğümler çözülür.</li>
+        <li>α: MAX’ın o ana kadar garantilediği en iyi değer. β: MIN’in garantilediği en iyi değer.</li>
+        <li>Çocuklar soldan sağa incelenir. Bir düğümde α ≥ β olduğu an kalan çocuklar budanır; o dallardaki yapraklara hiç bakılmaz.</li>
+        <li>Puan: ilk denemede doğru değer +10, ikinci denemede +4, her hata −3. Doğru işaretlenen her budanmış yaprak +5, yanlış işaret −5, kusursuz budama +20.</li>
+        <li>Seviyeyi bitirmeden izlemeye geçersen bu seviyeden puan alamazsın.</li>
+      </ul>
+    </details>
+  </aside>
+</main>
+
+<script>
+/* =====================================================================
+   ÇEKİRDEK — DOM'dan bağımsız (Node ile test edilebilir)
+   ===================================================================== */
+const Core = (() => {
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  // İç içe diziden ağaç: sayı = yaprak, dizi = iç düğüm. Kök MAX, katmanlar sırayla değişir.
+  function build(nested) {
+    const nodes = [];
+    const letters = 'ABCDEFGHIJ';
+    function mk(item, depth, parent, index) {
+      const id = nodes.length;
+      const node = { id, depth, parent, index, children: [] };
+      nodes.push(node);
+      if (depth === 0) node.name = 'Kök';
+      else if (depth === 1) node.name = letters[index];
+      else if (depth === 2) node.name = nodes[parent].name + (index + 1);
+      else node.name = nodes[parent].name + '.' + (index + 1);
+      if (typeof item === 'number') { node.type = 'leaf'; node.value = item; }
+      else {
+        node.type = depth % 2 === 0 ? 'max' : 'min';
+        node.children = item.map((c, i) => mk(c, depth + 1, id, i).id);
+      }
+      return node;
+    }
+    mk(nested, 0, -1, 0);
+    return { nodes, root: 0 };
+  }
+  function toNested(tree, id) {
+    id = id === undefined ? tree.root : id;
+    const n = tree.nodes[id];
+    return n.type === 'leaf' ? n.value : n.children.map(c => toNested(tree, c));
+  }
+  function generate(b, d, lo, hi, rand) {
+    function g(depth) {
+      if (depth === d) return lo + Math.floor(rand() * (hi - lo + 1));
+      const arr = [];
+      for (let i = 0; i < b; i++) arr.push(g(depth + 1));
+      return arr;
+    }
+    return g(0);
+  }
+  function minimax(tree) {
+    const mm = new Array(tree.nodes.length);
+    (function f(id) {
+      const n = tree.nodes[id];
+      if (n.type === 'leaf') return (mm[id] = n.value);
+      const vals = n.children.map(f);
+      return (mm[id] = n.type === 'max' ? Math.max(...vals) : Math.min(...vals));
+    })(tree.root);
+    return mm;
+  }
+  // Soldan sağa α-β; olay kaydı izleme için kullanılır.
+  function alphabeta(tree) {
+    const events = [];
+    const visited = new Set();
+    function ab(id, a, b) {
+      const n = tree.nodes[id];
+      events.push({ t: 'enter', id, a, b });
+      if (n.type === 'leaf') { visited.add(id); events.push({ t: 'leaf', id, v: n.value }); return n.value; }
+      let v = n.type === 'max' ? -Infinity : Infinity;
+      for (let i = 0; i < n.children.length; i++) {
+        const c = n.children[i];
+        const cv = ab(c, a, b);
+        if (n.type === 'max') { v = Math.max(v, cv); a = Math.max(a, v); }
+        else { v = Math.min(v, cv); b = Math.min(b, v); }
+        const last = i === n.children.length - 1;
+        events.push({ t: 'update', id, child: c, cv, v, a, b, last });
+        if (a >= b) {
+          const rest = n.children.slice(i + 1);
+          if (rest.length) events.push({ t: 'cut', id, pruned: rest, a, b, v });
+          break;
+        }
+      }
+      events.push({ t: 'exit', id, v });
+      return v;
+    }
+    const value = ab(tree.root, -Infinity, Infinity);
+    const leaves = tree.nodes.filter(n => n.type === 'leaf').map(n => n.id);
+    const pruned = leaves.filter(id => !visited.has(id));
+    return { value, events, visited, pruned, leafCount: leaves.length };
+  }
+  // Mükemmel sıralama: MAX çocukları büyükten küçüğe, MIN çocukları küçükten büyüğe.
+  function sortedNested(tree) {
+    const mm = minimax(tree);
+    function f(id) {
+      const n = tree.nodes[id];
+      if (n.type === 'leaf') return n.value;
+      const kids = n.children.slice().sort((x, y) => n.type === 'max' ? mm[y] - mm[x] : mm[x] - mm[y]);
+      return kids.map(f);
+    }
+    return f(tree.root);
+  }
+  function subtreeLeaves(tree, id) {
+    const n = tree.nodes[id];
+    if (n.type === 'leaf') return [id];
+    return n.children.flatMap(c => subtreeLeaves(tree, c));
+  }
+  function knuthMoore(b, d) { return Math.pow(b, Math.ceil(d / 2)) + Math.pow(b, Math.floor(d / 2)) - 1; }
+  const fmt = x => x === Infinity ? '+∞' : x === -Infinity ? '−∞' : String(x).replace('-', '−');
+  return { mulberry32, build, toNested, generate, minimax, alphabeta, sortedNested, subtreeLeaves, knuthMoore, fmt };
+})();
+
+if (typeof module !== 'undefined') module.exports = Core;
+
+/* =====================================================================
+   OYUN ARAYÜZÜ
+   ===================================================================== */
+if (typeof document !== 'undefined') (function () {
+  const LEVELS = [
+    { name: 'Ders örneği', note: 'Ders notundaki ağaç', b: 2, d: 3, fixed: [[[3, 5], [2, 9]], [[0, 1], [7, 4]]] },
+    { name: 'Isınma', note: '2 dal, 3 katman', b: 2, d: 3, lo: 0, hi: 9 },
+    { name: 'Geniş dallar', note: '3 dal, 2 katman', b: 3, d: 2, lo: 0, hi: 9 },
+    { name: 'Derine in', note: '2 dal, 4 katman', b: 2, d: 4, lo: 0, hi: 9 },
+    { name: 'Büyük ağaç', note: '3 dal, 3 katman', b: 3, d: 3, lo: 0, hi: 9 },
+    { name: 'Kayıplar da var', note: '3 dal, 3 katman, negatif skorlar', b: 3, d: 3, lo: -9, hi: 9 },
+  ];
+  const $ = id => document.getElementById(id);
+  const svg = $('tree');
+  const NS = 'http://www.w3.org/2000/svg';
+  const rand = Core.mulberry32((Date.now() ^ 0x9e3779b9) >>> 0);
+
+  const S = {
+    level: 0, score: 0, streak: 0, phase: 1,
+    tree: null, mm: null, ab: null,
+    filled: {}, attempts: {}, revealed: {},
+    marks: new Set(), checked: false,
+    levelPoints: 0, levelMistakes: 0, watchedEarly: false, results: [],
+    watch: { tree: null, ab: null, step: 0, timer: null, sorted: false },
+  };
+
+  function newTree() {
+    const L = LEVELS[S.level];
+    let nested;
+    if (L.fixed) nested = L.fixed;
+    else {
+      // en az bir budama olsun ki 2. aşama anlamlı olsun
+      for (let k = 0; k < 200; k++) {
+        nested = Core.generate(L.b, L.d, L.lo, L.hi, rand);
+        const t = Core.build(nested);
+        if (Core.alphabeta(t).pruned.length > 0) break;
+      }
+    }
+    S.tree = Core.build(nested);
+    S.mm = Core.minimax(S.tree);
+    S.ab = Core.alphabeta(S.tree);
+    S.filled = {}; S.attempts = {}; S.revealed = {};
+    S.marks = new Set(); S.checked = false;
+    S.levelPoints = 0; S.levelMistakes = 0; S.watchedEarly = false;
+    S.phase1Perfect = true;
+    S.tree.nodes.forEach(n => { if (n.type === 'leaf') S.filled[n.id] = n.value; });
+    stopPlay();
+    S.watch = { tree: null, ab: null, step: 0, timer: null, sorted: false };
+    $('wSort').checked = false;
+  }
+
+  // ---------- düzen ----------
+  function layout(tree) {
+    const leaves = tree.nodes.filter(n => n.type === 'leaf');
+    const L = leaves.length;
+    const spacing = L <= 8 ? 92 : L <= 9 ? 86 : L <= 16 ? 60 : 44;
+    const size = L <= 9 ? 54 : L <= 16 ? 46 : 40;
+    const maxDepth = Math.max(...tree.nodes.map(n => n.depth));
+    const gap = size * 2.05 + 14;
+    const width = Math.max(640, L * spacing + 80);
+    const height = 44 + maxDepth * gap + size * 0.6 + 40;
+    const pos = {};
+    let i = 0;
+    (function place(id) {
+      const n = tree.nodes[id];
+      if (n.type === 'leaf') { pos[id] = { x: 40 + spacing / 2 + i * spacing + (width - 80 - L * spacing) / 2, y: 44 + n.depth * gap }; i++; return; }
+      n.children.forEach(place);
+      const xs = n.children.map(c => pos[c].x);
+      pos[id] = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: 44 + n.depth * gap };
+    })(tree.root);
+    return { pos, size, width, height, small: L <= 16 };
+  }
+
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  // view(node) → { fill, stroke, text, textFill, faded, dashed, ring, clickable, mark, ab, label }
+  function drawTree(tree, view, edgeView) {
+    const lay = layout(tree);
+    svg.setAttribute('viewBox', `0 0 ${lay.width} ${lay.height}`);
+    svg.style.minWidth = Math.round(lay.width * 0.72) + 'px';
+    svg.innerHTML = '';
+    const s = lay.size;
+    const gEdges = el('g', {}, svg), gNodes = el('g', {}, svg);
+    tree.nodes.forEach(n => {
+      if (n.parent < 0) return;
+      const p = lay.pos[n.parent], c = lay.pos[n.id];
+      const ev = edgeView ? edgeView(n) : {};
+      const topC = n.type === 'leaf' ? c.y - s * 0.36 : (n.type === 'max' ? c.y - s * 0.55 : c.y - s * 0.45);
+      const botP = tree.nodes[n.parent].type === 'max' ? p.y + s * 0.45 : p.y + s * 0.55;
+      el('line', { x1: p.x, y1: botP, x2: c.x, y2: topC, stroke: ev.color || '#9FB0BF', 'stroke-width': ev.width || 1.6,
+        'stroke-dasharray': ev.dashed ? '5 5' : 'none', opacity: ev.faded ? 0.35 : 1 }, gEdges);
+      if (ev.cut) {
+        const mx = (p.x + c.x) / 2, my = (botP + topC) / 2, r = 9;
+        el('line', { x1: mx - r, y1: my - r, x2: mx + r, y2: my + r, stroke: '#FF6F20', 'stroke-width': 4, 'stroke-linecap': 'round' }, gEdges);
+        el('line', { x1: mx - r, y1: my + r, x2: mx + r, y2: my - r, stroke: '#FF6F20', 'stroke-width': 4, 'stroke-linecap': 'round' }, gEdges);
+      }
+    });
+    tree.nodes.forEach(n => {
+      const { x, y } = lay.pos[n.id];
+      const v = view(n);
+      const g = el('g', { class: 'node' + (v.clickable ? ' clickable' : ''), 'data-id': n.id, opacity: v.faded ? 0.35 : 1 }, gNodes);
+      const kindTr = n.type === 'max' ? 'MAX' : n.type === 'min' ? 'MIN' : 'yaprak';
+      const title = el('title', {}, g); title.textContent = (n.type === 'leaf' ? 'Yaprak' : `${n.name} (${kindTr})`) + (v.text !== undefined && v.text !== '?' ? `: ${v.text}` : '');
+      if (v.clickable) { g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button'); g.setAttribute('aria-label', title.textContent + (v.ariaHint || '')); }
+      let shape;
+      if (n.type === 'leaf') {
+        const w = s * 0.72;
+        shape = el('rect', { class: 'shape', x: x - w / 2, y: y - w / 2, width: w, height: w, rx: 4, fill: v.fill || '#fff', stroke: v.stroke || '#1E2B38', 'stroke-width': v.sw || 1.8, 'stroke-dasharray': v.dashed ? '4 3' : 'none' }, g);
+        if (v.ring) el('rect', { class: 'ring', x: x - w / 2 - 6, y: y - w / 2 - 6, width: w + 12, height: w + 12, rx: 6 }, g);
+        const t = el('text', { class: 'val', x, y: y + s * 0.14, 'text-anchor': 'middle', 'font-size': s * 0.4, fill: v.textFill || '#1E2B38' }, g);
+        t.textContent = v.text !== undefined ? v.text : Core.fmt(n.value);
+        if (v.mark) {
+          const cx = x + w / 2, cy = y - w / 2, r = Math.max(8, w * 0.24), k = r * 0.45, hollow = v.mark === 'hollow';
+          el('circle', { cx, cy, r, fill: hollow ? '#fff' : '#FF6F20', stroke: '#FF6F20', 'stroke-width': 2 }, g);
+          const c = hollow ? '#FF6F20' : '#fff';
+          el('line', { x1: cx - k, y1: cy - k, x2: cx + k, y2: cy + k, stroke: c, 'stroke-width': 2.6, 'stroke-linecap': 'round' }, g);
+          el('line', { x1: cx - k, y1: cy + k, x2: cx + k, y2: cy - k, stroke: c, 'stroke-width': 2.6, 'stroke-linecap': 'round' }, g);
+        }
+        if (v.note) { const nt = el('text', { class: 'nm', x, y: y + w / 2 + 14, 'text-anchor': 'middle', fill: v.noteColor || '#5B6B7A' }, g); nt.textContent = v.note; }
+      } else {
+        const up = n.type === 'max';
+        const pts = up ? [[x, y - s * 0.55], [x - s * 0.62, y + s * 0.45], [x + s * 0.62, y + s * 0.45]]
+                       : [[x - s * 0.62, y - s * 0.45], [x + s * 0.62, y - s * 0.45], [x, y + s * 0.55]];
+        const base = up ? '#447099' : '#FF3D7F';
+        if (v.ring) {
+          const rp = up ? [[x, y - s * 0.55 - 9], [x - s * 0.62 - 9, y + s * 0.45 + 5], [x + s * 0.62 + 9, y + s * 0.45 + 5]]
+                        : [[x - s * 0.62 - 9, y - s * 0.45 - 5], [x + s * 0.62 + 9, y - s * 0.45 - 5], [x, y + s * 0.55 + 9]];
+          el('polygon', { class: 'ring', points: rp.map(p => p.join(',')).join(' ') }, g);
+        }
+        shape = el('polygon', { class: 'shape', points: pts.map(p => p.join(',')).join(' '), fill: v.fill === undefined ? base : v.fill,
+          stroke: v.stroke || base, 'stroke-width': v.sw || 2.2, 'stroke-dasharray': v.dashed ? '5 4' : 'none', 'stroke-linejoin': 'round' }, g);
+        const t = el('text', { class: 'val', x, y: up ? y + s * 0.26 : y - s * 0.02, 'text-anchor': 'middle', 'font-size': s * 0.34, fill: v.textFill || '#fff' }, g);
+        t.textContent = v.text !== undefined ? v.text : '';
+        if (lay.small) { const nm = el('text', { class: 'nm', x: x + s * 0.72, y: up ? y - s * 0.2 : y - s * 0.3 }, g); nm.textContent = n.name; }
+        if (v.ab) {
+          const at = el('text', { class: 'ab', x: x + s * 0.72, y: up ? y + s * 0.22 : y + s * 0.12, 'text-anchor': 'start' }, g); at.textContent = v.ab;
+        }
+      }
+      if (v.clickable) {
+        g.addEventListener('click', () => v.onClick(n, g));
+        g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); v.onClick(n, g); } });
+      }
+    });
+    return lay;
+  }
+
+  // ---------- 1. aşama: değerleri taşı ----------
+  function solvable(n) { return n.type !== 'leaf' && S.filled[n.id] === undefined && n.children.every(c => S.filled[c] !== undefined); }
+  function phase1Done() { return S.tree.nodes.every(n => S.filled[n.id] !== undefined); }
+
+  function renderPhase1() {
+    drawTree(S.tree, n => {
+      if (n.type === 'leaf') return {};
+      const f = S.filled[n.id];
+      if (f !== undefined) {
+        return S.revealed[n.id] ? { fill: '#fff', textFill: n.type === 'max' ? '#447099' : '#C8175A', text: Core.fmt(f), dashed: true } : { text: Core.fmt(f) };
+      }
+      const can = solvable(n);
+      return { fill: '#fff', textFill: n.type === 'max' ? '#447099' : '#C8175A', text: '?', ring: can, clickable: can, onClick: openPopover, ariaHint: ', değer seç' };
+    });
+  }
+
+  function openPopover(n, g) {
+    const pop = $('popover');
+    const kids = n.children.map(c => S.filled[c]);
+    const uniq = [...new Set(kids)];
+    $('popTitle').textContent = `${n.name} (${n.type === 'max' ? 'MAX' : 'MIN'}). Çocuklar: ${kids.map(Core.fmt).join(', ')}`;
+    const box = $('popOpts'); box.innerHTML = '';
+    uniq.forEach(v => {
+      const b = document.createElement('button'); b.textContent = Core.fmt(v);
+      b.addEventListener('click', () => answer(n, v, g));
+      box.appendChild(b);
+    });
+    pop.hidden = false;
+    const stage = document.querySelector('.stage').getBoundingClientRect();
+    const r = g.getBoundingClientRect();
+    let left = r.left - stage.left + r.width / 2 - pop.offsetWidth / 2;
+    left = Math.max(8, Math.min(left, stage.width - pop.offsetWidth - 8));
+    pop.style.left = left + 'px';
+    pop.style.top = (r.bottom - stage.top + 8) + 'px';
+    box.firstChild.focus();
+    S.popNode = n.id;
+  }
+  function closePopover() { $('popover').hidden = true; S.popNode = null; }
+
+  function answer(n, v, g) {
+    const correct = S.mm[n.id];
+    const kids = n.children.map(c => S.filled[c]).map(Core.fmt).join(', ');
+    const who = n.type === 'max' ? 'MAX' : 'MIN';
+    if (v === correct) {
+      const pts = (S.attempts[n.id] || 0) === 0 ? 10 : 4;
+      addPoints(pts);
+      S.filled[n.id] = v;
+      closePopover();
+      say(`Doğru. ${who} düğümü ${n.name}, {${kids}} arasından ${Core.fmt(v)} değerini alır. +${pts}`, 'good');
+      renderPhase1(); updateTask();
+      if (phase1Done()) finishPhase1();
+      else focusNextSolvable();
+    } else {
+      S.attempts[n.id] = (S.attempts[n.id] || 0) + 1;
+      S.levelMistakes++; S.phase1Perfect = false;
+      addPoints(-3);
+      const hint = n.type === 'max' ? 'MAX kendi skorunu büyütmek ister.' : 'MIN, MAX’ın skorunu küçültmek ister.';
+      if (S.attempts[n.id] >= 2) {
+        S.filled[n.id] = correct; S.revealed[n.id] = true; closePopover();
+        say(`Olmadı. ${hint} Doğru değer ${Core.fmt(correct)}; kesikli çerçeveyle gösterildi. −3`, 'bad');
+        renderPhase1(); updateTask();
+        if (phase1Done()) finishPhase1(); else focusNextSolvable();
+      } else {
+        say(`Olmadı. ${n.name} bir ${who} düğümü. ${hint} Bir hakkın daha var. −3`, 'bad');
+        g.classList.remove('shake'); void g.getBBox(); g.classList.add('shake');
+      }
+    }
+  }
+  function focusNextSolvable() {
+    const n = S.tree.nodes.find(solvable);
+    if (n) { const g = svg.querySelector(`.node[data-id="${n.id}"]`); if (g) g.focus(); }
+  }
+  function finishPhase1() {
+    if (S.phase1Perfect && !S.watchedEarly) bumpStreak(); else if (!S.phase1Perfect) S.streak = 0;
+    updateScore();
+    $('tab2').disabled = false; $('tab1').classList.add('done');
+    say(`Kök değeri ${Core.fmt(S.mm[S.tree.root])}: iki oyuncu da optimal oynarsa MAX’ın alacağı skor bu. Şimdi budanacak yaprakları bul.`, 'good');
+    setPhase(2);
+  }
+
+  // ---------- 2. aşama: budananları bul ----------
+  function renderPhase2() {
+    const pr = new Set(S.ab.pruned);
+    drawTree(S.tree, n => {
+      if (n.type !== 'leaf') return { text: Core.fmt(S.mm[n.id]) };
+      const marked = S.marks.has(n.id);
+      if (!S.checked) return { mark: marked, faded: false, fill: marked ? '#FFF3EB' : '#fff', clickable: true, onClick: toggleMark, ariaHint: marked ? ', budanır olarak işaretli' : ', budanır olarak işaretle' };
+      const isPr = pr.has(n.id);
+      if (isPr && marked) return { mark: true, fill: '#FFF3EB', note: 'doğru', noteColor: '#B84400' };
+      if (isPr && !marked) return { mark: 'hollow', dashed: true, stroke: '#FF6F20', note: 'atlandı', noteColor: '#B84400' };
+      if (!isPr && marked) return { fill: '#FFE6EF', stroke: '#C8175A', note: 'bakılır', noteColor: '#C8175A' };
+      return { fill: '#1E2B38', textFill: '#fff' };
+    }, n => {
+      if (!S.checked || n.parent < 0) return {};
+      const leaves = Core.subtreeLeaves(S.tree, n.id);
+      const allPr = leaves.every(l => pr.has(l)), parentPr = Core.subtreeLeaves(S.tree, n.parent).every(l => pr.has(l));
+      if (allPr && !parentPr) return { cut: true, dashed: true, color: '#FF6F20' };
+      if (allPr) return { dashed: true, faded: true };
+      return {};
+    });
+  }
+  function toggleMark(n) {
+    if (S.checked) return;
+    if (S.marks.has(n.id)) S.marks.delete(n.id); else S.marks.add(n.id);
+    renderPhase2(); updateTask();
+    const g = svg.querySelector(`.node[data-id="${n.id}"]`); if (g) g.focus();
+  }
+  function checkPruning() {
+    const pr = new Set(S.ab.pruned);
+    let good = 0, wrong = 0, missed = 0;
+    S.marks.forEach(id => { if (pr.has(id)) good++; else wrong++; });
+    pr.forEach(id => { if (!S.marks.has(id)) missed++; });
+    const perfect = wrong === 0 && missed === 0;
+    let pts = good * 5 - wrong * 5 + (perfect ? 20 : 0);
+    addPoints(pts);
+    S.checked = true; S.levelMistakes += wrong + missed;
+    if (perfect && !S.watchedEarly) bumpStreak(); else if (!perfect) S.streak = 0;
+    updateScore();
+    const V = S.ab.visited.size, Lc = S.ab.leafCount;
+    const msg = perfect
+      ? `Kusursuz. α-β ${Lc} yaprağın yalnızca ${V} tanesine bakar; ${pr.size} yaprak budanır. ${pts >= 0 ? '+' : ''}${pts}`
+      : `${good} doğru, ${wrong} yanlış işaret, ${missed} atlanan yaprak. α-β ${Lc} yaprağın ${V} tanesine bakar. ${pts >= 0 ? '+' : ''}${pts}`;
+    say(msg, perfect ? 'good' : 'bad');
+    $('tab2').classList.add('done');
+    S.results[S.level] = { name: LEVELS[S.level].name, points: S.watchedEarly ? 0 : S.levelPoints, mistakes: S.levelMistakes, visited: V, leaves: Lc, watched: S.watchedEarly };
+    renderPhase2(); updateTask();
+  }
+
+  // ---------- 3. aşama: izle ----------
+  function prepareWatch() {
+    const tree = S.watch.sorted ? Core.build(Core.sortedNested(S.tree)) : S.tree;
+    S.watch.tree = tree; S.watch.ab = Core.alphabeta(tree);
+    S.watch.step = 0;
+  }
+  function watchState(k) {
+    const tree = S.watch.tree, ev = S.watch.ab.events;
+    const st = {}; tree.nodes.forEach(n => { st[n.id] = { a: null, b: null, v: null, status: 'idle' }; });
+    const pruned = new Set(), cutEdges = new Set();
+    let cur = null;
+    for (let i = 0; i < k; i++) {
+      const e = ev[i];
+      if (e.t === 'enter') { st[e.id].a = e.a; st[e.id].b = e.b; st[e.id].status = 'active'; cur = e.id; }
+      else if (e.t === 'leaf') { st[e.id].v = e.v; st[e.id].status = 'done'; cur = e.id; }
+      else if (e.t === 'update') { st[e.id].v = e.v; st[e.id].a = e.a; st[e.id].b = e.b; st[e.id].partial = true; cur = e.id; }
+      else if (e.t === 'cut') { e.pruned.forEach(p => { cutEdges.add(p); Core.subtreeLeaves(tree, p).forEach(l => pruned.add(l)); markSub(tree, p, pruned); }); cur = e.id; }
+      else if (e.t === 'exit') { st[e.id].v = e.v; st[e.id].status = 'done'; st[e.id].partial = false; cur = e.id; }
+    }
+    return { st, pruned, cutEdges, cur };
+  }
+  function markSub(tree, id, set) { set.add(id); tree.nodes[id].children.forEach(c => markSub(tree, c, set)); }
+  function describe(e, tree) {
+    const n = tree.nodes[e.id], F = Core.fmt;
+    const nm = n.type === 'leaf' ? `yaprak ${F(n.value)}` : `${n.name} (${n.type === 'max' ? 'MAX' : 'MIN'})`;
+    if (e.t === 'enter') return n.type === 'leaf' ? null : `${nm} açıldı: α=${F(e.a)}, β=${F(e.b)}`;
+    if (e.t === 'leaf') return `Yaprak ${F(e.v)} değerlendirildi`;
+    if (e.t === 'update') {
+      const c = tree.nodes[e.child], got = c.type === 'leaf' ? `yaprak ${F(e.cv)}` : `${c.name} → ${F(e.cv)}`;
+      return n.type === 'max' ? `${n.name}: ${got}; değer ${e.last ? '' : '≥ '}${F(e.v)}, α=${F(e.a)}` : `${n.name}: ${got}; değer ${e.last ? '' : '≤ '}${F(e.v)}, β=${F(e.b)}`;
+    }
+    if (e.t === 'cut') {
+      const names = e.pruned.map(p => tree.nodes[p].type === 'leaf' ? `yaprak ${F(tree.nodes[p].value)}` : tree.nodes[p].name).join(', ');
+      return `α ≥ β (${F(e.a)} ≥ ${F(e.b)}): ${n.name} içinde ${names} budandı`;
+    }
+    if (e.t === 'exit') return n.type === 'leaf' ? null : `${n.name} = ${F(e.v)} olarak döndü`;
+    return null;
+  }
+  function renderWatch() {
+    const tree = S.watch.tree, ab = S.watch.ab, k = S.watch.step;
+    const { st, pruned, cutEdges, cur } = watchState(k);
+    const F = Core.fmt;
+    drawTree(tree, n => {
+      const s = st[n.id];
+      const isCur = n.id === cur;
+      if (n.type === 'leaf') {
+        if (pruned.has(n.id)) return { faded: true, dashed: true };
+        if (s.status === 'done') return { fill: '#1E2B38', textFill: '#fff', stroke: isCur ? '#FF6F20' : '#1E2B38', sw: isCur ? 4 : 1.8 };
+        return { stroke: isCur ? '#FF6F20' : '#1E2B38', sw: isCur ? 4 : 1.8 };
+      }
+      if (pruned.has(n.id)) return { fill: '#fff', text: '', dashed: true, faded: true };
+      let text = '', abTxt;
+      if (s.v !== null && s.v !== undefined) {
+        const bound = s.status === 'done' ? '' : (n.type === 'max' ? '≥' : '≤');
+        text = bound + F(s.v);
+      }
+      if (s.a !== null) abTxt = `α ${F(s.a)}   β ${F(s.b)}`;
+      const base = n.type === 'max' ? '#447099' : '#FF3D7F';
+      if (s.status === 'idle') return { fill: '#fff', textFill: base, text: '', ab: abTxt };
+      return { text, ab: abTxt, stroke: isCur ? '#FF6F20' : base, sw: isCur ? 5 : 2.2, fill: s.status === 'done' ? base : '#fff', textFill: s.status === 'done' ? '#fff' : (n.type === 'max' ? '#447099' : '#C8175A') };
+    }, n => {
+      if (cutEdges.has(n.id)) return { cut: true, dashed: true, color: '#FF6F20' };
+      if (pruned.has(n.id)) return { dashed: true, faded: true };
+      return {};
+    });
+    // günlük
+    const log = $('log'); log.innerHTML = '';
+    const lines = [];
+    for (let i = 0; i < k; i++) { const d = describe(ab.events[i], tree); if (d) lines.push({ d, cut: ab.events[i].t === 'cut' }); }
+    lines.forEach((l, i) => { const li = document.createElement('li'); li.textContent = l.d; if (l.cut) li.className = 'cut'; if (i === lines.length - 1) li.classList.add('cur'); log.appendChild(li); });
+    log.scrollTop = log.scrollHeight;
+    if (!lines.length) { const li = document.createElement('li'); li.textContent = 'Başlamak için ileri ya da Oynat.'; log.appendChild(li); }
+    $('wPrev').disabled = $('wFirst').disabled = k === 0;
+    $('wNext').disabled = $('wLast').disabled = k >= ab.events.length;
+    if (k >= ab.events.length) stopPlay();
+    renderWatchStats();
+  }
+  function renderWatchStats() {
+    const L = LEVELS[S.level];
+    const base = Core.alphabeta(S.tree), sorted = Core.alphabeta(Core.build(Core.sortedNested(S.tree)));
+    $('stats').innerHTML = `<table>
+      <tr><td>Düz minimax: incelenen yaprak</td><td>${base.leafCount}</td></tr>
+      <tr><td>α-β, bu sırayla</td><td>${base.visited.size}</td></tr>
+      <tr><td>α-β, en iyi sırayla</td><td>${sorted.visited.size}</td></tr>
+      <tr><td>Teorik en az (b^⌈d/2⌉ + b^⌊d/2⌋ − 1)</td><td>${Core.knuthMoore(L.b, L.d)}</td></tr>
+    </table>
+    <p style="color:var(--muted);margin-top:8px;font-size:13px">Teorik alt sınır, mükemmel sıralanmış ve farklı değerli yapraklardan oluşan bir ağaç içindir (Knuth ve Moore, 1975).</p>`;
+  }
+  function stepTo(k) { S.watch.step = Math.max(0, Math.min(k, S.watch.ab.events.length)); renderWatch(); }
+  function nextMeaningful(dir) {
+    // görünür bir değişiklik üreten olaya atla
+    const ev = S.watch.ab.events; let k = S.watch.step;
+    do { k += dir; } while (k > 0 && k < ev.length && !describe(ev[k - 1], S.watch.tree));
+    stepTo(k);
+  }
+  function play() {
+    if (S.watch.timer) { stopPlay(); return; }
+    if (S.watch.step >= S.watch.ab.events.length) stepTo(0);
+    $('wPlay').textContent = 'Duraklat';
+    const tick = () => { nextMeaningful(1); if (S.watch.step < S.watch.ab.events.length) S.watch.timer = setTimeout(tick, +$('wSpeed').max + +$('wSpeed').min - +$('wSpeed').value); else stopPlay(); };
+    tick();
+  }
+  function stopPlay() { if (S.watch && S.watch.timer) clearTimeout(S.watch.timer); if (S.watch) S.watch.timer = null; const b = $('wPlay'); if (b) b.textContent = 'Oynat'; }
+
+  // ---------- ortak ----------
+  function say(t, kind) { const f = $('feedback'); f.textContent = t; f.className = 'feedback' + (kind ? ' ' + kind : ''); }
+  function addPoints(p) {
+    if (S.watchedEarly) return;
+    S.levelPoints += p; S.score += p; updateScore();
+  }
+  function bumpStreak() { S.streak++; }
+  function updateScore() {
+    $('score').textContent = S.score; $('streak').textContent = S.streak;
+    $('lvlNum').textContent = `${S.level + 1}/${LEVELS.length}`;
+  }
+  function setPhase(p) {
+    S.phase = p; closePopover();
+    ['tab1', 'tab2', 'tab3'].forEach((t, i) => $(t).setAttribute('aria-selected', String(i + 1 === p)));
+    $('watchControls').hidden = p !== 3; $('log').hidden = p !== 3;
+    if (p !== 3) stopPlay();
+    if (p === 1) renderPhase1();
+    if (p === 2) renderPhase2();
+    if (p === 3) { if (!S.watch.tree) prepareWatch(); renderWatch(); }
+    if (p !== 3) $('stats').innerHTML = '';
+    updateTask();
+  }
+  function updateTask() {
+    const L = LEVELS[S.level];
+    $('levelName').innerHTML = `${L.name}<span>${L.note}</span>`;
+    const task = $('task'), act = $('actions');
+    act.innerHTML = '';
+    if (S.phase === 1) {
+      const left = S.tree.nodes.filter(n => S.filled[n.id] === undefined).length;
+      task.innerHTML = `<h2>Değerleri aşağıdan yukarı taşı</h2><p>Turuncu çerçeveli düğüme tıkla ve değerini seç. Bir düğüm, tüm çocukları çözülünce açılır. Kalan: <b>${left}</b></p>`;
+    } else if (S.phase === 2) {
+      if (!S.checked) {
+        task.innerHTML = `<h2>α-β hangi yapraklara hiç bakmaz?</h2><p>Çocuklar soldan sağa incelenir. Budanacağını düşündüğün yaprakları işaretle, sonra kontrol et. İşaretli: <b>${S.marks.size}</b></p>`;
+        act.appendChild(button('Kontrol et', 'primary', checkPruning));
+      } else {
+        task.innerHTML = `<h2>Seviye tamamlandı</h2><p>Koyu yapraklara bakıldı, çarpılı yapraklar budandı. Nasıl olduğunu görmek için algoritmayı izle.</p>`;
+        act.appendChild(button('Algoritmayı izle', '', () => setPhase(3)));
+        act.appendChild(document.createTextNode(' '));
+        act.appendChild(button(S.level < LEVELS.length - 1 ? 'Sonraki seviye' : 'Sonuçları gör', 'accent', nextLevel));
+      }
+    } else {
+      task.innerHTML = `<h2>α-β adım adım</h2><p>Her düğümün altında α ve β, içinde o anki değer görünür. “≤” ve “≥” değerin henüz kesinleşmediğini gösterir. Kısayollar: ← →, boşluk.</p>`;
+      if (S.checked) act.appendChild(button(S.level < LEVELS.length - 1 ? 'Sonraki seviye' : 'Sonuçları gör', 'accent', nextLevel));
+    }
+    if (!LEVELS[S.level].fixed) { act.appendChild(document.createTextNode(' ')); act.appendChild(button('Yeni ağaç', '', () => { newTree(); resetTabs(); say('Yeni ağaç hazır. Bu seviyede kazandığın puanlar sıfırlandı.', ''); setPhase(1); })); }
+  }
+  function button(txt, cls, fn) { const b = document.createElement('button'); b.className = 'btn ' + (cls || ''); b.textContent = txt; b.addEventListener('click', fn); return b; }
+  function resetTabs() {
+    S.score -= S.levelPoints; S.levelPoints = 0; updateScore();
+    $('tab2').disabled = true; $('tab1').classList.remove('done'); $('tab2').classList.remove('done');
+  }
+  function nextLevel() {
+    if (!S.results[S.level]) S.results[S.level] = { name: LEVELS[S.level].name, points: S.levelPoints, mistakes: S.levelMistakes, watched: S.watchedEarly };
+    if (S.level < LEVELS.length - 1) {
+      S.level++; newTree();
+      $('tab2').disabled = true; $('tab1').classList.remove('done'); $('tab2').classList.remove('done');
+      say('', ''); updateScore(); setPhase(1);
+    } else showSummary();
+  }
+  function showSummary() {
+    stopPlay(); closePopover();
+    $('watchControls').hidden = true; $('log').hidden = true; $('stats').innerHTML = '';
+    svg.innerHTML = ''; svg.setAttribute('viewBox', '0 0 640 120');
+    const t = el('text', { x: 320, y: 70, 'text-anchor': 'middle', 'font-size': 30, 'font-family': 'Roboto Slab, serif', fill: '#1E2B38' }, svg);
+    t.textContent = `Toplam puan: ${S.score}`;
+    const rows = S.results.map(r => `<tr><td>${r.name}</td><td class="num">${r.watched ? '—' : r.points}</td><td class="num">${r.mistakes}</td></tr>`).join('');
+    $('task').innerHTML = `<h2>Tüm seviyeler bitti</h2><div class="summary"><table><tr><th>Seviye</th><th>Puan</th><th>Hata</th></tr>${rows}</table></div>`;
+    $('actions').innerHTML = '';
+    $('actions').appendChild(button('Yeni ağaçlarla yeniden oyna', 'accent', restart));
+    say(S.streak >= 6 ? 'Çok iyi: en az altı aşamayı hatasız geçtin.' : 'Hatalı düğümleri izleme modunda tekrar incelemek kalıcı öğrenme sağlar.', 'good');
+    $('levelName').innerHTML = 'Sonuçlar';
+  }
+  function restart() {
+    S.level = 0; S.score = 0; S.streak = 0; S.results = [];
+    newTree(); $('tab2').disabled = true; $('tab1').classList.remove('done'); $('tab2').classList.remove('done');
+    updateScore(); say('', ''); setPhase(1);
+  }
+
+  // sekmeler
+  $('tab1').addEventListener('click', () => setPhase(1));
+  $('tab2').addEventListener('click', () => { if (!$('tab2').disabled) setPhase(2); });
+  $('tab3').addEventListener('click', () => {
+    if (S.checked || S.watchedEarly) { setPhase(3); return; }
+    // erken izleme uyarısı
+    $('task').innerHTML = `<div class="notice"><b>Seviyeyi bitirmeden izlemek istiyor musun?</b><p>İzleme cevapları gösterir; bu seviyeden puan alamazsın.</p><div class="row" id="noticeRow"></div></div>`;
+    const row = $('noticeRow');
+    row.appendChild(button('Yine de izle', 'accent', () => {
+      S.score -= S.levelPoints; S.levelPoints = 0; S.watchedEarly = true; S.streak = 0; updateScore();
+      $('tab2').disabled = false; setPhase(3);
+    }));
+    row.appendChild(button('Oyuna dön', '', () => updateTask()));
+  });
+  // izleme kontrolleri
+  $('wFirst').addEventListener('click', () => { stopPlay(); stepTo(0); });
+  $('wLast').addEventListener('click', () => { stopPlay(); stepTo(S.watch.ab.events.length); });
+  $('wPrev').addEventListener('click', () => { stopPlay(); nextMeaningful(-1); });
+  $('wNext').addEventListener('click', () => { stopPlay(); nextMeaningful(1); });
+  $('wPlay').addEventListener('click', play);
+  $('wSort').addEventListener('change', e => { stopPlay(); S.watch.sorted = e.target.checked; prepareWatch(); renderWatch(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closePopover();
+    if (S.phase !== 3 || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight') { stopPlay(); nextMeaningful(1); }
+    else if (e.key === 'ArrowLeft') { stopPlay(); nextMeaningful(-1); }
+    else if (e.key === ' ' && e.target === document.body) { e.preventDefault(); play(); }
+  });
+  document.addEventListener('click', e => {
+    const pop = $('popover');
+    if (!pop.hidden && !pop.contains(e.target) && !e.target.closest('.node.clickable')) closePopover();
+  });
+
+  newTree(); updateScore(); setPhase(1);
+  say('Önce MAX ve MIN’in değerlerini aşağıdan yukarı doldur.', '');
+  window.__game = { S, Core, setPhase, answer, toggleMark, checkPruning, nextLevel, stepTo };
+})();
+</script>
+</body>
+</html>

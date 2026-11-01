@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prosedürel Bakış Animasyonu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Open+Sans:wght@400;600;700&family=Roboto+Slab:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#447099; --blue-l:#e6eef6; --orange:#FF6F20; --orange-l:#fff0e6; --pink:#FF3D7F; --pink-l:#ffe8f0;
+  --ink:#1f2933; --muted:#5f6b78; --line:#d9e1e8; --bg:#f5f7fa; --card:#ffffff; --ok:#2e9e6a; --bad:#c9364f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Open Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+header{background:var(--blue);color:#fff;padding:14px 20px;border-bottom:4px solid var(--orange)}
+header h1{font-family:'Roboto Slab',serif;margin:0;font-size:22px}
+header p{margin:4px 0 0;opacity:.92;font-size:13px}
+.wrap{display:grid;grid-template-columns:360px 1fr;gap:14px;padding:14px;max-width:1520px;margin:0 auto}
+@media (max-width:1050px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.card h2{font-family:'Roboto Slab',serif;font-size:15px;margin:0 0 8px;color:var(--blue)}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+label span.v{font-family:'Fira Code',monospace;color:var(--orange);min-width:52px;text-align:right}
+input[type=range]{flex:1}
+select{font-family:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--line);border-radius:6px}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+button{font-family:inherit;font-weight:600;font-size:13px;border:0;border-radius:6px;padding:7px 11px;cursor:pointer;background:var(--blue);color:#fff}
+button.alt{background:var(--orange)}
+button.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+.map{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12.5px}
+.map b{font-family:'Roboto Slab',serif;color:var(--blue)}
+.formula{font-family:'Fira Code',monospace;font-size:12px;background:var(--orange-l);border-left:3px solid var(--orange);border-radius:6px;padding:8px;margin-top:8px;line-height:1.6}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media (max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--blue-l);border-radius:8px;padding:6px 8px;text-align:center}
+.stat b{display:block;font-family:'Fira Code',monospace;font-size:17px;color:var(--blue)}
+.stat small{color:var(--muted);font-size:11.5px}
+.stat.o{background:var(--orange-l)} .stat.o b{color:var(--orange)}
+#explain{background:var(--orange-l);border-left:4px solid var(--orange);border-radius:6px;padding:10px 12px;font-size:13px}
+.mono,#explain code{font-family:'Fira Code',monospace;font-size:12.5px}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.views{grid-template-columns:1fr}}
+.vtitle{font-family:'Roboto Slab',serif;font-size:14px;margin:0 0 4px}
+.vtitle.l{color:var(--muted)} .vtitle.o{color:var(--orange)}
+canvas{display:block;max-width:100%;border-radius:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:1250px){.two{grid-template-columns:1fr}}
+.legend{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;align-items:center}
+.legend i{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:4px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:center}
+th{background:var(--blue-l);color:var(--blue);font-size:12px}
+td:first-child,th:first-child{text-align:left}
+.good{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}
+.player{display:flex;align-items:center;gap:8px;margin-top:8px}
+.player input{flex:1}
+.note{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Prosedürel Karakter Bakış Animasyonu — Veri Uzayı, Hipotez Uzayı ve Kayıp Ölçütü</h1>
+  <p>Karakterin boynu hareketli bir hedefi izler. Solda hedefe dümdüz kilitlenen <b>LookAt</b>, sağda <b>gradyan inişiyle optimize edilmiş</b> geçiş eğrisi. 120 kare, 24 fps (5 s).</p>
+</header>
+
+<div class="wrap">
+<aside>
+  <div class="card">
+    <h2>Kavramların animasyondaki karşılığı</h2>
+    <div class="map">
+      <b>X</b><span>Hedefin her karedeki (x, y, z) konumu ve hızı |v|. Takip sensörü gürültülüdür.</span>
+      <b>Y</b><span>İdeal boyun açıları: yaw ψ* = atan2(dx, dy), pitch φ* = atan2(dz, √(dx²+dy²)).</span>
+      <b>H</b><span>K kontrol noktalı kübik B-spline eğrileri: ψ(t) = Σ c<sub>k</sub>·N<sub>k</sub>(t). Öğrenilen parametre sayısı 2K.</span>
+      <b>L</b><span>Hedef sapma + sarsıntı (+ anatomik sınır) kaybı.</span>
+    </div>
+    <div class="formula">
+      L = λ<sub>h</sub>·L<sub>hedef</sub> + λ<sub>s</sub>·L<sub>sarsıntı</sub> + λ<sub>a</sub>·L<sub>sınır</sub><br>
+      L<sub>hedef</sub> = (1/T) Σ (ψ<sub>t</sub>−ψ*<sub>t</sub>)² + (φ<sub>t</sub>−φ*<sub>t</sub>)²  [°²]<br>
+      L<sub>sarsıntı</sub> = (1/(T−2)) Σ (Δ²ψ<sub>t</sub>)² + (Δ²φ<sub>t</sub>)²<br>
+      &nbsp;&nbsp;Δ²ψ<sub>t</sub> = ψ<sub>t+1</sub> − 2ψ<sub>t</sub> + ψ<sub>t−1</sub>  (kareler arası hız değişimi)<br>
+      L<sub>sınır</sub> = (1/T) Σ aşım²;  ψ ∈ [−80°, 80°], φ ∈ [−30°, 45°]<br>
+      c ← c − η·∇<sub>c</sub>L,  η = α / L<sub>maks</sub>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Sahne (veri)</h2>
+    <label>Senaryo
+      <select id="scen">
+        <option value="0">Kuş — zikzak uçuş</option>
+        <option value="1">Araba — hızlı yan geçiş</option>
+        <option value="2" selected>Dikkat geçişi — patlama + arkadan ses</option>
+      </select></label>
+    <label>Takip gürültüsü σ (m) <span class="v" id="vNoise"></span></label><input type="range" id="noise" min="0" max="0.5" step="0.01" value="0.15">
+    <label>Kamera yörünge açısı <span class="v" id="vCam"></span></label><input type="range" id="cam" min="-80" max="80" value="20">
+  </div>
+
+  <div class="card">
+    <h2>Model ve kayıp</h2>
+    <label>Kontrol noktası K <span class="v" id="vK"></span></label><input type="range" id="K" min="4" max="60" value="16">
+    <label>λ<sub>h</sub> (hedef) <span class="v" id="vLh"></span></label><input type="range" id="lh" min="-1" max="1" step="0.05" value="0">
+    <label>λ<sub>s</sub> (sarsıntı) <span class="v" id="vLs"></span></label><input type="range" id="ls" min="-1" max="3" step="0.05" value="1.5">
+    <label>λ<sub>a</sub> (anatomik sınır) <span class="v" id="vLa"></span></label><input type="range" id="la" min="-1" max="2" step="0.05" value="1">
+    <label>Yöntem
+      <select id="opt"><option value="mom">Momentumlu GD (β = 0.9)</option><option value="gd">Klasik GD</option></select></label>
+    <label>Adım katsayısı α <span class="v" id="vAl"></span></label><input type="range" id="al" min="0.1" max="1.9" step="0.1" value="1.0">
+    <div class="btns">
+      <button id="b1">1 iterasyon</button>
+      <button id="b50">+50</button>
+      <button class="alt" id="bConv">Yakınsayana kadar</button>
+      <button class="ghost" id="bReset">↺ c = 0</button>
+    </div>
+    <div class="note" style="margin-top:6px">λ kaydırıcıları logaritmiktir (10<sup>x</sup>). Sahne ve K değişince parametreler sıfırlanır; λ değişince optimizasyon kaldığı yerden sürer.</div>
+  </div>
+</aside>
+
+<main>
+  <div class="card">
+    <div class="stats">
+      <div class="stat o"><b id="sIt">0</b><small>İterasyon</small></div>
+      <div class="stat o"><b id="sL">–</b><small>Toplam kayıp L</small></div>
+      <div class="stat"><b id="sLh">–</b><small>λ<sub>h</sub>·L<sub>hedef</sub></small></div>
+      <div class="stat"><b id="sLs">–</b><small>λ<sub>s</sub>·L<sub>sarsıntı</sub></small></div>
+      <div class="stat"><b id="sLa">–</b><small>λ<sub>a</sub>·L<sub>sınır</sub></small></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="views">
+      <div><div class="vtitle l">LookAt — hedefe matematiksel kilit (ψ = ψ*)</div><canvas id="vL" width="520" height="320"></canvas></div>
+      <div><div class="vtitle o">Optimize edilmiş hipotez h(t)</div><canvas id="vO" width="520" height="320"></canvas></div>
+    </div>
+    <div class="player">
+      <button class="alt" id="bPlay">⏵ Oynat</button>
+      <span class="mono" id="fLab">kare 0</span>
+      <input type="range" id="frame" min="0" max="119" value="0">
+      <select id="spd"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Bu karede veri ve hipotez</h2>
+    <div id="explain"></div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2>Yaw ψ(t) — yatay dönüş</h2>
+      <canvas id="cYaw" width="560" height="220"></canvas>
+      <div class="legend"><span><i style="background:#9aa5b1"></i>ψ* (LookAt)</span><span><i style="background:#FF6F20;height:4px"></i>h(t) optimize</span><span><i style="background:#ffd6e2;height:10px"></i>anatomik sınır dışı</span><span><i style="background:#447099;height:8px;width:3px"></i>kontrol noktaları</span></div>
+    </div>
+    <div class="card">
+      <h2>Pitch φ(t) — dikey dönüş</h2>
+      <canvas id="cPitch" width="560" height="220"></canvas>
+      <div class="legend"><span><i style="background:#9aa5b1"></i>φ* (LookAt)</span><span><i style="background:#FF6F20;height:4px"></i>h(t) optimize</span></div>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2>Açısal ivme (sarsıntı göstergesi)</h2>
+      <canvas id="cAcc" width="560" height="200"></canvas>
+      <div class="legend"><span><i style="background:#9aa5b1"></i>LookAt</span><span><i style="background:#FF6F20;height:4px"></i>optimize</span><span>birim: °/s² (log ölçek)</span></div>
+    </div>
+    <div class="card">
+      <h2>Kaybın iterasyonlarla düşüşü</h2>
+      <canvas id="cLoss" width="560" height="200"></canvas>
+      <div class="legend"><span><i style="background:#1f2933"></i>L toplam</span><span><i style="background:#447099"></i>λ<sub>h</sub>L<sub>hedef</sub></span><span><i style="background:#FF3D7F"></i>λ<sub>s</sub>L<sub>sarsıntı</sub></span><span><i style="background:#2e9e6a"></i>λ<sub>a</sub>L<sub>sınır</sub></span><span>(log ölçek)</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Animasyon kalitesi: LookAt ve optimize edilmiş eğri</h2>
+    <div id="metrics"></div>
+  </div>
+</main>
+</div>
+
+<script>
+// ==CORE_START==
+const T=120, FPS=24, HEAD=[0,0,1.6];
+const LIM={yaw:[-80,80],pitch:[-30,45]};
+const DEG=180/Math.PI;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gauss(r){let u=0,v=0;while(u===0)u=r();v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function scenarioPath(id){
+  const P=[];
+  for(let t=0;t<T;t++){const s=t/(T-1);let p;
+    if(id===0){p=[-6+12*s,6+1.5*Math.sin(4*Math.PI*s),3+1.2*Math.sin(6*Math.PI*s)];}
+    else if(id===1){p=[-15+30*s,2.5,0.6];}
+    else{ if(t<50)p=[-3,4,1.5+0.1*Math.sin(t/4)];       // sabit hedef (sol önde)
+          else if(t<90)p=[4,3,0.3+2.5*Math.min(1,(t-50)/10)]; // patlama: sağda aniden belirir, yükselir
+          else p=[5,-2,2];}                                 // arkadan gelen ses: anatomik sınır dışı
+    P.push(p);}
+  return P;
+}
+function addNoise(P,sigma,seed){const r=mulberry32(seed);return P.map(p=>p.map(v=>v+sigma*gauss(r)));}
+function idealAngles(P){
+  const yaw=[],pitch=[];let prev=null;
+  for(const p of P){const dx=p[0]-HEAD[0],dy=p[1]-HEAD[1],dz=p[2]-HEAD[2];
+    let y=Math.atan2(dx,dy)*DEG;if(prev!==null){while(y-prev>180)y-=360;while(y-prev<-180)y+=360;}prev=y;
+    yaw.push(y);pitch.push(Math.atan2(dz,Math.hypot(dx,dy))*DEG);}
+  return {yaw,pitch};
+}
+function speeds(P){return P.map((p,t)=>{const a=P[Math.max(0,t-1)],b=P[Math.min(T-1,t+1)];const k=(Math.min(T-1,t+1)-Math.max(0,t-1));return Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2])/k*FPS;});}
+// Kübik, uçları sabitlenmiş (clamped) B-spline taban matrisi B[t][k]
+function bsplineBasis(K){
+  const p=3,n=K-1,m=n+p+1,kn=[];
+  for(let i=0;i<=m;i++){if(i<=p)kn.push(0);else if(i>=m-p)kn.push(1);else kn.push((i-p)/(m-2*p));}
+  const B=[];
+  for(let t=0;t<T;t++){let u=t/(T-1);if(u>=1)u=1-1e-12;
+    let N=new Array(m).fill(0);for(let i=0;i<m;i++)N[i]=(u>=kn[i]&&u<kn[i+1])?1:0;
+    for(let d=1;d<=p;d++){const M=new Array(m-d).fill(0);
+      for(let i=0;i<m-d;i++){let a=0,b=0;
+        if(kn[i+d]-kn[i]>0)a=(u-kn[i])/(kn[i+d]-kn[i])*N[i];
+        if(kn[i+d+1]-kn[i+1]>0)b=(kn[i+d+1]-u)/(kn[i+d+1]-kn[i+1])*N[i+1];
+        M[i]=a+b;}
+      N=M;}
+    B.push(N.slice(0,K));}
+  return B;
+}
+function eval_(B,c){return B.map(row=>{let s=0;for(let k=0;k<c.length;k++)s+=row[k]*c[k];return s;});}
+function evalT(B,g,K){const out=new Array(K).fill(0);for(let t=0;t<T;t++)for(let k=0;k<K;k++)out[k]+=B[t][k]*g[t];return out;}
+function d2(v){const d=[];for(let t=1;t<v.length-1;t++)d.push(v[t+1]-2*v[t]+v[t-1]);return d;}
+function d2T(d){const o=new Array(d.length+2).fill(0);d.forEach((x,i)=>{o[i]+=x;o[i+1]-=2*x;o[i+2]+=x;});return o;}
+function excess(v,lo,hi){return v>hi?v-hi:(v<lo?v-lo:0);}
+// Kayıp ve gradyan (yaw ve pitch toplamı)
+function lossGrad(B,cy,cp,tgt,w){
+  const K=cy.length,res={Lh:0,Ls:0,La:0,gy:null,gp:null};const out={};
+  for(const [name,c,ideal,lim] of [['y',cy,tgt.yaw,LIM.yaw],['p',cp,tgt.pitch,LIM.pitch]]){
+    const th=eval_(B,c),e=th.map((v,t)=>v-ideal[t]),dd=d2(th),ex=th.map(v=>excess(v,lim[0],lim[1]));
+    res.Lh+=e.reduce((s,v)=>s+v*v,0)/T;res.Ls+=dd.reduce((s,v)=>s+v*v,0)/(T-2);res.La+=ex.reduce((s,v)=>s+v*v,0)/T;
+    const back=d2T(dd);
+    const g=th.map((_,t)=>2*w.h*e[t]/T+2*w.s*back[t]/(T-2)+2*w.a*ex[t]/T);
+    out[name]={th,g:evalT(B,g,K)};}
+  res.L=w.h*res.Lh+w.s*res.Ls+w.a*res.La;res.gy=out.y.g;res.gp=out.p.g;res.thy=out.y.th;res.thp=out.p.th;
+  return res;
+}
+// Hessyen üst sınırının (L_maks) kuvvet yinelemesiyle kestirimi
+function lipschitz(B,w,K){
+  let v=new Array(K).fill(0).map((_,i)=>Math.sin(i+1));let lam=0;
+  for(let it=0;it<100;it++){const th=eval_(B,v),back=d2T(d2(th));
+    const g=th.map((x,t)=>2*(w.h+w.a)*x/T+2*w.s*back[t]/(T-2));const hv=evalT(B,g,K);
+    const nrm=Math.hypot(...hv);lam=nrm/Math.hypot(...v);v=hv.map(x=>x/nrm);}
+  return lam;
+}
+function makeOptimizer(B,K){return {B,K,cy:new Array(K).fill(0),cp:new Array(K).fill(0),vy:new Array(K).fill(0),vp:new Array(K).fill(0),it:0,hist:[]};}
+function optStep(O,tgt,w,eta,mode){
+  if(mode==='mom'){ // Nesterov
+    const b=0.9,ly=O.cy.map((c,k)=>c+b*O.vy[k]),lp=O.cp.map((c,k)=>c+b*O.vp[k]);
+    const r=lossGrad(O.B,ly,lp,tgt,w);
+    O.vy=O.vy.map((v,k)=>b*v-eta*r.gy[k]);O.vp=O.vp.map((v,k)=>b*v-eta*r.gp[k]);
+    O.cy=O.cy.map((c,k)=>c+O.vy[k]);O.cp=O.cp.map((c,k)=>c+O.vp[k]);
+  }else{const r=lossGrad(O.B,O.cy,O.cp,tgt,w);O.cy=O.cy.map((c,k)=>c-eta*r.gy[k]);O.cp=O.cp.map((c,k)=>c-eta*r.gp[k]);}
+  O.it++;
+}
+function motionStats(yaw,pitch){
+  let maxV=0,maxA=0;const acc=[];
+  for(let t=1;t<T;t++)maxV=Math.max(maxV,Math.hypot(yaw[t]-yaw[t-1],pitch[t]-pitch[t-1])*FPS);
+  for(let t=1;t<T-1;t++){const a=Math.hypot(yaw[t+1]-2*yaw[t]+yaw[t-1],pitch[t+1]-2*pitch[t]+pitch[t-1])*FPS*FPS;acc.push(a);maxA=Math.max(maxA,a);}
+  const rmsA=Math.sqrt(acc.reduce((s,a)=>s+a*a,0)/acc.length);
+  const viol=Math.max(0,...yaw.map(v=>Math.abs(excess(v,LIM.yaw[0],LIM.yaw[1]))),...pitch.map(v=>Math.abs(excess(v,LIM.pitch[0],LIM.pitch[1]))));
+  return {maxV,maxA,rmsA,acc,viol};
+}
+// ==CORE_END==
+
+const $=id=>document.getElementById(id);
+let D,O,W,ETA,LMAX,frame=0,playing=false,lastTs=0,acc=0;
+const SEED=502;
+function readW(){return {h:Math.pow(10,+$('lh').value),s:Math.pow(10,+$('ls').value),a:Math.pow(10,+$('la').value)};}
+function fmt(x){if(x===undefined||x===null||isNaN(x))return '–';const a=Math.abs(x);if(a>=1000)return x.toFixed(0);if(a>=100)return x.toFixed(1);if(a>=1)return x.toFixed(2);return x.toFixed(3);}
+function labels(){
+  $('vNoise').textContent=(+$('noise').value).toFixed(2);$('vCam').textContent=$('cam').value+'°';$('vK').textContent=$('K').value;
+  const w=readW();$('vLh').textContent=fmt(w.h);$('vLs').textContent=fmt(w.s);$('vLa').textContent=fmt(w.a);$('vAl').textContent=(+$('al').value).toFixed(1);
+}
+function buildData(){
+  const id=+$('scen').value,clean=scenarioPath(id),P=addNoise(clean,+$('noise').value,SEED+id);
+  D={id,clean,P,tgt:idealAngles(P),v:speeds(P)};
+}
+function buildModel(){const K=+$('K').value;O=makeOptimizer(bsplineBasis(K),K);updateWeights();}
+function updateWeights(){W=readW();LMAX=lipschitz(O.B,W,O.K);ETA=(+$('al').value)/LMAX;O.vy.fill(0);O.vp.fill(0);record();}
+function record(){const r=lossGrad(O.B,O.cy,O.cp,D.tgt,W);O.cur=r;
+  if(!O.hist.length||O.hist[O.hist.length-1].it!==O.it)O.hist.push({it:O.it,L:r.L,h:W.h*r.Lh,s:W.s*r.Ls,a:W.a*r.La});else O.hist[O.hist.length-1]={it:O.it,L:r.L,h:W.h*r.Lh,s:W.s*r.Ls,a:W.a*r.La};}
+function iterate(n){for(let i=0;i<n;i++){optStep(O,D.tgt,W,ETA,$('opt').value);if(i%5===4||i===n-1)record();}renderAll();}
+function converge(){let prev=Infinity,i=0;
+  while(i<3000){for(let j=0;j<10;j++)optStep(O,D.tgt,W,ETA,$('opt').value);record();i+=10;const L=O.cur.L;if(Math.abs(prev-L)<=1e-6*Math.max(1,L))break;prev=L;}
+  renderAll();}
+
+// ---------- 3B çizim ----------
+function setup(cv){const dpr=window.devicePixelRatio||1;const w=+cv.getAttribute('width'),h=+cv.getAttribute('height');
+  if(cv.width!==Math.round(w*dpr)){cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+'px';}
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w,h};}
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const norm=a=>mul(a,1/Math.hypot(...a));
+function camera(w,h){const az=+$('cam').value/DEG,el=24/DEG,dist=[15,22,14][D.id],look=[[0,4,1.8],[0,2,1],[0.5,1.5,1.3]][D.id];
+  const pos=add(look,mul([-Math.sin(az)*Math.cos(el),-Math.cos(az)*Math.cos(el),Math.sin(el)],dist));
+  const f=norm(sub(look,pos)),r=norm(cross(f,[0,0,1])),u=cross(r,f),foc=h*1.25;
+  return p=>{const d=sub(p,pos),z=dot(d,f);return [w/2+foc*dot(d,r)/z,h/2-foc*dot(d,u)/z,z];};}
+function dirOf(yaw,pitch){const y=yaw/DEG,p=pitch/DEG;return [Math.sin(y)*Math.cos(p),Math.cos(y)*Math.cos(p),Math.sin(p)];}
+function drawView(cv,yaw,pitch,kind){
+  const {ctx,w,h}=setup(cv),pr=camera(w,h);
+  const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,'#eaf3fb');g.addColorStop(1,'#f8fafc');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  const seg=(a,b,col,lw,dash)=>{const A=pr(a),B=pr(b);if(A[2]<0.3||B[2]<0.3)return;ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.setLineDash(dash||[]);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();ctx.setLineDash([]);};
+  const G=D.id===1?16:8;for(let i=-G;i<=G;i+=2){seg([i,-6,0],[i,G+2,0],'#d9e1e8',1);}for(let j=-6;j<=G+2;j+=2)seg([-G,j,0],[G,j,0],'#d9e1e8',1);
+  // hedef izi
+  ctx.strokeStyle='rgba(68,112,153,.35)';ctx.lineWidth=1.5;ctx.beginPath();D.P.forEach((p,t)=>{const s=pr(p);t?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]);});ctx.stroke();
+  // gövde
+  seg([0,0,0],[0,0,1.25],'#5f6b78',10);seg([-0.3,0,1.3],[0.3,0,1.3],'#5f6b78',8);
+  // hedef küp
+  const tp=D.P[frame],s=0.22,C=[];for(const a of[-1,1])for(const b of[-1,1])for(const c of[-1,1])C.push(add(tp,[a*s,b*s,c*s]));
+  [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]].forEach(([i,j])=>seg(C[i],C[j],'#447099',2));
+  if(D.id===2&&frame>=50&&frame<64){const c=pr([4,3,0.3+2.5*Math.min(1,(frame-50)/10)]);const r=(frame-49)*5;ctx.fillStyle=`rgba(255,111,32,${0.6-(frame-50)*0.04})`;ctx.beginPath();ctx.arc(c[0],c[1],r,0,7);ctx.fill();}
+  // kafa (silindir) + bakış
+  const d=dirOf(yaw,pitch),rr=norm(cross(d,[0,0,1]).map(x=>-x)),uu=cross(rr,d),ctr=HEAD,R=0.2,Hh=0.17;
+  const viol=excess(yaw,LIM.yaw[0],LIM.yaw[1])!==0||excess(pitch,LIM.pitch[0],LIM.pitch[1])!==0;
+  const ring=off=>{const pts=[];for(let i=0;i<=20;i++){const a=i/20*2*Math.PI;pts.push(pr(add(add(ctr,mul(uu,off)),add(mul(rr,R*Math.cos(a)),mul(d,R*Math.sin(a))))));}return pts;};
+  const r1=ring(Hh),r2=ring(-Hh);ctx.fillStyle=viol?'#ffd6e2':'#f1d3b8';ctx.strokeStyle=viol?'#c9364f':'#8a5a3b';ctx.lineWidth=1.5;
+  ctx.beginPath();r2.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));r1.slice().reverse().forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();ctx.fill();
+  for(const rg of[r1,r2]){ctx.beginPath();rg.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();}
+  const dist=Math.hypot(...sub(tp,ctr)),err=angErr(yaw,pitch,D.tgt.yaw[frame],D.tgt.pitch[frame]);
+  seg(ctr,add(ctr,mul(d,dist)),err<5?'#2e9e6a':'#FF3D7F',1.8,[6,4]);
+  seg(ctr,add(ctr,mul(d,0.42)),'#FF6F20',5);
+  const e1=pr(add(add(ctr,mul(d,R)),mul(rr,0.08))),e2=pr(add(add(ctr,mul(d,R)),mul(rr,-0.08)));ctx.fillStyle='#1f2933';[e1,e2].forEach(e=>{ctx.beginPath();ctx.arc(e[0],e[1],2.4,0,7);ctx.fill();});
+  // etiketler
+  ctx.font='12px Fira Code';ctx.fillStyle='#1f2933';ctx.textAlign='left';
+  ctx.fillText(`ψ = ${yaw.toFixed(1)}°  φ = ${pitch.toFixed(1)}°`,10,18);
+  ctx.fillStyle=err<5?'#2e9e6a':'#c9364f';ctx.fillText(`hedef sapması = ${err.toFixed(1)}°`,10,34);
+  if(kind==='L'){const st=MS.L;ctx.fillStyle='#5f6b78';ctx.fillText(`ivme = ${(st.acc[Math.min(Math.max(frame-1,0),T-3)]).toFixed(0)} °/s²`,10,50);}
+  else{const st=MS.O;ctx.fillStyle='#5f6b78';ctx.fillText(`ivme = ${(st.acc[Math.min(Math.max(frame-1,0),T-3)]).toFixed(0)} °/s²`,10,50);}
+  if(viol){ctx.fillStyle='#c9364f';ctx.font='bold 13px Open Sans';ctx.fillText('⚠ Anatomik sınır aşıldı — boyun kırılıyor!',10,h-12);}
+}
+function angErr(y1,p1,y2,p2){const a=dirOf(y1,p1),b=dirOf(y2,p2);return Math.acos(Math.max(-1,Math.min(1,dot(a,b))))*DEG;}
+
+// ---------- 2B grafikler ----------
+function chart(cv,opts){
+  const {ctx,w,h}=setup(cv);ctx.clearRect(0,0,w,h);const pl=44,pr=10,pt=8,pb=22,W=w-pl-pr,H=h-pt-pb;
+  let [y0,y1]=opts.range;const log=opts.log;const Y=v=>{const z=log?Math.log10(Math.max(v,1e-6)):v;return pt+H*(1-(z-y0)/(y1-y0));};
+  const N=opts.n,X=i=>pl+W*i/(N-1);
+  if(opts.bands)opts.bands.forEach(([a,b])=>{ctx.fillStyle='#ffe8f0';const ya=Y(Math.min(b,y1)),yb=Y(Math.max(a,y0));if(yb>ya)ctx.fillRect(pl,ya,W,yb-ya);});
+  ctx.font='10.5px Open Sans';ctx.fillStyle='#5f6b78';ctx.strokeStyle='#e6ebf0';ctx.lineWidth=1;ctx.textAlign='right';
+  const ticks=opts.ticks||5;for(let i=0;i<=ticks;i++){const z=y0+(y1-y0)*i/ticks,y=pt+H*(1-i/ticks);ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(w-pr,y);ctx.stroke();ctx.fillText(log?'1e'+z.toFixed(0):z.toFixed(0),pl-4,y+3);}
+  ctx.textAlign='center';for(let i=0;i<=6;i++){const v=Math.round((N-1)*i/6);ctx.fillText(opts.xlab?opts.xlab(v):v,X(v),h-6);}
+  opts.series.forEach(s=>{ctx.strokeStyle=s.color;ctx.lineWidth=s.w||1.6;ctx.setLineDash(s.dash||[]);ctx.beginPath();let st=false;
+    s.data.forEach((v,i)=>{if(v===null||isNaN(v))return;const x=s.xs?X(s.xs[i]):X(i+(s.off||0)),y=Math.max(pt,Math.min(pt+H,Y(v)));st?ctx.lineTo(x,y):ctx.moveTo(x,y);st=true;});ctx.stroke();ctx.setLineDash([]);});
+  if(opts.dots)opts.dots.forEach(d=>{ctx.fillStyle=d.color;ctx.beginPath();ctx.arc(X(d.x),Math.max(pt,Math.min(pt+H,Y(d.y))),3.2,0,7);ctx.fill();});
+  if(opts.marker!==undefined){ctx.strokeStyle='#1f2933';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(X(opts.marker),pt);ctx.lineTo(X(opts.marker),pt+H);ctx.stroke();ctx.setLineDash([]);}
+}
+function rangeOf(arrs,pad){let lo=Infinity,hi=-Infinity;arrs.forEach(a=>a.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);}));const p=(hi-lo)*pad+5;return [Math.floor((lo-p)/10)*10,Math.ceil((hi+p)/10)*10];}
+let MS={};
+function renderCharts(){
+  const r=O.cur,K=O.K;
+  // kontrol noktalarının yaklaşık zaman konumu (Greville absisleri)
+  const p=3,m=K+p+1,kn=[];for(let i=0;i<m;i++){if(i<=p)kn.push(0);else if(i>=m-p-1)kn.push(1);else kn.push((i-p)/(m-2*p-1));}
+  const gx=[];for(let k=0;k<K;k++)gx.push((kn[k+1]+kn[k+2]+kn[k+3])/3*(T-1));
+  for(const [cv,ideal,th,c,lim] of [[$('cYaw'),D.tgt.yaw,r.thy,O.cy,LIM.yaw],[$('cPitch'),D.tgt.pitch,r.thp,O.cp,LIM.pitch]]){
+    const rg=rangeOf([ideal,th,lim],0.05);
+    chart(cv,{n:T,range:rg,bands:[[lim[1],1e9],[-1e9,lim[0]]],marker:frame,
+      series:[{data:ideal,color:'#9aa5b1',w:1.3},{data:th,color:'#FF6F20',w:2.6}],
+      dots:c.map((v,k)=>({x:gx[k],y:v,color:'#447099'}))});
+  }
+  const la=MS.L.acc.map(v=>v),oa=MS.O.acc;const mx=Math.max(...la,...oa,10);
+  chart($('cAcc'),{n:T,range:[0,Math.ceil(Math.log10(mx))],log:true,ticks:Math.ceil(Math.log10(mx)),marker:frame,
+    series:[{data:la,color:'#9aa5b1',w:1.3,off:1},{data:oa,color:'#FF6F20',w:2.4,off:1}]});
+  const H=O.hist,its=H.map(x=>x.it),N=Math.max(2,O.it+1);const all=H.flatMap(x=>[x.L,x.h,x.s,x.a].filter(v=>v>0));
+  const lo=Math.floor(Math.log10(Math.max(1e-4,Math.min(...all,1e9)))),hi=Math.ceil(Math.log10(Math.max(...all,1)));
+  chart($('cLoss'),{n:N,range:[lo,Math.max(hi,lo+1)],log:true,ticks:Math.min(6,Math.max(hi,lo+1)-lo),
+    series:[{data:H.map(x=>x.a),xs:its,color:'#2e9e6a',w:1.4},{data:H.map(x=>x.s),xs:its,color:'#FF3D7F',w:1.4},{data:H.map(x=>x.h),xs:its,color:'#447099',w:1.4},{data:H.map(x=>x.L),xs:its,color:'#1f2933',w:2.4}]});
+}
+function renderViews(){drawView($('vL'),D.tgt.yaw[frame],D.tgt.pitch[frame],'L');drawView($('vO'),O.cur.thy[frame],O.cur.thp[frame],'O');}
+function renderStats(){const r=O.cur;$('sIt').textContent=O.it;$('sL').textContent=fmt(r.L);$('sLh').textContent=fmt(W.h*r.Lh);$('sLs').textContent=fmt(W.s*r.Ls);$('sLa').textContent=fmt(W.a*r.La);}
+function renderExplain(){
+  const f=frame,p=D.P[f],r=O.cur,ty=D.tgt.yaw[f],tp=D.tgt.pitch[f],hy=r.thy[f],hp=r.thp[f];
+  const row=O.B[f],nz=[];row.forEach((b,k)=>{if(b>1e-9)nz.push(k);});
+  const terms=nz.map(k=>`${row[k].toFixed(3)}·${O.cy[k].toFixed(1)}`).join(' + ');
+  const a2=(f>0&&f<T-1)?(r.thy[f+1]-2*r.thy[f]+r.thy[f-1]):null;
+  $('explain').innerHTML=
+   `<b>Kare ${f}</b> (t = ${(f/FPS).toFixed(2)} s)<br>`+
+   `<b>X</b> = hedef konumu (${p.map(v=>v.toFixed(2)).join(', ')}) m, |v| = ${D.v[f].toFixed(2)} m/s<br>`+
+   `<b>Y</b> = (ψ*, φ*) = (${ty.toFixed(1)}°, ${tp.toFixed(1)}°)`+(excess(ty,LIM.yaw[0],LIM.yaw[1])?` <span class="bad">— yaw anatomik sınır dışında</span>`:'')+`<br>`+
+   `<b>h(t)</b>: ψ(${f}) = Σ c<sub>k</sub>N<sub>k</sub> = <code>${terms}</code> = <b>${hy.toFixed(2)}°</b>; φ = ${hp.toFixed(2)}° (yalnızca ${nz.length} kontrol noktası bu kareyi etkiler)<br>`+
+   `<b>Bu karenin katkısı</b>: hedef hatası (ψ−ψ*)² + (φ−φ*)² = ${((hy-ty)**2+(hp-tp)**2).toFixed(2)} °²`+(a2!==null?`; Δ²ψ = ${a2.toFixed(3)} °/kare² (= ${(a2*FPS*FPS).toFixed(0)} °/s²)`:'')+`<br>`+
+   `<b>Eğitim</b>: ${O.it}. iterasyon, η = α / L<sub>maks</sub> = ${(+$('al').value).toFixed(1)} / ${LMAX.toFixed(4)} = ${ETA.toFixed(2)}; `+
+   `L = ${fmt(W.h)}·${fmt(r.Lh)} + ${fmt(W.s)}·${fmt(r.Ls)} + ${fmt(W.a)}·${fmt(r.La)} = <b>${fmt(r.L)}</b>; ‖∇L‖ = ${Math.hypot(...r.gy,...r.gp).toExponential(2)}`;
+  $('fLab').textContent=`kare ${f}`;
+}
+function renderMetrics(){
+  const L=MS.L,Oo=MS.O,r=O.cur;let errL=0,errO=0;
+  for(let t=0;t<T;t++)errO+=angErr(r.thy[t],r.thp[t],D.tgt.yaw[t],D.tgt.pitch[t]);errO/=T;
+  const c=(a,b,lower)=>{const better=lower?b<a:b>a;return `<td>${fmt(a)}</td><td class="${better?'good':'bad'}">${fmt(b)}</td>`;};
+  $('metrics').innerHTML=`<table><tr><th>Ölçüt</th><th>LookAt (kilit)</th><th>Optimize h(t)</th><th>Anlamı</th></tr>`+
+   `<tr><td>Ortalama hedef sapması (°)</td><td>${fmt(errL)}</td><td>${fmt(errO)}</td><td>Hedef sapma kaybının görünür karşılığı</td></tr>`+
+   `<tr><td>Maks. açısal hız (°/s)</td>${c(L.maxV,Oo.maxV,true)}<td>Dönüşün en hızlı anı</td></tr>`+
+   `<tr><td>Maks. açısal ivme (°/s²)</td>${c(L.maxA,Oo.maxA,true)}<td>Ani “robot” sıçramaları</td></tr>`+
+   `<tr><td>RMS açısal ivme (°/s²)</td>${c(L.rmsA,Oo.rmsA,true)}<td>Sürekli titreme (sarsıntı kaybının kökü × FPS²)</td></tr>`+
+   `<tr><td>Anatomik sınır aşımı (maks °)</td>${c(L.viol,Oo.viol,true)}<td>Sıfırdan büyükse boyun “kırılır”</td></tr></table>`+
+   `<div class="note" style="margin-top:6px">LookAt'in hedef sapması tanım gereği 0'dır; bedelini sarsıntı ve anatomik ihlal olarak öder. Optimize eğri az miktarda sapmayı kabul ederek doğal hareket kazanır. λ<sub>s</sub>'yi büyütmek bu dengeyi “daha yumuşak ama daha gecikmeli” yöne kaydırır.</div>`;
+}
+function renderAll(){MS={L:motionStats(D.tgt.yaw,D.tgt.pitch),O:motionStats(O.cur.thy,O.cur.thp)};renderStats();renderViews();renderCharts();renderExplain();renderMetrics();}
+function renderFrame(){renderViews();renderCharts();renderExplain();}
+
+function loop(ts){if(!playing)return;const dt=lastTs?(ts-lastTs)/1000:0;lastTs=ts;acc+=dt*FPS*(+$('spd').value);
+  while(acc>=1){acc-=1;frame=(frame+1)%T;}$('frame').value=frame;renderFrame();requestAnimationFrame(loop);}
+$('bPlay').onclick=()=>{playing=!playing;$('bPlay').textContent=playing?'⏸ Duraklat':'⏵ Oynat';lastTs=0;acc=0;if(playing)requestAnimationFrame(loop);};
+$('frame').addEventListener('input',()=>{frame=+$('frame').value;renderFrame();});
+['scen','noise'].forEach(id=>$(id).addEventListener('change',()=>{labels();buildData();buildModel();renderAll();}));
+$('K').addEventListener('change',()=>{labels();buildModel();renderAll();});
+['lh','ls','la','al'].forEach(id=>$(id).addEventListener('change',()=>{labels();updateWeights();renderAll();}));
+$('opt').addEventListener('change',()=>{O.vy.fill(0);O.vp.fill(0);});
+['noise','cam','K','lh','ls','la','al'].forEach(id=>$(id).addEventListener('input',labels));
+$('cam').addEventListener('input',renderViews);
+$('b1').onclick=()=>iterate(1);$('b50').onclick=()=>iterate(50);$('bConv').onclick=converge;
+$('bReset').onclick=()=>{buildModel();renderAll();};
+labels();buildData();buildModel();renderAll();
+</script>
+</body>
+</html>

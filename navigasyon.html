@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Izgara vs NavMesh Simülatörü</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        canvas {
+            background-color: #e8eaf6;
+            border: 2px solid #c5cae9;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+        .panel {
+            display: flex;
+            flex-direction: column;
+            min-width: 250px;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s, color 0.3s;
+        }
+        button.active {
+            background-color: #3f51b5;
+            color: white;
+        }
+        button.inactive {
+            background-color: #e0e0e0;
+            color: #555;
+        }
+        button:hover:not(.active) {
+            background-color: #d5d5d5;
+        }
+        .stats {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3f51b5;
+        }
+        .stats h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .stats p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .instructions {
+            margin-top: auto;
+            font-size: 13px;
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Navigasyon Sistemleri Karşılaştırması</h2>
+
+    <div class="container">
+        <canvas id="simCanvas" width="600" height="400"></canvas>
+        
+        <div class="panel">
+            <div class="controls">
+                <button id="btnGrid" class="active" onclick="setMode('grid')">Izgara (Grid) Modu</button>
+                <button id="btnNavMesh" class="inactive" onclick="setMode('navmesh')">NavMesh Modu</button>
+            </div>
+            
+            <div class="stats">
+                <h3 id="statTitle">Izgara İstatistikleri</h3>
+                <p id="statMemory"><strong>Hafıza Maliyeti:</strong> ~1200 Düğüm (Node)</p>
+                <p id="statMovement"><strong>Hareket Tipi:</strong> 8-Yönlü Zikzak</p>
+                <p id="statDetail">Tüm harita eşit karelere bölünür. Karakter sadece komşu karelere geçebilir.</p>
+            </div>
+
+            <div class="instructions">
+                İpucu: 'A' (Başlangıç) ve 'B' (Hedef) noktalarını farenizle sürükleyerek engelin etrafından nasıl dolandıklarını gözlemleyin.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let mode = 'grid'; // 'grid' or 'navmesh'
+        const gridSize = 20;
+
+        // Nesneler
+        const obstacle = { x: 250, y: 100, w: 100, h: 200 };
+        const pointA = { x: 100, y: 200, radius: 12, label: 'A', color: '#4caf50', isDragging: false };
+        const pointB = { x: 500, y: 200, radius: 12, label: 'B', color: '#f44336', isDragging: false };
+
+        // Fare Etkileşimi
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            if (Math.hypot(mouseX - pointA.x, mouseY - pointA.y) < pointA.radius) pointA.isDragging = true;
+            if (Math.hypot(mouseX - pointB.x, mouseY - pointB.y) < pointB.radius) pointB.isDragging = true;
+        });
+
+        window.addEventListener('mouseup', () => {
+            pointA.isDragging = false;
+            pointB.isDragging = false;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            if (pointA.isDragging) {
+                pointA.x = Math.max(20, Math.min(canvas.width - 20, mouseX));
+                pointA.y = Math.max(20, Math.min(canvas.height - 20, mouseY));
+                // Engelin içine girmesini engelle
+                if (isInsideObstacle(pointA.x, pointA.y)) pointA.x = obstacle.x - 20; 
+                draw();
+            }
+            if (pointB.isDragging) {
+                pointB.x = Math.max(20, Math.min(canvas.width - 20, mouseX));
+                pointB.y = Math.max(20, Math.min(canvas.height - 20, mouseY));
+                if (isInsideObstacle(pointB.x, pointB.y)) pointB.x = obstacle.x + obstacle.w + 20;
+                draw();
+            }
+        });
+
+        function isInsideObstacle(x, y) {
+            return x > obstacle.x && x < obstacle.x + obstacle.w && y > obstacle.y && y < obstacle.y + obstacle.h;
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            document.getElementById('btnGrid').className = mode === 'grid' ? 'active' : 'inactive';
+            document.getElementById('btnNavMesh').className = mode === 'navmesh' ? 'active' : 'inactive';
+            
+            const title = document.getElementById('statTitle');
+            const memory = document.getElementById('statMemory');
+            const movement = document.getElementById('statMovement');
+            const detail = document.getElementById('statDetail');
+
+            if (mode === 'grid') {
+                title.innerText = 'Izgara İstatistikleri';
+                memory.innerHTML = '<strong>Hafıza Maliyeti:</strong> ~600 Düğüm (Node)';
+                movement.innerHTML = '<strong>Hareket Tipi:</strong> 8-Yönlü Zikzak';
+                detail.innerText = 'Tüm harita eşit karelere bölünür. Sistem düz bir çizgi çekemez, merdiven gibi ilerler.';
+            } else {
+                title.innerText = 'NavMesh İstatistikleri';
+                memory.innerHTML = '<strong>Hafıza Maliyeti:</strong> 4 Çokgen (Polygon)';
+                movement.innerHTML = '<strong>Hareket Tipi:</strong> Doğrusal Vektör';
+                detail.innerText = 'Sadece yürünebilir alanlar büyük çokgenler olarak tanımlanır. Köşelerden (funnel) pürüzsüz kayar.';
+            }
+            draw();
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+        }
+
+        function drawNavMeshPolygons() {
+            ctx.fillStyle = 'rgba(63, 81, 181, 0.15)';
+            ctx.strokeStyle = '#3f51b5';
+            ctx.lineWidth = 1.5;
+            
+            // Sol poligon
+            ctx.fillRect(0, 0, obstacle.x, canvas.height);
+            ctx.strokeRect(0, 0, obstacle.x, canvas.height);
+            // Sağ poligon
+            ctx.fillRect(obstacle.x + obstacle.w, 0, canvas.width - (obstacle.x + obstacle.w), canvas.height);
+            ctx.strokeRect(obstacle.x + obstacle.w, 0, canvas.width - (obstacle.x + obstacle.w), canvas.height);
+            // Üst poligon
+            ctx.fillRect(obstacle.x, 0, obstacle.w, obstacle.y);
+            ctx.strokeRect(obstacle.x, 0, obstacle.w, obstacle.y);
+            // Alt poligon
+            ctx.fillRect(obstacle.x, obstacle.y + obstacle.h, obstacle.w, canvas.height - (obstacle.y + obstacle.h));
+            ctx.strokeRect(obstacle.x, obstacle.y + obstacle.h, obstacle.w, canvas.height - (obstacle.y + obstacle.h));
+        }
+
+        function drawObstacle() {
+            ctx.fillStyle = mode === 'grid' ? '#78909c' : '#546e7a';
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+            
+            if (mode === 'grid') {
+                // Engel üzerinde de grid göster
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                for(let x=obstacle.x; x<=obstacle.x+obstacle.w; x+=gridSize) {
+                    ctx.beginPath(); ctx.moveTo(x, obstacle.y); ctx.lineTo(x, obstacle.y+obstacle.h); ctx.stroke();
+                }
+                for(let y=obstacle.y; y<=obstacle.y+obstacle.h; y+=gridSize) {
+                    ctx.beginPath(); ctx.moveTo(obstacle.x, y); ctx.lineTo(obstacle.x+obstacle.w, y); ctx.stroke();
+                }
+            }
+        }
+
+        // Basit çizgi-dikdörtgen kesişimi ve yol bulma simülasyonu
+        function getPathPoints() {
+            let points = [{x: pointA.x, y: pointA.y}];
+            
+            // A'dan B'ye direkt çizgi engeli kesiyor mu kaba kontrolü
+            let minX = Math.min(pointA.x, pointB.x);
+            let maxX = Math.max(pointA.x, pointB.x);
+            let minY = Math.min(pointA.y, pointB.y);
+            let maxY = Math.max(pointA.y, pointB.y);
+            
+            let intersects = !(maxX < obstacle.x || minX > obstacle.x + obstacle.w || 
+                               maxY < obstacle.y || minY > obstacle.y + obstacle.h);
+
+            // Gerçekçi bir kesişim için X ekseni ağırlıklı basit kontrol
+            if ((pointA.x < obstacle.x && pointB.x > obstacle.x + obstacle.w) || (pointB.x < obstacle.x && pointA.x > obstacle.x + obstacle.w)) {
+                let t = (obstacle.x + obstacle.w/2 - pointA.x) / (pointB.x - pointA.x);
+                let yAtObstacle = pointA.y + t * (pointB.y - pointA.y);
+                
+                if (yAtObstacle > obstacle.y - 20 && yAtObstacle < obstacle.y + obstacle.h + 20) {
+                    // Üstten mi alttan mı dolaşsın?
+                    let offset = 25; // köşelerden uzaklık
+                    if (yAtObstacle < obstacle.y + obstacle.h / 2) {
+                        points.push({x: obstacle.x - offset, y: obstacle.y - offset});
+                        points.push({x: obstacle.x + obstacle.w + offset, y: obstacle.y - offset});
+                    } else {
+                        points.push({x: obstacle.x - offset, y: obstacle.y + obstacle.h + offset});
+                        points.push({x: obstacle.x + obstacle.w + offset, y: obstacle.y + obstacle.h + offset});
+                    }
+                }
+            }
+            
+            points.push({x: pointB.x, y: pointB.y});
+            return points;
+        }
+
+        function drawPath() {
+            const keyPoints = getPathPoints();
+            
+            ctx.beginPath();
+            ctx.lineWidth = 4;
+            
+            if (mode === 'navmesh') {
+                ctx.strokeStyle = '#ff9800';
+                ctx.moveTo(keyPoints[0].x, keyPoints[0].y);
+                for (let i = 1; i < keyPoints.length; i++) {
+                    ctx.lineTo(keyPoints[i].x, keyPoints[i].y);
+                }
+                ctx.stroke();
+            } else {
+                ctx.strokeStyle = '#9c27b0';
+                // Grid stili zikzak oluşturma simülasyonu
+                ctx.moveTo(snap(keyPoints[0].x), snap(keyPoints[0].y));
+                for (let i = 0; i < keyPoints.length - 1; i++) {
+                    let currX = snap(keyPoints[i].x);
+                    let currY = snap(keyPoints[i].y);
+                    let targetX = snap(keyPoints[i+1].x);
+                    let targetY = snap(keyPoints[i+1].y);
+                    
+                    while (currX !== targetX || currY !== targetY) {
+                        let dx = Math.sign(targetX - currX) * gridSize;
+                        let dy = Math.sign(targetY - currY) * gridSize;
+                        
+                        currX += dx;
+                        currY += dy;
+                        ctx.lineTo(currX, currY);
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+
+        function snap(val) {
+            return Math.round(val / gridSize) * gridSize;
+        }
+
+        function drawNode(node) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+            ctx.fillStyle = node.color;
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(node.label, node.x, node.y);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (mode === 'grid') {
+                drawGrid();
+            } else {
+                drawNavMeshPolygons();
+            }
+            
+            drawObstacle();
+            drawPath();
+            drawNode(pointA);
+            drawNode(pointB);
+        }
+
+        // Başlat
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A* Yol Bulma — İnteraktif Gösterim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099;
+    --orange:#FF6F20;
+    --pink:#FF3D7F;
+    --gold:#FFB02E;
+    --ink:#1f2430;
+    --muted:#5b6470;
+    --bg:#eef1f4;
+    --panel:#ffffff;
+    --line:#dde3ea;
+    --wall:#2b3240;
+    --open:#bcd6e6;     /* sınır / açık liste — mavi ailesi */
+    --closed:#f6d2df;   /* ziyaret edildi / kapalı liste — pembe ailesi */
+    --empty:#ffffff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Open Sans",system-ui,sans-serif;
+    line-height:1.5;
+    padding:28px 20px 48px;
+  }
+  .wrap{max-width:1120px;margin:0 auto}
+  header.page{margin-bottom:22px}
+  .eyebrow{
+    font-family:"Fira Code",monospace;
+    font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--blue);font-weight:600;margin:0 0 6px;
+  }
+  h1{
+    font-family:"Roboto Slab",serif;font-weight:700;
+    font-size:clamp(1.7rem,4vw,2.5rem);line-height:1.08;margin:0;
+    color:var(--ink);
+  }
+  h1 .star{color:var(--orange)}
+  .lede{color:var(--muted);margin:8px 0 0;max-width:62ch;font-size:.98rem}
+
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:22px;align-items:start}
+  @media (max-width:880px){.layout{grid-template-columns:1fr}}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px;
+  }
+  .panel + .panel{margin-top:16px}
+  .panel h2{
+    font-family:"Roboto Slab",serif;font-size:1rem;margin:0 0 12px;font-weight:700;
+    display:flex;align-items:center;gap:8px;
+  }
+  .panel h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--orange)}
+
+  .field{margin-bottom:14px}
+  .field:last-child{margin-bottom:0}
+  .field > label.lab{display:block;font-size:.78rem;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+
+  .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{
+    flex:1;border:0;background:var(--panel);padding:8px 4px;cursor:pointer;
+    font-family:"Open Sans",sans-serif;font-size:.82rem;font-weight:600;color:var(--muted);
+    transition:background .15s,color .15s;
+  }
+  .seg button + button{border-left:1px solid var(--line)}
+  .seg button.active{background:var(--blue);color:#fff}
+
+  select, input[type=range]{width:100%}
+  select{
+    padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    font-family:"Open Sans",sans-serif;font-size:.88rem;color:var(--ink);
+  }
+  select:disabled{opacity:.45;cursor:not-allowed}
+
+  .check{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.9rem}
+  .check input{width:17px;height:17px;accent-color:var(--blue);cursor:pointer}
+
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .modes button{
+    border:1px solid var(--line);border-radius:9px;background:#fff;padding:9px 6px;
+    cursor:pointer;font-family:"Open Sans",sans-serif;font-size:.82rem;font-weight:600;color:var(--muted);
+    display:flex;align-items:center;gap:7px;justify-content:center;transition:.15s;
+  }
+  .modes button .sw{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.15)}
+  .modes button.active{border-color:var(--blue);color:var(--blue);background:#f1f6fa}
+
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .actions .full{grid-column:1 / -1}
+  .btn{
+    border:0;border-radius:10px;padding:11px 10px;cursor:pointer;
+    font-family:"Open Sans",sans-serif;font-weight:700;font-size:.9rem;transition:.15s transform,.15s filter;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--orange);color:#fff}
+  .btn-primary:hover{filter:brightness(1.05)}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none}
+
+  .speed-row{display:flex;align-items:center;gap:10px}
+  .speed-row span{font-family:"Fira Code",monospace;font-size:.74rem;color:var(--muted)}
+
+  /* Grid */
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;overflow:auto}
+  #grid{display:grid;gap:2px;margin:0 auto;width:max-content;
+    user-select:none;touch-action:none;background:var(--line);padding:2px;border-radius:8px}
+  .cell{
+    width:34px;height:34px;background:var(--empty);border-radius:3px;
+    position:relative;cursor:pointer;transition:background .12s ease;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  @media (max-width:560px){.cell{width:22px;height:22px}}
+  .cell.open{background:var(--open)}
+  .cell.closed{background:var(--closed)}
+  .cell.current{outline:3px solid var(--gold);outline-offset:-3px;z-index:2}
+  .cell.path{background:var(--orange);animation:pop .28s ease}
+  .cell.wall{background:var(--wall);border-radius:2px}
+  .cell.start{background:var(--blue)}
+  .cell.goal{background:var(--pink)}
+  @keyframes pop{0%{transform:scale(.55)}100%{transform:scale(1)}}
+
+  .cell .f{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-family:"Fira Code",monospace;font-size:.62rem;font-weight:600;color:#33404f;pointer-events:none}
+  .cell .g,.cell .h{position:absolute;top:1px;font-family:"Fira Code",monospace;font-size:.5rem;color:#5b6470;pointer-events:none}
+  .cell .g{left:2px}
+  .cell .h{right:2px}
+  .cell.path .f,.cell.path .g,.cell.path .h{color:#fff}
+  .cell.start::after,.cell.goal::after{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-family:"Roboto Slab",serif;font-weight:700;color:#fff;font-size:.95rem}
+  .cell.start::after{content:"A"}
+  .cell.goal::after{content:"B"}
+  .cell.start .f,.cell.start .g,.cell.start .h,
+  .cell.goal .f,.cell.goal .g,.cell.goal .h{display:none}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{background:#f5f8fa;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .stat .k{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  .stat .v{font-family:"Fira Code",monospace;font-size:1.25rem;font-weight:600;color:var(--blue);margin-top:2px}
+  .stat.path .v{color:var(--orange)}
+  .status{font-family:"Fira Code",monospace;font-size:.82rem;color:var(--ink);
+    background:#f5f8fa;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:14px}
+  .legend .item{display:flex;align-items:center;gap:7px;font-size:.82rem;color:var(--muted)}
+  .legend .sw{width:15px;height:15px;border-radius:4px;border:1px solid rgba(0,0,0,.1)}
+
+  .note{font-size:.8rem;color:var(--muted);margin-top:8px;line-height:1.45}
+  footer.tip{margin-top:18px;font-size:.85rem;color:var(--muted);
+    border-left:3px solid var(--orange);padding:8px 0 8px 14px;background:#fff;border-radius:0 8px 8px 0}
+  footer.tip b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page">
+    <p class="eyebrow">BYZ502 · Oyun Yapay Zekâsı</p>
+    <h1>A<span class="star">*</span> Yol Bulma — İnteraktif Gösterim</h1>
+    <p class="lede">Duvar çizin, başlangıç (A) ve hedefi (B) taşıyın, sonra aramayı adım adım ya da animasyonla izleyin. Algoritmayı ve sezgiseli değiştirip <b>sınırın (frontier) nasıl şekil değiştirdiğini</b> karşılaştırın.</p>
+  </header>
+
+  <div class="layout">
+    <!-- KONTROL PANELİ -->
+    <div>
+      <div class="panel">
+        <h2>Algoritma</h2>
+        <div class="field">
+          <div class="seg" id="algo">
+            <button data-algo="astar" class="active">A*</button>
+            <button data-algo="dijkstra">Dijkstra</button>
+            <button data-algo="greedy">Açgözlü</button>
+          </div>
+          <p class="note" id="algoNote">A*: F = G + H. Geçmiş maliyeti ve hedef tahminini birlikte kullanır.</p>
+        </div>
+
+        <div class="field">
+          <label class="lab" for="heur">Sezgisel (H)</label>
+          <select id="heur">
+            <option value="manhattan">Manhattan ( |Δx| + |Δy| )</option>
+            <option value="octile">Octile (çapraz için)</option>
+            <option value="euclidean">Öklid ( √ )</option>
+            <option value="chebyshev">Chebyshev</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="check"><input type="checkbox" id="diag"> Çapraz harekete izin ver</label>
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="showNums" checked> Hücrelerde G / H / F göster</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Düzenleme</h2>
+        <div class="field">
+          <div class="modes" id="modes">
+            <button data-mode="wall" class="active"><span class="sw" style="background:var(--wall)"></span>Duvar çiz</button>
+            <button data-mode="erase"><span class="sw" style="background:#fff"></span>Sil</button>
+            <button data-mode="start"><span class="sw" style="background:var(--blue)"></span>Başlangıç (A)</button>
+            <button data-mode="goal"><span class="sw" style="background:var(--pink)"></span>Hedef (B)</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" id="maze">Rastgele labirent</button>
+          <button class="btn btn-ghost" id="clear">Duvarları temizle</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Çalıştırma</h2>
+        <div class="field">
+          <label class="lab" for="speed">Hız</label>
+          <div class="speed-row">
+            <span>yavaş</span>
+            <input type="range" id="speed" min="0" max="100" value="62">
+            <span>hızlı</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary full" id="play">▶ Başlat</button>
+          <button class="btn btn-ghost" id="step">Adım</button>
+          <button class="btn btn-ghost" id="reset">Sıfırla</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAHNE -->
+    <div>
+      <div class="stage">
+        <div id="grid"></div>
+        <div class="legend">
+          <span class="item"><span class="sw" style="background:var(--blue)"></span>Başlangıç (A)</span>
+          <span class="item"><span class="sw" style="background:var(--pink)"></span>Hedef (B)</span>
+          <span class="item"><span class="sw" style="background:var(--wall)"></span>Duvar</span>
+          <span class="item"><span class="sw" style="background:var(--open)"></span>Açık liste (sınır)</span>
+          <span class="item"><span class="sw" style="background:var(--closed)"></span>Kapalı liste (ziyaret)</span>
+          <span class="item"><span class="sw" style="background:#fff;outline:3px solid var(--gold);outline-offset:-3px"></span>İncelenen</span>
+          <span class="item"><span class="sw" style="background:var(--orange)"></span>Bulunan yol</span>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>Durum</h2>
+        <div class="stats">
+          <div class="stat"><div class="k">Açık liste</div><div class="v" id="sOpen">0</div></div>
+          <div class="stat"><div class="k">Kapalı liste</div><div class="v" id="sClosed">0</div></div>
+          <div class="stat"><div class="k">Açılan düğüm</div><div class="v" id="sExpanded">0</div></div>
+          <div class="stat path"><div class="k">Yol uzunluğu</div><div class="v" id="sPath">—</div></div>
+        </div>
+        <div class="status" id="status">Hazır. Duvar çizip "Başlat"a basın.</div>
+      </div>
+
+      <footer class="tip">
+        <b>Deneyin:</b> Aynı haritada önce A*, sonra Dijkstra, sonra Açgözlü çalıştırın. <b>Açılan düğüm</b> sayısını ve yol uzunluğunu karşılaştırın — Dijkstra en çok düğümü açar, Açgözlü en azını ama bazen daha uzun yolu bulur.
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const COLS = 21, ROWS = 15;
+  const SQRT2 = Math.SQRT2;
+
+  let grid = [];                 // grid[r][c] = node
+  let start, goal;
+  let algo = "astar";
+  let mode = "wall";
+  let diag = false;
+  let showNums = true;
+  let timer = null;
+  let painting = false;
+  let paintWall = true;          // duvar mı siliyor muyuz (sürükleme tutarlılığı)
+
+  let open = [];                 // açık liste
+  let expandedCount = 0;
+  let searchState = "idle";      // idle | running | done | nopath
+
+  const gridEl = document.getElementById("grid");
+
+  function makeNode(r,c){
+    return {r,c,wall:false,g:Infinity,h:0,f:Infinity,parent:null,
+            inOpen:false,inClosed:false,onPath:false,current:false,el:null};
+  }
+
+  function buildGrid(){
+    grid = [];
+    gridEl.innerHTML = "";
+    gridEl.style.gridTemplateColumns = `repeat(${COLS}, max-content)`;
+    for(let r=0;r<ROWS;r++){
+      const row=[];
+      for(let c=0;c<COLS;c++){
+        const n=makeNode(r,c);
+        const el=document.createElement("div");
+        el.className="cell";
+        el.innerHTML='<span class="g"></span><span class="h"></span><span class="f"></span>';
+        el.addEventListener("pointerdown",(e)=>{e.preventDefault();onPaintStart(n);});
+        el.addEventListener("pointerenter",()=>{if(painting)applyPaint(n);});
+        n.el=el; row.push(n); gridEl.appendChild(el);
+      }
+      grid.push(row);
+    }
+    start = grid[7][3];
+    goal  = grid[7][COLS-4];
+    render();
+  }
+
+  // ---- ÇİZİM ----
+  function onPaintStart(n){
+    if(searchState==="running") return;
+    painting=true;
+    if(mode==="wall"){ paintWall = !n.wall; }
+    applyPaint(n, true);
+  }
+  function applyPaint(n, first){
+    if(searchState==="running") return;
+    if(mode==="start"){ if(n!==goal && !n.wall){start=n; softReset(); render();} return; }
+    if(mode==="goal"){ if(n!==start && !n.wall){goal=n; softReset(); render();} return; }
+    if(n===start||n===goal) return;
+    if(mode==="wall"){ n.wall=paintWall; }
+    else if(mode==="erase"){ n.wall=false; }
+    if(searchState!=="idle") softReset();
+    render();
+  }
+  window.addEventListener("pointerup",()=>{painting=false;});
+
+  // ---- SEZGİSEL ----
+  function heuristic(a,b){
+    const dx=Math.abs(a.c-b.c), dy=Math.abs(a.r-b.r);
+    if(algo==="dijkstra") return 0;
+    switch(document.getElementById("heur").value){
+      case "euclidean": return Math.hypot(dx,dy);
+      case "chebyshev": return Math.max(dx,dy);
+      case "octile":    return (dx+dy)+(SQRT2-2)*Math.min(dx,dy);
+      default:          return dx+dy; // manhattan
+    }
+  }
+  function priority(n){
+    if(algo==="greedy")   return n.h;
+    if(algo==="dijkstra") return n.g;
+    return n.g+n.h;
+  }
+
+  // ---- KOMŞULAR ----
+  function neighbors(n){
+    const res=[];
+    const dirs = diag
+      ? [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]
+      : [[-1,0],[1,0],[0,-1],[0,1]];
+    for(const [dr,dc] of dirs){
+      const r=n.r+dr, c=n.c+dc;
+      if(r<0||c<0||r>=ROWS||c>=COLS) continue;
+      const m=grid[r][c];
+      if(m.wall) continue;
+      if(dr!==0 && dc!==0){ // çapraz: köşe kesmeyi engelle
+        if(grid[n.r][c].wall || grid[r][n.c].wall) continue;
+      }
+      res.push(m);
+    }
+    return res;
+  }
+  function stepCost(a,b){ return (a.r!==b.r && a.c!==b.c) ? SQRT2 : 1; }
+
+  // ---- ARAMA ----
+  function startSearch(){
+    softReset();
+    start.g=0; start.h=heuristic(start,goal); start.f=priority(start);
+    start.inOpen=true; open=[start]; expandedCount=0;
+    searchState="running";
+    setStatus("Arama başladı…");
+  }
+  function popBest(){
+    let bi=0;
+    for(let i=1;i<open.length;i++){
+      const a=open[i], b=open[bi];
+      const pa=priority(a), pb=priority(b);
+      if(pa<pb || (pa===pb && a.h<b.h)) bi=i;
+    }
+    return open.splice(bi,1)[0];
+  }
+  function doStep(){
+    if(searchState==="idle") startSearch();
+    if(searchState!=="running") return false;
+    grid.forEach(row=>row.forEach(n=>n.current=false));
+    if(open.length===0){ searchState="nopath"; setStatus("Yol bulunamadı — hedef duvarlarla kapalı."); render(); stop(); return false; }
+    const cur=popBest();
+    cur.inOpen=false; cur.inClosed=true; cur.current=true; expandedCount++;
+    if(cur===goal){ buildPath(); searchState="done"; render(); stop();
+      setStatus(`Hedefe ulaşıldı. ${expandedCount} düğüm açıldı.`); return false; }
+    for(const m of neighbors(cur)){
+      if(m.inClosed) continue;
+      const tg=cur.g+stepCost(cur,m);
+      if(tg<m.g){
+        m.parent=cur; m.g=tg; m.h=heuristic(m,goal); m.f=m.g+m.h;
+        if(!m.inOpen){m.inOpen=true; open.push(m);}
+      }
+    }
+    render();
+    return true;
+  }
+  function buildPath(){
+    let n=goal, len=0;
+    while(n){ if(n!==start&&n!==goal)n.onPath=true; if(n.parent)len+=stepCost(n,n.parent); n=n.parent; }
+    document.getElementById("sPath").textContent = len.toFixed(len%1?2:0);
+  }
+
+  // ---- DÖNGÜ ----
+  function speedDelay(){ const v=+document.getElementById("speed").value; return 4 + (100-v)*4; }
+  function play(){
+    if(searchState==="done"||searchState==="nopath") startSearch();
+    if(searchState==="idle") startSearch();
+    setPlaying(true);
+    const tick=()=>{ if(!doStep()){setPlaying(false);return;} timer=setTimeout(tick,speedDelay()); };
+    timer=setTimeout(tick,speedDelay());
+  }
+  function stop(){ if(timer){clearTimeout(timer);timer=null;} setPlaying(false); }
+  function setPlaying(p){
+    const b=document.getElementById("play");
+    b.textContent = p ? "⏸ Duraklat" : "▶ Başlat";
+    document.getElementById("step").disabled = p;
+    document.querySelectorAll("#modes button,#maze,#clear").forEach(x=>x.disabled=p);
+  }
+
+  // ---- SIFIRLAMA ----
+  function softReset(){ // arama durumunu temizle, duvarları koru
+    stop();
+    grid.forEach(row=>row.forEach(n=>{
+      n.g=Infinity;n.h=0;n.f=Infinity;n.parent=null;
+      n.inOpen=false;n.inClosed=false;n.onPath=false;n.current=false;
+    }));
+    open=[]; expandedCount=0; searchState="idle";
+    document.getElementById("sPath").textContent="—";
+  }
+  function fullReset(){ softReset(); setStatus("Sıfırlandı."); render(); }
+
+  // ---- LABİRENT ----
+  function maze(){
+    softReset();
+    grid.forEach(row=>row.forEach(n=>{
+      n.wall = (n!==start && n!==goal && Math.random()<0.28);
+    }));
+    setStatus("Rastgele labirent oluşturuldu."); render();
+  }
+  function clearWalls(){ softReset(); grid.forEach(r=>r.forEach(n=>n.wall=false)); setStatus("Duvarlar temizlendi."); render(); }
+
+  // ---- ÇİZİM (RENDER) ----
+  function render(){
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const n=grid[r][c], el=n.el;
+      let cls="cell";
+      if(n===start)cls+=" start";
+      else if(n===goal)cls+=" goal";
+      else if(n.wall)cls+=" wall";
+      else if(n.onPath)cls+=" path";
+      else if(n.inClosed)cls+=" closed";
+      else if(n.inOpen)cls+=" open";
+      if(n.current)cls+=" current";
+      el.className=cls;
+      const g=el.children[0],h=el.children[1],f=el.children[2];
+      if(showNums && n!==start && n!==goal && !n.wall && (n.inOpen||n.inClosed||n.onPath) && isFinite(n.f)){
+        g.textContent=fmt(n.g); h.textContent=fmt(n.h); f.textContent=fmt(priority(n));
+      } else { g.textContent="";h.textContent="";f.textContent=""; }
+    }
+    document.getElementById("sOpen").textContent=open.length;
+    document.getElementById("sClosed").textContent=grid.flat().filter(n=>n.inClosed).length;
+    document.getElementById("sExpanded").textContent=expandedCount;
+  }
+  function fmt(x){ if(!isFinite(x))return""; return (x%1? x.toFixed(1): x.toString()); }
+  function setStatus(t){ document.getElementById("status").textContent=t; }
+
+  // ---- KONTROLLER ----
+  document.getElementById("algo").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b)return;
+    document.querySelectorAll("#algo button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); algo=b.dataset.algo;
+    const notes={astar:"A*: F = G + H. Geçmiş maliyeti ve hedef tahminini birlikte kullanır.",
+      dijkstra:"Dijkstra: F = G (H = 0). Hedefi bilmez, her yöne yayılır; en kısa yolu bulur.",
+      greedy:"Açgözlü: F = H. Sadece hedefe koşar; hızlıdır ama en kısa yolu garanti etmez."};
+    document.getElementById("algoNote").textContent=notes[algo];
+    document.getElementById("heur").disabled = (algo==="dijkstra");
+    softReset(); render();
+  });
+  document.getElementById("modes").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b)return;
+    document.querySelectorAll("#modes button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); mode=b.dataset.mode;
+  });
+  document.getElementById("heur").addEventListener("change",()=>{softReset();render();});
+  document.getElementById("diag").addEventListener("change",e=>{diag=e.target.checked;softReset();render();});
+  document.getElementById("showNums").addEventListener("change",e=>{showNums=e.target.checked;render();});
+  document.getElementById("play").addEventListener("click",()=>{ if(timer)stop(); else play(); });
+  document.getElementById("step").addEventListener("click",()=>{ stop(); doStep(); });
+  document.getElementById("reset").addEventListener("click",fullReset);
+  document.getElementById("maze").addEventListener("click",maze);
+  document.getElementById("clear").addEventListener("click",clearWalls);
+
+  buildGrid();
+})();
+</script>
+</body>
+</html>

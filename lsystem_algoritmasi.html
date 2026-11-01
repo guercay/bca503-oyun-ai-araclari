@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L-Sistemleri — Etkileşimli Anlatım</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F;
+    --ink:#26333f; --muted:#66757f; --line:#e2e8ee; --bg:#f7f9fb; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Open Sans',system-ui,sans-serif; line-height:1.55; padding:24px 16px 56px;}
+  .wrap{max-width:1140px; margin:0 auto;}
+  header.top{border-left:6px solid var(--orange); padding:6px 0 6px 16px; margin-bottom:22px;}
+  header.top h1{font-family:'Roboto Slab',serif; font-weight:700; color:var(--blue); margin:0 0 4px; font-size:1.7rem;}
+  header.top p{margin:0; color:var(--muted); font-size:.95rem;}
+  .grid{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:22px;}
+  @media(max-width:900px){ .grid{grid-template-columns:1fr;} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 1px 3px rgba(38,51,63,.05);}
+  h2{font-family:'Roboto Slab',serif; color:var(--blue); font-size:1.15rem; margin:0 0 12px;}
+  h3{font-family:'Roboto Slab',serif; color:var(--ink); font-size:1rem; margin:18px 0 8px;}
+  canvas{width:100%; height:auto; display:block; border-radius:8px; background:#fff;}
+  .canvas-frame{border:1px solid var(--line); border-radius:12px; padding:10px; background:#fdfdfe;}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; margin-bottom:12px; flex-wrap:wrap;}
+  .seg button{border:none; border-radius:0; background:#fff; color:var(--muted); padding:7px 12px; font-size:.82rem; font-weight:600; cursor:pointer; font-family:'Open Sans',sans-serif;}
+  .seg button.on{background:var(--blue); color:#fff;}
+  .presetgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:12px;}
+  .presetgrid button{
+    font-family:'Open Sans',sans-serif; font-size:.82rem; font-weight:600; text-align:left;
+    border:1px solid var(--line); background:#fff; color:var(--ink); padding:8px 10px; border-radius:9px; cursor:pointer;
+  }
+  .presetgrid button.on{border-color:var(--orange); background:rgba(255,111,32,0.08); color:var(--orange);}
+  .controls{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:12px;}
+  .ctrl{display:flex; flex-direction:column; gap:3px; font-size:.78rem; color:var(--muted);}
+  .ctrl input[type=range]{accent-color:var(--orange); width:150px;}
+  button.act{font-family:'Open Sans',sans-serif; font-weight:600; font-size:.85rem; border:1px solid var(--blue); background:var(--blue); color:#fff; padding:7px 13px; border-radius:9px; cursor:pointer;}
+  button.act.ghost{background:#fff; color:var(--blue);}
+  .metrics{display:flex; gap:14px; margin-top:14px; flex-wrap:wrap;}
+  .metric{background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 14px; text-align:center; min-width:96px;}
+  .metric .v{font-family:'Roboto Slab',serif; font-size:1.15rem; color:var(--blue);}
+  .metric .k{font-size:.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
+  .rulebox{margin-top:12px; background:#f2f5f8; border:1px solid var(--line); border-radius:9px; padding:10px 12px; font-family:'Fira Code',monospace; font-size:.8rem; color:#324a5e;}
+  .stringview{margin-top:12px; max-height:130px; overflow-y:auto; background:#1f2b36; color:#e6edf3; border-radius:9px; padding:12px 14px; font-family:'Fira Code',monospace; font-size:.8rem; line-height:1.6; word-break:break-all;}
+  .stringview .A{color:#7fd1c9;} .stringview .B{color:#ffb199;} .stringview .br{color:#c9a4ff;}
+  .fibtable{width:100%; border-collapse:collapse; margin-top:10px; font-size:.82rem;}
+  .fibtable th,.fibtable td{border:1px solid var(--line); padding:5px 8px; text-align:center;}
+  .fibtable th{background:#f2f5f8; color:var(--blue); font-family:'Roboto Slab',serif; font-weight:600;}
+  .legend{display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:14px; font-size:.82rem; color:var(--muted);}
+  .legend span{display:flex; align-items:center; gap:7px;}
+  .bar{width:20px; height:10px; border-radius:3px; display:inline-block;}
+  p.lead{margin-top:0;}
+  ul.uses{margin:0; padding-left:20px;} ul.uses li{margin-bottom:7px;}
+  .mono{font-family:'Fira Code',monospace; font-size:.86em; background:#eef2f6; padding:1px 5px; border-radius:4px; color:#324a5e;}
+  .pill{display:inline-block; background:var(--pink); color:#fff; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:20px; vertical-align:middle; margin-left:6px;}
+  .hint{font-size:.82rem; color:var(--muted); margin-top:10px; font-style:italic;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>L-Sistemleri (L-Systems) <span class="pill">Grammar-Based PCG</span></h1>
+    <p>Dize değiştirme kurallarından fraktal bitki, ağaç ve eğrilere: türetim ve kaplumbağa (turtle) yorumu.</p>
+  </header>
+
+  <div class="grid">
+    <!-- SOL: Görselleştirme -->
+    <div class="card">
+      <h2>Etkileşimli L-Sistem</h2>
+
+      <div class="seg" id="segView">
+        <button data-v="turtle" class="on">Kaplumbağa Çizimi</button>
+        <button data-v="string">Dize Türetimi (Alg / Fibonacci)</button>
+      </div>
+
+      <div id="turtlePanel">
+        <div class="presetgrid" id="presetGrid">
+          <button data-p="tree" class="on">🌳 Fraktal Ağaç</button>
+          <button data-p="koch">❄ Koch Eğrisi</button>
+          <button data-p="sierpinski">▲ Sierpinski Ok-ucu</button>
+          <button data-p="dragon">🐉 Ejderha Eğrisi</button>
+        </div>
+
+        <div class="canvas-frame">
+          <canvas id="cv" width="760" height="420"></canvas>
+        </div>
+
+        <div class="controls">
+          <div class="ctrl">Nesil (gen): <span id="genVal">4</span>
+            <input type="range" id="genSlider" min="0" max="7" value="4">
+          </div>
+          <div class="ctrl">Açı (°): <span id="angVal">—</span>
+            <input type="range" id="angSlider" min="5" max="120" value="25">
+          </div>
+          <button class="act ghost" id="btnAnimate">▶ Çizimi Canlandır</button>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><div class="v" id="mLen">—</div><div class="k">Dize uzunluğu</div></div>
+          <div class="metric"><div class="v" id="mSeg">—</div><div class="k">Çizgi segmenti</div></div>
+          <div class="metric"><div class="v" id="mDepth">—</div><div class="k">Maks. dallanma derinliği</div></div>
+        </div>
+
+        <div class="rulebox" id="ruleBox"></div>
+      </div>
+
+      <div id="stringPanel" style="display:none;">
+        <p class="hint" style="margin-top:0;">Kurallar: <span class="mono">A → AB</span>, <span class="mono">B → A</span> — başlangıç ekseni <span class="mono">A</span>. Nesil kaydırıcısıyla türetimi izleyin.</p>
+        <div class="controls">
+          <div class="ctrl">Nesil: <span id="genValStr">3</span>
+            <input type="range" id="genSliderStr" min="0" max="8" value="3">
+          </div>
+        </div>
+        <div class="stringview" id="stringView"></div>
+        <table class="fibtable" id="fibTable"></table>
+        <p class="hint">Uzunluk dizisi bir <strong>Fibonacci dizisidir</strong>: her nesildeki toplam uzunluk, önceki iki neslin toplamına eşittir.</p>
+      </div>
+
+      <div class="legend" id="legendBox">
+        <span><span class="bar" style="background:#447099"></span>Gövde / ana dal</span>
+        <span><span class="bar" style="background:#FF6F20"></span>Uç dallar (yaprak seviyesi)</span>
+      </div>
+    </div>
+
+    <!-- SAĞ: Açıklama -->
+    <div class="card">
+      <h2>L-Sistemi nasıl çalışır?</h2>
+      <p class="lead">Bir L-sistemi, bir <strong>başlangıç dizesi (axiom)</strong> ve bir dizi <strong>üretim kuralından</strong> oluşur. Her nesilde, dizedeki <em>tüm semboller aynı anda</em> (paralel olarak) kendi kurallarına göre değiştirilir. Bitki büyümesini modellemek için Aristid Lindenmayer tarafından geliştirilmiştir.</p>
+
+      <h3>Kaplumbağa Yorumu (Turtle Graphics)</h3>
+      <p>Üretilen dize, bir çizim komut dizisi olarak okunur:</p>
+      <ul class="uses">
+        <li><span class="mono">F</span> → ileri git ve çiz</li>
+        <li><span class="mono">+</span> / <span class="mono">-</span> → sağa / sola dön (açı kadar)</li>
+        <li><span class="mono">[</span> → mevcut konum ve açıyı <strong>yığına (stack)</strong> kaydet</li>
+        <li><span class="mono">]</span> → yığından geri yükle (ana dala dön)</li>
+      </ul>
+      <p><span class="mono">[</span> ve <span class="mono">]</span> olmadan kaplumbağa yalnızca tek bir çizgi çizebilir; bu iki sembol sayesinde bir yan dal çizilip ana gövdeye geri dönülür — <strong>dallanmanın</strong> tek kaynağı budur.</p>
+
+      <h3>Neden Fraktal Görünür?</h3>
+      <p>Her nesil, bir önceki neslin <em>kendi üzerine</em> aynı kuralı uygular; bu yüzden büyük yapı, küçük ölçekte kendini tekrar eden alt yapılardan oluşur (öz-benzerlik / self-similarity). Nesil arttıkça detay artar ama genel şekil orantılı kalır.</p>
+
+      <h3>Stokastik ve Bağlam-Duyarlı Türler</h3>
+      <ul class="uses">
+        <li><strong>Belirlenimci (Deterministic):</strong> Her sembolün tek bir kuralı vardır — burada gösterilen tüm örnekler bu türdendir.</li>
+        <li><strong>Stokastik (Stochastic):</strong> Bir sembolün olasılıklı birden çok kuralı olabilir (ör. %70 <span class="mono">F→F[+F]F</span>, %30 <span class="mono">F→F[-F]F</span>) — doğal çeşitlilik sağlar, her ağaç biraz farklı çıkar.</li>
+        <li><strong>Bağlam-Duyarlı (Context-sensitive):</strong> Kural, sembolün komşularına bağlıdır.</li>
+      </ul>
+
+      <h3>PCG'de Kullanım</h3>
+      <p>L-sistemler; ağaç/bitki modelleri, mağara/vadi ağları, yol/nehir ağları ve hatta bazı zindan düzenlerinin üretiminde kullanılır. Genel PCG sınıflandırmasında <strong>yapılandırıcı (constructive)</strong> paradigmaya aittir — kurallar sabittir, üretilen çıktı üzerinde bir geri bildirim/puanlama döngüsü yoktur ("üret ve unut").</p>
+
+      <p class="hint">BYZ502 ders materyali · marka renkleri ve tipografisi.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  function expand(axiom, rules, gens){
+    let s = axiom;
+    for(let g=0; g<gens; g++){
+      let next = '';
+      for(const ch of s) next += (rules[ch] !== undefined ? rules[ch] : ch);
+      s = next;
+    }
+    return s;
+  }
+
+  const PRESETS = {
+    tree: {
+      axiom:'F', rules:{F:'F[+F]F[-F]F'}, angle:25.7, maxGen:6,
+      drawChars:new Set(['F']), startAngle:-90, colorByDepth:true
+    },
+    koch: {
+      axiom:'F', rules:{F:'F+F--F+F'}, angle:60, maxGen:5,
+      drawChars:new Set(['F']), startAngle:0, colorByDepth:false
+    },
+    sierpinski: {
+      axiom:'A', rules:{A:'B-A-B', B:'A+B+A'}, angle:60, maxGen:7,
+      drawChars:new Set(['A','B']), startAngle:0, colorByDepth:false
+    },
+    dragon: {
+      axiom:'FX', rules:{X:'X+YF+', Y:'-FX-Y'}, angle:90, maxGen:12,
+      drawChars:new Set(['F']), startAngle:0, colorByDepth:false
+    }
+  };
+  let curPreset = 'tree';
+  let curGen = 4;
+  let curAngle = PRESETS.tree.angle;
+
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const CW = 760, CH = 420;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = CW*dpr; cv.height = CH*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  function computeTurtle(str, angleDeg, drawChars, startAngle){
+    let x=0,y=0,ang=startAngle,depth=0,maxDepth=0;
+    const rad = Math.PI/180;
+    const segs=[];
+    const stack=[];
+    let minX=0,maxX=0,minY=0,maxY=0;
+    for(const ch of str){
+      if(drawChars.has(ch)){
+        const nx = x + Math.cos(ang*rad);
+        const ny = y + Math.sin(ang*rad);
+        segs.push({x1:x,y1:y,x2:nx,y2:ny,depth});
+        x=nx; y=ny;
+        minX=Math.min(minX,x); maxX=Math.max(maxX,x);
+        minY=Math.min(minY,y); maxY=Math.max(maxY,y);
+      } else if(ch==='+'){ ang += angleDeg; }
+      else if(ch==='-'){ ang -= angleDeg; }
+      else if(ch==='['){ stack.push({x,y,ang,depth}); depth++; maxDepth=Math.max(maxDepth,depth); }
+      else if(ch===']'){ const s=stack.pop(); if(s){x=s.x;y=s.y;ang=s.ang;depth=s.depth;} }
+    }
+    return {segs, minX,maxX,minY,maxY, maxDepth};
+  }
+
+  function depthColor(depth, maxDepth){
+    if(maxDepth<=0) return '#447099';
+    const t = Math.min(1, depth/Math.max(1,maxDepth));
+    const c1=[68,112,153], c2=[255,111,32];
+    const r = Math.round(c1[0]+(c2[0]-c1[0])*t);
+    const g = Math.round(c1[1]+(c2[1]-c1[1])*t);
+    const b = Math.round(c1[2]+(c2[2]-c1[2])*t);
+    return 'rgb('+r+','+g+','+b+')';
+  }
+
+  let animTimer = null, animProgress = 0;
+
+  function renderTurtle(animate){
+    const preset = PRESETS[curPreset];
+    const str = expand(preset.axiom, preset.rules, curGen);
+    const result = computeTurtle(str, curAngle, preset.drawChars, preset.startAngle);
+
+    document.getElementById('mLen').textContent = str.length;
+    document.getElementById('mSeg').textContent = result.segs.length;
+    document.getElementById('mDepth').textContent = result.maxDepth;
+
+    const ruleParts = [];
+    for(const k in preset.rules) ruleParts.push(k+' → '+preset.rules[k]);
+    document.getElementById('ruleBox').innerHTML =
+      '<strong>Axiom:</strong> '+preset.axiom+' &nbsp; | &nbsp; <strong>Kurallar:</strong> '+ruleParts.join('   |   ')+' &nbsp; | &nbsp; <strong>Açı:</strong> '+curAngle+'°';
+
+    const w = (result.maxX-result.minX) || 1;
+    const h = (result.maxY-result.minY) || 1;
+    const pad = 30;
+    const scale = Math.min((CW-2*pad)/w, (CH-2*pad)/h);
+    const offX = pad - result.minX*scale + (CW-2*pad-w*scale)/2;
+    const offY = pad - result.minY*scale + (CH-2*pad-h*scale)/2;
+
+    ctx.clearRect(0,0,CW,CH);
+    ctx.lineCap='round';
+
+    const total = result.segs.length;
+    const showCount = animate ? Math.floor(total * animProgress) : total;
+
+    for(let i=0;i<showCount;i++){
+      const s = result.segs[i];
+      ctx.beginPath();
+      ctx.moveTo(s.x1*scale+offX, s.y1*scale+offY);
+      ctx.lineTo(s.x2*scale+offX, s.y2*scale+offY);
+      ctx.strokeStyle = preset.colorByDepth ? depthColor(s.depth, result.maxDepth) : '#447099';
+      ctx.lineWidth = preset.colorByDepth ? Math.max(1, 2.6 - s.depth*0.35) : 1.8;
+      ctx.stroke();
+    }
+
+    document.getElementById('legendBox').style.display = preset.colorByDepth ? 'flex' : 'none';
+
+    if(animate && showCount<total){
+      animProgress += 0.02;
+      animTimer = requestAnimationFrame(function(){ renderTurtle(true); });
+    } else if(animate){
+      animTimer=null;
+    }
+  }
+
+  function setPreset(p){
+    curPreset = p;
+    const preset = PRESETS[p];
+    curGen = Math.min(curGen, preset.maxGen);
+    curAngle = preset.angle;
+    document.getElementById('genSlider').max = preset.maxGen;
+    document.getElementById('genSlider').value = curGen;
+    document.getElementById('genVal').textContent = curGen;
+    document.getElementById('angSlider').value = curAngle;
+    document.getElementById('angVal').textContent = curAngle;
+    if(animTimer){ cancelAnimationFrame(animTimer); animTimer=null; }
+    animProgress=0;
+    renderTurtle(false);
+  }
+
+  document.querySelectorAll('#presetGrid button').forEach(function(b){
+    b.onclick = function(){
+      document.querySelectorAll('#presetGrid button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      setPreset(b.dataset.p);
+    };
+  });
+
+  document.getElementById('genSlider').oninput = function(e){
+    curGen = +e.target.value;
+    document.getElementById('genVal').textContent = curGen;
+    renderTurtle(false);
+  };
+  document.getElementById('angSlider').oninput = function(e){
+    curAngle = +e.target.value;
+    document.getElementById('angVal').textContent = curAngle;
+    renderTurtle(false);
+  };
+  document.getElementById('btnAnimate').onclick = function(){
+    if(animTimer){ cancelAnimationFrame(animTimer); animTimer=null; }
+    animProgress=0;
+    renderTurtle(true);
+  };
+
+  // ============== DIZE TURETIMI PANELI (Alg / Fibonacci) ==============
+  const ALGAE_RULES = {A:'AB', B:'A'};
+  function renderStringPanel(){
+    const gen = +document.getElementById('genSliderStr').value;
+    document.getElementById('genValStr').textContent = gen;
+
+    const rows = [];
+    let s='A';
+    for(let g=0; g<=Math.max(gen,8); g++){
+      rows.push(s);
+      let next=''; for(const ch of s) next += ALGAE_RULES[ch];
+      s = next;
+    }
+
+    const cur = rows[gen];
+    const colored = cur.split('').map(function(ch){ return '<span class="'+ch+'">'+ch+'</span>'; }).join('');
+    document.getElementById('stringView').innerHTML =
+      '<strong>Nesil '+gen+'</strong> (uzunluk='+cur.length+'):<br>'+colored;
+
+    let html = '<tr><th>Nesil</th>';
+    for(let i=0;i<9;i++) html += '<th>'+i+'</th>';
+    html += '</tr><tr><th>Uzunluk</th>';
+    for(let i=0;i<9;i++) html += '<td>'+rows[i].length+'</td>';
+    html += '</tr>';
+    document.getElementById('fibTable').innerHTML = html;
+  }
+  document.getElementById('genSliderStr').oninput = renderStringPanel;
+
+  document.querySelectorAll('#segView button').forEach(function(b){
+    b.onclick = function(){
+      document.querySelectorAll('#segView button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      const v = b.dataset.v;
+      document.getElementById('turtlePanel').style.display = v==='turtle' ? 'block':'none';
+      document.getElementById('stringPanel').style.display = v==='string' ? 'block':'none';
+      document.getElementById('legendBox').style.display = v==='turtle' ? 'flex':'none';
+      if(v==='string') renderStringPanel();
+    };
+  });
+
+  renderTurtle(false);
+  renderStringPanel();
+})();
+</script>
+</body>
+</html>

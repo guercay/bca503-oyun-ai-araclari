@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GOAP planlayıcı demosu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Open+Sans:wght@400;600;700&family=Roboto+Slab:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F;
+    --ink:#1E2B38; --muted:#5B6B7A; --line:#C9D4DE; --mist:#EEF3F7; --paper:#fff;
+    --pink-ink:#C8175A; --orange-ink:#B84400; --blue-ink:#2F5474; --r:6px;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0;background:var(--paper);color:var(--ink)}
+  body{font:16px/1.55 "Open Sans",system-ui,sans-serif}
+  button,input,select{font:inherit}
+  :focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+  code,.mono{font-family:"Fira Code",monospace}
+
+  header.top{display:grid;grid-template-columns:1fr auto;gap:8px 24px;align-items:end;padding:18px 26px 12px;border-bottom:1px solid var(--line)}
+  h1{font:700 26px/1.15 "Roboto Slab",Georgia,serif;margin:0}
+  h1 .sub{display:block;font:400 15px/1.4 "Open Sans",sans-serif;color:var(--muted);margin-top:4px}
+  .headline{display:flex;gap:20px;align-items:baseline;font-size:14px;color:var(--muted)}
+  .headline b{font:600 20px "Fira Code",monospace;color:var(--ink);margin-left:6px}
+  .headline .cost b{color:var(--orange-ink)}
+
+  main{display:grid;grid-template-columns:320px minmax(0,1fr) 320px;min-height:calc(100vh - 92px)}
+  .col{padding:16px 18px 26px}
+  .left{border-right:1px solid var(--line);background:var(--mist)}
+  .right{border-left:1px solid var(--line)}
+  h2{font:700 16px/1.3 "Roboto Slab",serif;margin:0 0 10px}
+  h2 .hint{font:400 13px "Open Sans",sans-serif;color:var(--muted);display:block;margin-top:2px}
+
+  /* dünya durumu */
+  .state{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+  .state button{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);
+    background:var(--paper);border-radius:var(--r);padding:7px 10px;cursor:pointer;text-align:left}
+  .state button .k{font-family:"Fira Code",monospace;font-size:13px}
+  .state button .v{font-size:12px;font-weight:700;color:var(--muted)}
+  .state button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+  .state button[aria-pressed="true"] .v{color:#fff}
+  .state button.goal{border-color:var(--pink);border-width:2px}
+  .goalnote{font-size:13px;color:var(--muted);margin:-10px 0 16px}
+  .goalnote b{color:var(--pink-ink)}
+
+  /* eylemler */
+  .act{border:1px solid var(--line);border-radius:var(--r);background:var(--paper);padding:8px 10px;margin-bottom:8px}
+  .act.off{opacity:.5}
+  .act .row1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .act .nm{font-weight:700;font-size:14px}
+  .act .row2{font-size:11.5px;color:var(--muted);margin-top:3px;font-family:"Fira Code",monospace;line-height:1.45}
+  .act .row2 .eff{color:var(--blue-ink)}
+  .act .row3{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .act input[type=range]{flex:1;min-width:0}
+  .act .c{font:600 14px "Fira Code",monospace;min-width:22px;text-align:right}
+  .act .tgl{border:1px solid var(--line);background:var(--paper);border-radius:4px;font-size:11px;padding:2px 7px;cursor:pointer}
+  .act.off .tgl{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .act.custom{border-color:var(--orange);border-width:2px}
+  .act .del{border:0;background:none;color:var(--orange-ink);cursor:pointer;font-size:12px;padding:2px 4px}
+
+  .btn{border:1px solid var(--ink);background:var(--paper);color:var(--ink);padding:7px 12px;border-radius:var(--r);cursor:pointer;font-weight:600;font-size:14px}
+  .btn.primary{background:var(--ink);color:#fff}
+  .btn.accent{background:var(--orange);border-color:var(--orange);color:var(--ink)}
+  .btn.sm{padding:4px 9px;font-size:13px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  /* sekmeler */
+  nav.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  nav.tabs button{border:1px solid var(--line);background:var(--paper);padding:7px 13px;border-radius:var(--r);cursor:pointer;border-bottom:3px solid transparent}
+  nav.tabs button[aria-selected="true"]{background:var(--mist);border-bottom-color:var(--orange);font-weight:700}
+
+  /* plan şeridi */
+  .plan{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin:6px 0 4px}
+  .plan .step{background:var(--blue);color:#fff;border-radius:var(--r);padding:9px 13px;font-weight:700;font-size:14px;display:flex;flex-direction:column;gap:2px}
+  .plan .step small{font-weight:400;font-size:11px;opacity:.85;font-family:"Fira Code",monospace}
+  .plan .step.done{background:var(--ink)}
+  .plan .step.now{background:var(--orange);color:var(--ink)}
+  .plan .arr{align-self:center;color:var(--muted);padding:0 7px;font-weight:700}
+  .fail{border-left:4px solid var(--pink);background:#FFE6EF;padding:10px 12px;border-radius:var(--r)}
+
+  svg#tree{width:100%;height:auto;display:block;background:var(--paper);border:1px solid var(--line);border-radius:var(--r)}
+  .treewrap{overflow-x:auto}
+
+  table.t{border-collapse:collapse;width:100%;font-size:13px}
+  table.t th{text-align:left;font:700 11px "Open Sans";letter-spacing:.06em;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--ink)}
+  table.t td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.t td.n{text-align:right;font-family:"Fira Code",monospace}
+  table.t tr.cur td{background:#FFF3EB}
+  table.t tr.closed td{color:var(--muted)}
+  .cond{font-family:"Fira Code",monospace;font-size:12px}
+
+  .log{font:13px/1.5 "Fira Code",monospace;background:var(--mist);border-radius:var(--r);padding:8px 10px;margin:0;list-style:none;max-height:300px;overflow:auto}
+  .log li{padding:2px 0;color:var(--muted)}
+  .log li.cur{color:var(--ink);font-weight:600}
+  .log li.hit{color:var(--orange-ink)}
+  .note{font-size:13px;color:var(--muted)}
+  .panelbox{background:var(--mist);border-radius:var(--r);padding:10px 12px;font-size:13.5px}
+  .panelbox b{color:var(--orange-ink)}
+  dialog{border:2px solid var(--ink);border-radius:var(--r);padding:18px;max-width:440px;width:92%}
+  dialog h3{font:700 18px "Roboto Slab",serif;margin:0 0 10px}
+  dialog label{display:block;font-size:13px;color:var(--muted);margin:10px 0 3px}
+  dialog input{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:4px}
+  dialog .err{color:var(--pink-ink);font-size:13px;min-height:18px;margin-top:6px}
+  @media (max-width:700px){ header.top{grid-template-columns:1fr} .headline{flex-wrap:wrap;gap:6px 16px} h1{font-size:22px} }
+  @media (max-width:1100px){ main{grid-template-columns:1fr} .left{border-right:0;border-bottom:1px solid var(--line)} .right{border-left:0;border-top:1px solid var(--line)} }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>GOAP planlayıcı
+    <span class="sub">Dünyayı değiştir, maliyetleri kaydır, planın nasıl yeniden kurulduğunu izle.</span>
+  </h1>
+  <div class="headline" aria-live="polite">
+    <span>Plan<b id="hPlan">—</b></span>
+    <span class="cost">Maliyet<b id="hCost">—</b></span>
+    <span>Açılan düğüm<b id="hNodes">—</b></span>
+  </div>
+</header>
+
+<main>
+  <section class="col left">
+    <h2>Dünya durumu <span class="hint">Tıklayarak değiştir</span></h2>
+    <div class="state" id="stateList"></div>
+    <p class="goalnote">Hedef: <b id="goalTxt">Karnı_Tok: Evet</b></p>
+
+    <h2>Eylem havuzu <span class="hint">Maliyeti kaydır, eylemi kapat ya da yenisini ekle</span></h2>
+    <div id="actList"></div>
+    <div class="btnrow">
+      <button class="btn sm accent" id="addAct">Eylem ekle</button>
+      <button class="btn sm" id="resetAll">Başa dön</button>
+    </div>
+  </section>
+
+  <section class="col">
+    <nav class="tabs" role="tablist">
+      <button role="tab" id="tabPlan" aria-selected="true">Plan</button>
+      <button role="tab" id="tabSearch" aria-selected="false">Arama adımları</button>
+      <button role="tab" id="tabRun" aria-selected="false">Yürüt</button>
+    </nav>
+    <div id="stage"></div>
+  </section>
+
+  <section class="col right">
+    <h2 id="sideTitle">Ne oldu?</h2>
+    <div id="side"></div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <h3>Yeni eylem</h3>
+  <label for="fName">Ad</label>
+  <input id="fName" placeholder="Yemek Satın Al">
+  <label for="fPre">Önkoşul — boş bırakılabilir</label>
+  <input id="fPre" class="mono" placeholder="Para_Var">
+  <label for="fEff">Etki</label>
+  <input id="fEff" class="mono" placeholder="Karnı_Tok">
+  <label for="fCost">Maliyet (1–20)</label>
+  <input id="fCost" type="number" min="1" max="20" value="3">
+  <p class="err" id="fErr"></p>
+  <div class="btnrow" style="margin-top:6px">
+    <button class="btn primary" id="fOk">Ekle</button>
+    <button class="btn" id="fCancel">Vazgeç</button>
+  </div>
+  <p class="note" style="margin-top:10px">Birden çok koşulu virgülle ayır. Koşullar doğru/yanlış değişkenlerdir; yeni bir ad yazarsan dünya durumuna eklenir.</p>
+</dialog>
+
+<script>
+/* =====================================================================
+   ÇEKİRDEK — geriye doğru A* ile GOAP planlayıcı (DOM'dan bağımsız)
+   ===================================================================== */
+const Core = (() => {
+  const key = set => [...set].sort().join('|');
+  // world: {ad: true/false}, goal: {ad: true}, actions: [{name, pre:{}, eff:{}, cost}]
+  function plan(world, goal, actions) {
+    const unmet = st => Object.entries(st).filter(([k, v]) => world[k] !== v);
+    const start = unmet(goal).map(([k, v]) => k + '=' + v);
+    const h = arr => arr.length;
+    const nodes = [];            // izleme için keşfedilen düğümler
+    const open = [];             // {g,f,conds,seq,id}
+    const bestG = new Map();
+    const events = [];
+    let idc = 0;
+    const mk = (conds, g, seq, parent, via) => {
+      const n = { id: idc++, conds: conds.slice().sort(), g, h: h(conds), f: g + h(conds), seq, parent, via, state: 'open' };
+      nodes.push(n); return n;
+    };
+    const root = mk(start, 0, [], -1, null);
+    open.push(root); bestG.set(key(start), 0);
+    events.push({ t: 'start', node: root.id });
+    let guard = 0;
+    while (open.length) {
+      if (++guard > 4000) { events.push({ t: 'abort' }); return { ok: false, reason: 'limit', nodes, events, expanded: guard }; }
+      open.sort((a, b) => a.f - b.f || a.g - b.g || a.id - b.id);
+      const cur = open.shift();
+      cur.state = 'closed';
+      events.push({ t: 'expand', node: cur.id });
+      if (cur.conds.length === 0) {
+        cur.state = 'goal';
+        events.push({ t: 'done', node: cur.id });
+        return { ok: true, plan: cur.seq.slice(), cost: cur.g, nodes, events, expanded: nodes.filter(n => n.state !== 'open').length };
+      }
+      for (const a of actions) {
+        if (a.off) continue;
+        const sat = cur.conds.filter(c => {
+          const [k, v] = c.split('='); return String(a.eff[k]) === v;
+        });
+        if (!sat.length) continue;
+        const next = new Set(cur.conds.filter(c => !sat.includes(c)));
+        for (const [k, v] of Object.entries(a.pre)) if (world[k] !== v) next.add(k + '=' + v);
+        const arr = [...next], kk = key(arr), g = cur.g + a.cost;
+        if (bestG.has(kk) && bestG.get(kk) <= g) { events.push({ t: 'skip', from: cur.id, action: a.name }); continue; }
+        bestG.set(kk, g);
+        const n = mk(arr, g, [a.name, ...cur.seq], cur.id, a.name);
+        open.push(n);
+        events.push({ t: 'add', from: cur.id, node: n.id, action: a.name, cost: a.cost });
+      }
+    }
+    events.push({ t: 'fail' });
+    return { ok: false, reason: 'no-plan', nodes, events, expanded: nodes.filter(n => n.state !== 'open').length };
+  }
+  // planı uygula: her adımın önkoşulu sağlanmalı
+  function apply(world, actions, name) {
+    const a = actions.find(x => x.name === name);
+    if (!a) return { ok: false, why: 'yok' };
+    for (const [k, v] of Object.entries(a.pre)) if (world[k] !== v) return { ok: false, why: k };
+    const w = Object.assign({}, world);
+    for (const [k, v] of Object.entries(a.eff)) w[k] = v;
+    return { ok: true, world: w };
+  }
+  const satisfied = (world, goal) => Object.entries(goal).every(([k, v]) => world[k] === v);
+  // kalan plan hâlâ uygulanabilir ve hedefe götürüyor mu?
+  function stillValid(world, actions, plan, idx, goal) {
+    let w = Object.assign({}, world);
+    for (let i = idx; i < plan.length; i++) {
+      const r = apply(w, actions, plan[i]);
+      if (!r.ok) return { ok: false, at: plan[i], why: r.why };
+      w = r.world;
+    }
+    return satisfied(w, goal) ? { ok: true } : { ok: false, at: null, why: 'hedef' };
+  }
+  return { plan, apply, satisfied, stillValid };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+
+/* =====================================================================
+   ARAYÜZ
+   ===================================================================== */
+if (typeof document !== 'undefined') (function () {
+  const $ = id => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const BASE_ACTIONS = [
+    { name: 'Ağaç Kes', pre: {}, eff: { Odun_Var: true }, cost: 2 },
+    { name: 'Ateş Yak', pre: { Odun_Var: true }, eff: { Ateş_Var: true }, cost: 2 },
+    { name: 'Et Bul', pre: {}, eff: { Çiğ_Et_Var: true }, cost: 2 },
+    { name: 'Et Pişir', pre: { Çiğ_Et_Var: true, Ateş_Var: true }, eff: { Pişmiş_Et_Var: true }, cost: 2 },
+    { name: 'Yemek Ye', pre: { Pişmiş_Et_Var: true }, eff: { Karnı_Tok: true }, cost: 2 },
+    { name: 'Meyve Ye', pre: { Çalı_Var: true }, eff: { Karnı_Tok: true }, cost: 4 },
+  ];
+  const BASE_WORLD = { Karnı_Tok: false, Odun_Var: false, Çiğ_Et_Var: false, Ateş_Var: false, Pişmiş_Et_Var: false, Çalı_Var: false };
+  const GOAL = { Karnı_Tok: true };
+
+  const S = {
+    world: Object.assign({}, BASE_WORLD),
+    actions: BASE_ACTIONS.map(a => Object.assign({}, a, { pre: Object.assign({}, a.pre), eff: Object.assign({}, a.eff) })),
+    tab: 'plan', res: null,
+    search: { step: 0, timer: null },
+    run: { world: null, plan: null, idx: 0, log: [], done: false, replans: 0 },
+  };
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const h = (tag, props, ...kids) => {
+    const e = document.createElement(tag);
+    for (const k in props || {}) {
+      const v = props[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'cls') e.className = props[k];
+      else if (k === 'html') e.innerHTML = props[k];
+      else if (k.startsWith('on')) e.addEventListener(k.slice(2), props[k]);
+      else e.setAttribute(k, props[k]);
+    }
+    kids.flat().forEach(c => e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+    return e;
+  };
+  const condTxt = o => Object.entries(o).map(([k, v]) => k + (v ? '' : ': Hayır')).join(' · ') || '—';
+  const nice = c => { const [k, v] = c.split('='); return k + ': ' + (v === 'true' ? 'Evet' : 'Hayır'); };
+
+  /* ---------- sol panel ---------- */
+  function renderState() {
+    const box = $('stateList'); box.innerHTML = '';
+    Object.keys(S.world).forEach(k => {
+      const on = S.world[k], isGoal = k in GOAL;
+      box.appendChild(h('button', {
+        cls: isGoal ? 'goal' : '', 'aria-pressed': String(on), 'data-k': k,
+        onclick: () => { S.world[k] = !S.world[k]; recompute('Dünya durumu değişti: ' + k + ' → ' + (S.world[k] ? 'Evet' : 'Hayır')); },
+      }, h('span', { cls: 'k' }, k), h('span', { cls: 'v' }, on ? 'Evet' : 'Hayır')));
+    });
+    $('goalTxt').textContent = Object.entries(GOAL).map(([k, v]) => k + ': ' + (v ? 'Evet' : 'Hayır')).join(', ');
+  }
+  function renderActions() {
+    const box = $('actList'); box.innerHTML = '';
+    S.actions.forEach((a, i) => {
+      const card = h('div', { cls: 'act' + (a.off ? ' off' : '') + (a.custom ? ' custom' : ''), 'data-name': a.name });
+      card.appendChild(h('div', { cls: 'row1' },
+        h('span', { cls: 'nm' }, a.name),
+        h('span', {},
+          a.custom ? h('button', { cls: 'del', title: 'Sil', onclick: () => { S.actions.splice(i, 1); recompute('Eylem silindi: ' + a.name); } }, 'sil') : '',
+          h('button', { cls: 'tgl', 'aria-pressed': String(!a.off), onclick: () => { a.off = !a.off; recompute((a.off ? 'Eylem kapatıldı: ' : 'Eylem açıldı: ') + a.name); } }, a.off ? 'kapalı' : 'açık'))));
+      card.appendChild(h('div', { cls: 'row2', html: 'önkoşul ' + condTxt(a.pre) + '<br>etki <span class="eff">' + condTxt(a.eff) + '</span>' }));
+      const val = h('span', { cls: 'c' }, String(a.cost));
+      const rng = h('input', { type: 'range', min: '1', max: '20', value: String(a.cost), 'aria-label': a.name + ' maliyeti' });
+      rng.addEventListener('input', () => { a.cost = +rng.value; val.textContent = rng.value; });
+      rng.addEventListener('change', () => recompute('Maliyet değişti: ' + a.name + ' → ' + a.cost));
+      card.appendChild(h('div', { cls: 'row3' }, h('span', { cls: 'note' }, 'maliyet'), rng, val));
+      box.appendChild(card);
+    });
+  }
+
+  /* ---------- hesapla ---------- */
+  function recompute(why) {
+    S.res = Core.plan(S.world, GOAL, S.actions);
+    S.search.step = 0; stopPlay();
+    S.lastWhy = why || null;
+    S.run = { world: null, plan: null, idx: 0, log: [], done: false, replans: 0 };
+    renderState(); renderActions(); renderHead(); renderStage(); renderSide();
+  }
+  function renderHead() {
+    const r = S.res;
+    $('hPlan').textContent = r.ok ? (r.plan.length + ' adım') : 'yok';
+    $('hCost').textContent = r.ok ? r.cost : '—';
+    $('hNodes').textContent = r.expanded;
+  }
+
+  /* ---------- sahne ---------- */
+  function setTab(t) {
+    S.tab = t; stopPlay();
+    ['plan', 'search', 'run'].forEach(k => $('tab' + k[0].toUpperCase() + k.slice(1)).setAttribute('aria-selected', String(k === t)));
+    renderStage(); renderSide();
+  }
+  function planStrip(names, opts) {
+    opts = opts || {};
+    const wrap = h('div', { cls: 'plan' });
+    names.forEach((n, i) => {
+      const a = S.actions.find(x => x.name === n);
+      const cls = opts.idx === undefined ? '' : (i < opts.idx ? ' done' : (i === opts.idx ? ' now' : ''));
+      wrap.appendChild(h('div', { cls: 'step' + cls }, n, h('small', {}, 'maliyet ' + (a ? a.cost : '?'))));
+      if (i < names.length - 1) wrap.appendChild(h('div', { cls: 'arr' }, '→'));
+    });
+    return wrap;
+  }
+  function renderStage() {
+    const st = $('stage'); st.innerHTML = '';
+    const r = S.res;
+    if (S.tab === 'plan') {
+      if (Core.satisfied(S.world, GOAL)) {
+        st.appendChild(h('div', { cls: 'panelbox' }, 'Hedef zaten sağlanıyor: planlayıcının yapacak bir şeyi yok. Karnı_Tok değerini Hayır yaparsan yeniden planlar.'));
+      } else if (!r.ok) {
+        st.appendChild(h('div', { cls: 'fail' }, r.reason === 'limit' ? 'Arama sınırı aşıldı.' : 'Bu dünya durumunda hedefe ulaşan bir plan yok. Kapattığın eylemleri aç ya da bir koşulu değiştir.'));
+      } else {
+        st.appendChild(h('h2', {}, 'En ucuz plan', h('span', { cls: 'hint' }, r.plan.length + ' adım · toplam maliyet ' + r.cost)));
+        st.appendChild(planStrip(r.plan));
+      }
+      // karşılaştırma: diğer geçerli yollar
+      st.appendChild(h('h2', { style: 'margin-top:22px' }, 'Hedefi tek başına karşılayan eylemler',
+        h('span', { cls: 'hint' }, 'Her biri için en ucuz zincir ve toplam maliyet')));
+      const rows = altRoutes();
+      if (!rows.length) st.appendChild(h('p', { cls: 'note' }, 'Hedefi doğrudan sağlayan açık bir eylem yok.'));
+      else {
+        const t = h('table', { cls: 't' }, h('tr', {}, h('th', {}, 'Son eylem'), h('th', {}, 'Zincir'), h('th', {}, 'Maliyet')));
+        rows.forEach(x => t.appendChild(h('tr', { cls: x.best ? 'cur' : '' },
+          h('td', {}, x.name), h('td', { cls: 'cond' }, x.ok ? x.plan.join(' → ') : '—'),
+          h('td', { cls: 'n' }, x.ok ? String(x.cost) : 'geçersiz'))));
+        st.appendChild(t);
+      }
+      st.appendChild(h('p', { cls: 'note', style: 'margin-top:10px' },
+        'Aynı hedefe giden birden çok yol varsa planlayıcı en düşük toplam maliyetliyi seçer. Bir maliyeti kaydırıp sıranın nasıl değiştiğini dene.'));
+    }
+    if (S.tab === 'search') {
+      st.appendChild(h('div', { cls: 'btnrow', style: 'margin-bottom:10px' },
+        h('button', { cls: 'btn sm', id: 'sFirst', onclick: () => { stopPlay(); stepTo(0); } }, '|◀'),
+        h('button', { cls: 'btn sm', id: 'sPrev', onclick: () => { stopPlay(); stepTo(S.search.step - 1); } }, '◀'),
+        h('button', { cls: 'btn primary sm', id: 'sPlay', onclick: play }, 'Oynat'),
+        h('button', { cls: 'btn sm', id: 'sNext', onclick: () => { stopPlay(); stepTo(S.search.step + 1); } }, '▶'),
+        h('button', { cls: 'btn sm', id: 'sLast', onclick: () => { stopPlay(); stepTo(S.res.events.length); } }, '▶|'),
+        h('span', { cls: 'note' }, 'adım ' + S.search.step + ' / ' + S.res.events.length)));
+      st.appendChild(h('div', { cls: 'treewrap' }, svgTree()));
+      st.appendChild(openTable());
+    }
+    if (S.tab === 'run') renderRun(st);
+  }
+  function altRoutes() {
+    const goalKey = Object.keys(GOAL)[0], goalVal = GOAL[goalKey];
+    const finals = S.actions.filter(a => !a.off && a.eff[goalKey] === goalVal);
+    const best = S.res.ok ? S.res.plan[S.res.plan.length - 1] : null;
+    return finals.map(a => {
+      const others = S.actions.map(x => x === a ? x : (x.eff[goalKey] === goalVal ? Object.assign({}, x, { off: true }) : x));
+      const r = Core.plan(S.world, GOAL, others);
+      return { name: a.name, ok: r.ok, plan: r.ok ? r.plan : null, cost: r.ok ? r.cost : null, best: a.name === best };
+    }).sort((x, y) => (x.ok ? x.cost : 1e9) - (y.ok ? y.cost : 1e9));
+  }
+
+  /* ---------- arama ağacı ---------- */
+  function searchState(k) {
+    const ev = S.res.events, shown = new Set(), states = {}, S2 = {};
+    let cur = null;
+    S.res.nodes.forEach(n => S2[n.id] = 'hidden');
+    for (let i = 0; i < k; i++) {
+      const e = ev[i];
+      if (e.t === 'start') { S2[e.node] = 'open'; shown.add(e.node); cur = e.node; }
+      if (e.t === 'add') { S2[e.node] = 'open'; shown.add(e.node); cur = e.node; }
+      if (e.t === 'expand') { S2[e.node] = 'closed'; cur = e.node; }
+      if (e.t === 'done') { S2[e.node] = 'goal'; cur = e.node; }
+    }
+    return { S2, shown, cur };
+  }
+  function svgTree() {
+    const { S2, shown, cur } = searchState(S.search.step);
+    const vis = S.res.nodes.filter(n => shown.has(n.id));
+    const svg = document.createElementNS(NS, 'svg'); svg.id = 'tree';
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Arama ağacı');
+    if (!vis.length) { svg.setAttribute('viewBox', '0 0 800 120'); const t = el('text', { x: 400, y: 66, 'text-anchor': 'middle', fill: '#5B6B7A', 'font-size': 15, 'font-family': 'Open Sans' }, svg); t.textContent = 'Aramayı başlatmak için ileri ya da Oynat.'; return svg; }
+    const byDepth = {};
+    vis.forEach(n => { const d = n.seq.length; (byDepth[d] = byDepth[d] || []).push(n); });
+    const depths = Object.keys(byDepth).map(Number).sort((a, b) => a - b);
+    const maxRow = Math.max(...depths.map(d => byDepth[d].length));
+    const nw = 148, nh = 52, gx = 26, gy = 80;
+    const width = Math.max(760, maxRow * (nw + gx) + 40), height = depths.length * gy + nh + 34;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.style.minWidth = Math.round(width * 0.7) + 'px';
+    const pos = {};
+    depths.forEach((d, di) => {
+      const row = byDepth[d], total = row.length * nw + (row.length - 1) * gx, x0 = (width - total) / 2;
+      row.forEach((n, i) => pos[n.id] = { x: x0 + i * (nw + gx), y: 20 + di * gy });
+    });
+    const gE = el('g', {}, svg), gN = el('g', {}, svg);
+    vis.forEach(n => {
+      if (n.parent < 0 || !pos[n.parent]) return;
+      const p = pos[n.parent], c = pos[n.id];
+      el('line', { x1: p.x + nw / 2, y1: p.y + nh, x2: c.x + nw / 2, y2: c.y, stroke: '#9FB0BF', 'stroke-width': 1.6 }, gE);
+      const t = el('text', { x: c.x + nw / 2, y: c.y - 6, 'font-size': 11, fill: '#1E2B38', 'font-family': 'Fira Code', 'text-anchor': 'middle', 'paint-order': 'stroke', stroke: '#fff', 'stroke-width': '4px', 'stroke-linejoin': 'round' }, gE);
+      t.textContent = n.via;
+    });
+    vis.forEach(n => {
+      const { x, y } = pos[n.id], st = S2[n.id], isCur = n.id === cur;
+      const fill = st === 'goal' ? '#447099' : st === 'closed' ? '#EEF3F7' : '#fff';
+      const stroke = st === 'goal' ? '#447099' : isCur ? '#FF6F20' : '#1E2B38';
+      el('rect', { x, y, width: nw, height: nh, rx: 6, fill, stroke, 'stroke-width': isCur ? 3.5 : 1.6 }, gN);
+      const label = n.conds.length ? n.conds.map(nice).join(', ') : 'koşul kalmadı';
+      const t1 = el('text', { x: x + 8, y: y + 19, 'font-size': 11, fill: st === 'goal' ? '#fff' : '#1E2B38', 'font-family': 'Fira Code' }, gN);
+      t1.textContent = label.length > 24 ? label.slice(0, 23) + '…' : label;
+      const ttl = el('title', {}, t1); ttl.textContent = label;
+      const t2 = el('text', { x: x + 8, y: y + 38, 'font-size': 12, fill: st === 'goal' ? '#fff' : '#5B6B7A', 'font-family': 'Fira Code', 'font-weight': 600 }, gN);
+      t2.textContent = `G ${n.g}  H ${n.h}  F ${n.f}`;
+    });
+    return svg;
+  }
+  function openTable() {
+    const { S2, shown } = searchState(S.search.step);
+    const rows = S.res.nodes.filter(n => shown.has(n.id));
+    const t = h('table', { cls: 't', style: 'margin-top:14px' },
+      h('tr', {}, h('th', {}, 'Karşılanmamış koşullar'), h('th', {}, 'G'), h('th', {}, 'H'), h('th', {}, 'F'), h('th', {}, 'Durum')));
+    rows.sort((a, b) => (S2[a.id] === 'open' ? 0 : 1) - (S2[b.id] === 'open' ? 0 : 1) || a.f - b.f || a.g - b.g);
+    rows.slice(0, 12).forEach(n => {
+      const st = S2[n.id];
+      t.appendChild(h('tr', { cls: st === 'closed' ? 'closed' : (st === 'goal' ? 'cur' : '') },
+        h('td', { cls: 'cond' }, n.conds.length ? n.conds.map(nice).join(', ') : 'koşul kalmadı'),
+        h('td', { cls: 'n' }, String(n.g)), h('td', { cls: 'n' }, String(n.h)), h('td', { cls: 'n' }, String(n.f)),
+        h('td', {}, st === 'open' ? 'açık listede' : st === 'goal' ? 'hedef' : 'açıldı')));
+    });
+    return t;
+  }
+  function stepTo(k) { S.search.step = Math.max(0, Math.min(k, S.res.events.length)); renderStage(); renderSide(); }
+  function play() {
+    if (S.search.timer) { stopPlay(); return; }
+    if (S.search.step >= S.res.events.length) stepTo(0);
+    const b = $('sPlay'); if (b) b.textContent = 'Duraklat';
+    const tick = () => { stepTo(S.search.step + 1); if (S.search.step < S.res.events.length) S.search.timer = setTimeout(tick, 700); else stopPlay(); };
+    S.search.timer = setTimeout(tick, 250);
+  }
+  function stopPlay() { if (S.search.timer) { clearTimeout(S.search.timer); S.search.timer = null; } const b = $('sPlay'); if (b) b.textContent = 'Oynat'; }
+
+  /* ---------- yürüt ---------- */
+  function startRun() {
+    S.run = { world: Object.assign({}, S.world), plan: S.res.ok ? S.res.plan.slice() : null, idx: 0, log: [], done: false, replans: 0 };
+    if (S.run.plan) S.run.log.push({ t: 'Plan üretildi: ' + S.run.plan.join(' → ') });
+    renderStage(); renderSide();
+  }
+  function runStep() {
+    const R = S.run;
+    if (!R.plan || R.done) return;
+    const name = R.plan[R.idx];
+    const res = Core.apply(R.world, S.actions, name);
+    if (!res.ok) {
+      R.log.push({ t: name + ' geçersiz: ' + res.why + ' sağlanmıyor. Yeniden planlanıyor.', hit: true });
+      replan(); return;
+    }
+    R.world = res.world;
+    R.log.push({ t: name + ' uygulandı → ' + Object.keys(S.actions.find(a => a.name === name).eff).join(', ') });
+    R.idx++;
+    if (Core.satisfied(R.world, GOAL)) { R.done = true; R.log.push({ t: 'Hedefe ulaşıldı.', hit: true }); }
+    else if (R.idx >= R.plan.length) { R.log.push({ t: 'Plan bitti ama hedef sağlanmadı. Yeniden planlanıyor.', hit: true }); replan(); }
+    renderStage(); renderSide();
+  }
+  function replan() {
+    const R = S.run;
+    const r = Core.plan(R.world, GOAL, S.actions);
+    R.replans++;
+    if (!r.ok) { R.plan = null; R.done = true; R.log.push({ t: 'Yeni plan bulunamadı.', hit: true }); }
+    else { R.plan = r.plan.slice(); R.idx = 0; R.log.push({ t: 'Yeni plan: ' + r.plan.join(' → ') + ' (maliyet ' + r.cost + ')', hit: true }); }
+    renderStage(); renderSide();
+  }
+  function disrupt(k) {
+    const R = S.run;
+    R.world[k] = !R.world[k];
+    R.log.push({ t: 'Dünya değişti: ' + k + ' → ' + (R.world[k] ? 'Evet' : 'Hayır'), hit: true });
+    if (R.done) { renderStage(); renderSide(); return; }
+    if (!R.plan) { replan(); return; }
+    const v = Core.stillValid(R.world, S.actions, R.plan, R.idx, GOAL);
+    if (v.ok) { R.log.push({ t: 'Kalan plan hâlâ geçerli, devam.' }); renderStage(); renderSide(); }
+    else {
+      R.log.push({ t: v.at ? ('Kalan plan bozuldu: ' + v.at + ' için ' + v.why + ' sağlanmayacak.') : 'Kalan plan artık hedefe götürmüyor.', hit: true });
+      replan();
+    }
+  }
+  function renderRun(st) {
+    const R = S.run;
+    if (!R.world) {
+      st.appendChild(h('div', { cls: 'panelbox' }, 'Planı adım adım uygula. Ortada dünyayı değiştirirsen ajan planı atar ve yenisini üretir.'));
+      st.appendChild(h('div', { cls: 'btnrow', style: 'margin-top:12px' }, h('button', { cls: 'btn accent', onclick: startRun }, 'Yürütmeyi başlat')));
+      return;
+    }
+    st.appendChild(h('h2', {}, R.done ? 'Bitti' : 'Sıradaki adım', h('span', { cls: 'hint' }, R.plan ? ('adım ' + Math.min(R.idx + 1, R.plan.length) + ' / ' + R.plan.length + (R.replans ? ' · ' + R.replans + ' kez yeniden planlandı' : '')) : 'plan yok')));
+    if (R.plan) st.appendChild(planStrip(R.plan, { idx: R.done ? R.plan.length : R.idx }));
+    else st.appendChild(h('div', { cls: 'fail' }, 'Plan yok.'));
+    st.appendChild(h('div', { cls: 'btnrow', style: 'margin:14px 0 4px' },
+      h('button', { cls: 'btn primary', id: 'runStep', disabled: (R.done || !R.plan) ? 'disabled' : false, onclick: runStep }, 'Adımı uygula'),
+      h('button', { cls: 'btn', onclick: startRun }, 'Baştan başlat')));
+    st.appendChild(h('h2', { style: 'margin-top:18px' }, 'Dünyayı bozarak dene', h('span', { cls: 'hint' }, 'Plan ortasında bir koşulu değiştir')));
+    const row = h('div', { cls: 'btnrow' });
+    Object.keys(R.world).forEach(k => row.appendChild(h('button', { cls: 'btn sm', 'data-dis': k, onclick: () => disrupt(k) }, k + ': ' + (R.world[k] ? 'Evet' : 'Hayır'))));
+    st.appendChild(row);
+    const log = h('ol', { cls: 'log', style: 'margin-top:14px' });
+    R.log.forEach((l, i) => log.appendChild(h('li', { cls: (l.hit ? 'hit ' : '') + (i === R.log.length - 1 ? 'cur' : '') }, l.t)));
+    st.appendChild(log);
+  }
+
+  /* ---------- sağ panel ---------- */
+  function renderSide() {
+    const side = $('side'); side.innerHTML = '';
+    const r = S.res;
+    if (S.tab === 'search') {
+      $('sideTitle').textContent = 'Arama günlüğü';
+      const list = h('ol', { cls: 'log' });
+      const lines = [];
+      for (let i = 0; i < S.search.step; i++) {
+        const e = r.events[i], n = id => r.nodes[id];
+        if (e.t === 'start') lines.push({ t: 'Hedeften başla: ' + (n(e.node).conds.map(nice).join(', ') || 'koşul yok') });
+        if (e.t === 'expand') { const x = n(e.node); lines.push({ t: 'Aç: {' + (x.conds.map(nice).join(', ') || '—') + '} · F=' + x.f }); }
+        if (e.t === 'add') { const x = n(e.node); lines.push({ t: '  + ' + e.action + ' (maliyet ' + e.cost + ') → G=' + x.g + ' H=' + x.h + ' F=' + x.f }); }
+        if (e.t === 'skip') lines.push({ t: '  ' + e.action + ': daha ucuzu zaten bulunmuş, atlandı' });
+        if (e.t === 'done') lines.push({ t: 'Tüm koşullar karşılandı. Plan: ' + r.plan.join(' → '), hit: true });
+        if (e.t === 'fail') lines.push({ t: 'Açık liste boşaldı: plan yok.', hit: true });
+        if (e.t === 'abort') lines.push({ t: 'Arama sınırı aşıldı.', hit: true });
+      }
+      if (!lines.length) lines.push({ t: 'Henüz adım atılmadı.' });
+      lines.forEach((l, i) => list.appendChild(h('li', { cls: (l.hit ? 'hit ' : '') + (i === lines.length - 1 ? 'cur' : '') }, l.t)));
+      side.appendChild(list);
+      side.appendChild(h('p', { cls: 'note', style: 'margin-top:10px' },
+        'Düğüm = hâlâ karşılanmamış koşullar. Kenar = o koşulu sağlayan eylem. H = kalan koşul sayısı.'));
+      return;
+    }
+    if (S.tab === 'run') {
+      $('sideTitle').textContent = 'Yeniden planlama';
+      side.appendChild(h('p', { cls: 'note' }, 'GOAP ajanı planı baştan sona körü körüne uygulamaz. Her adımda önkoşul hâlâ sağlanıyor mu diye bakar; sağlanmıyorsa planı atıp yenisini üretir.'));
+      side.appendChild(h('div', { cls: 'panelbox', style: 'margin-top:12px' },
+        h('b', {}, 'Dene: '), 'Yürütmeyi başlat, bir iki adım uygula, sonra Ateş_Var değerini Hayır yap. Ajan ateşi yeniden yakmak için plan üretecek.'));
+      return;
+    }
+    $('sideTitle').textContent = 'Ne oldu?';
+    if (S.lastWhy) side.appendChild(h('div', { cls: 'panelbox' }, S.lastWhy));
+    const t = h('table', { cls: 't', style: 'margin-top:12px' },
+      h('tr', {}, h('th', {}, 'Ölçüm'), h('th', {}, 'Değer')),
+      h('tr', {}, h('td', {}, 'Plan uzunluğu'), h('td', { cls: 'n' }, r.ok ? String(r.plan.length) : '—')),
+      h('tr', {}, h('td', {}, 'Toplam maliyet'), h('td', { cls: 'n' }, r.ok ? String(r.cost) : '—')),
+      h('tr', {}, h('td', {}, 'Açılan düğüm'), h('td', { cls: 'n' }, String(r.expanded))),
+      h('tr', {}, h('td', {}, 'Keşfedilen düğüm'), h('td', { cls: 'n' }, String(r.nodes.length))),
+      h('tr', {}, h('td', {}, 'Açık eylem'), h('td', { cls: 'n' }, String(S.actions.filter(a => !a.off).length))));
+    side.appendChild(t);
+    side.appendChild(h('p', { cls: 'note', style: 'margin-top:12px' },
+      'Planlayıcı hedeften geriye doğru A* çalıştırır: düğümler dünya durumları, kenarlar eylemlerdir. F = G + H.'));
+    side.appendChild(h('div', { cls: 'panelbox', style: 'margin-top:12px' },
+      h('b', {}, 'Dene: '), 'Çalı_Var değerini Evet yap. Beş adımlık pişirme zinciri yerine tek adımlık Meyve Ye planı çıkar. Sonra Meyve Ye maliyetini yükselt; belli bir noktadan sonra zincir yeniden kazanır.'));
+  }
+
+  /* ---------- eylem ekleme ---------- */
+  const parse = s => {
+    const o = {};
+    s.split(',').map(x => x.trim()).filter(Boolean).forEach(x => {
+      const neg = /^(!|değil\s)/.test(x);
+      const k = x.replace(/^!/, '').trim().replace(/\s+/g, '_');
+      if (k) o[k] = !neg;
+    });
+    return o;
+  };
+  $('addAct').addEventListener('click', () => { $('fErr').textContent = ''; $('dlg').showModal(); $('fName').focus(); });
+  $('fCancel').addEventListener('click', () => $('dlg').close());
+  $('fOk').addEventListener('click', () => {
+    const name = $('fName').value.trim(), pre = parse($('fPre').value), eff = parse($('fEff').value), cost = Math.max(1, Math.min(20, +$('fCost').value || 1));
+    if (!name) return void ($('fErr').textContent = 'Ad gerekli.');
+    if (S.actions.some(a => a.name === name)) return void ($('fErr').textContent = 'Bu adda bir eylem zaten var.');
+    if (!Object.keys(eff).length) return void ($('fErr').textContent = 'En az bir etki gerekli.');
+    Object.keys(Object.assign({}, pre, eff)).forEach(k => { if (!(k in S.world)) S.world[k] = false; });
+    S.actions.push({ name, pre, eff, cost, custom: true });
+    $('dlg').close(); $('fName').value = ''; $('fPre').value = ''; $('fEff').value = ''; $('fCost').value = 3;
+    recompute('Eylem eklendi: ' + name);
+  });
+  $('resetAll').addEventListener('click', () => {
+    S.world = Object.assign({}, BASE_WORLD);
+    S.actions = BASE_ACTIONS.map(a => Object.assign({}, a, { pre: Object.assign({}, a.pre), eff: Object.assign({}, a.eff) }));
+    recompute('Başlangıç durumuna dönüldü.');
+  });
+  $('tabPlan').addEventListener('click', () => setTab('plan'));
+  $('tabSearch').addEventListener('click', () => setTab('search'));
+  $('tabRun').addEventListener('click', () => setTab('run'));
+  document.addEventListener('keydown', e => {
+    if (S.tab !== 'search' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight') { stopPlay(); stepTo(S.search.step + 1); }
+    if (e.key === 'ArrowLeft') { stopPlay(); stepTo(S.search.step - 1); }
+  });
+
+  recompute(null);
+  window.__goap = { S, Core, setTab, stepTo, recompute, startRun, runStep, disrupt };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evrimsel Algoritma Laboratuvarı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Open+Sans:wght@400;600;700&family=Roboto+Slab:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#447099; --blue-l:#e6eef6; --orange:#FF6F20; --orange-l:#fff0e6; --pink:#FF3D7F; --pink-l:#ffe8f0;
+  --ink:#1f2933; --muted:#5f6b78; --line:#d9e1e8; --bg:#f5f7fa; --card:#ffffff; --ok:#2e9e6a; --bad:#c9364f;
+  --ground:#b5652b; --sky:#d8ecfb;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Open Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+header{background:var(--blue);color:#fff;padding:14px 20px;border-bottom:4px solid var(--orange)}
+header h1{font-family:'Roboto Slab',serif;margin:0;font-size:22px}
+header p{margin:4px 0 0;opacity:.9;font-size:13px}
+.wrap{display:grid;grid-template-columns:360px 1fr;gap:14px;padding:14px;max-width:1500px;margin:0 auto}
+@media (max-width:980px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.card h2{font-family:'Roboto Slab',serif;font-size:15px;margin:0 0 8px;color:var(--blue)}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+label span.v{font-family:'Fira Code',monospace;color:var(--orange);min-width:38px;text-align:right}
+input[type=range]{flex:1}
+select,input[type=number]{font-family:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--line);border-radius:6px}
+input[type=number]{width:80px}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+button{font-family:inherit;font-weight:600;font-size:13px;border:0;border-radius:6px;padding:7px 11px;cursor:pointer;background:var(--blue);color:#fff}
+button.alt{background:var(--orange)}
+button.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+button:disabled{opacity:.4;cursor:default}
+.formula{font-family:'Fira Code',monospace;font-size:12.5px;background:var(--blue-l);border-radius:6px;padding:8px;margin-top:6px}
+.pseudo{font-family:'Fira Code',monospace;font-size:12.5px}
+.pseudo div{padding:3px 6px;border-left:3px solid transparent;border-radius:3px;white-space:pre}
+.pseudo div.on{background:var(--orange-l);border-left-color:var(--orange);font-weight:600}
+.pseudo .n{color:var(--muted);display:inline-block;width:20px}
+.pseudo .kw{color:var(--pink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--blue-l);border-radius:8px;padding:6px 8px;text-align:center}
+.stat b{display:block;font-family:'Fira Code',monospace;font-size:18px;color:var(--blue)}
+.stat small{color:var(--muted)}
+#explain{background:var(--orange-l);border-left:4px solid var(--orange);border-radius:6px;padding:10px 12px;min-height:60px}
+#explain code,.mono{font-family:'Fira Code',monospace;font-size:12.5px}
+#explain ul{margin:6px 0 0;padding-left:18px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:center;vertical-align:middle}
+th{background:var(--blue-l);color:var(--blue);font-weight:700;font-size:12px}
+tr.best td{background:#eaf7f0}
+tr.kept td{background:#eaf7f0}
+tr.dropped td{opacity:.45;text-decoration:line-through}
+tr.dropped td.bitsTd,tr.dropped td.lvlTd{text-decoration:none}
+.bits{display:inline-flex;gap:2px}
+.bit{width:17px;height:20px;line-height:20px;font-family:'Fira Code',monospace;font-size:12px;border-radius:3px;background:#eef1f4;color:var(--ink)}
+.bit.one{background:#3b4652;color:#fff}
+.bit.fromA{box-shadow:inset 0 -4px 0 var(--blue)}
+.bit.fromB{box-shadow:inset 0 -4px 0 var(--orange)}
+.bit.mut{outline:2px solid var(--pink);outline-offset:-1px}
+.cut{width:2px;background:var(--pink);margin:0 1px;border-radius:1px}
+.lvl{display:inline-flex;height:24px;border-radius:4px;overflow:hidden;background:var(--sky)}
+.cell{width:11px;height:24px;position:relative}
+.cell.g{background:linear-gradient(var(--sky) 0 55%,#5fae4a 55% 65%,var(--ground) 65%)}
+.cell.h{background:var(--sky)}
+.cell.h.adj{background:repeating-linear-gradient(45deg,#ffd6e2 0 3px,var(--sky) 3px 6px)}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:10px}
+.tag.P{background:var(--blue-l);color:var(--blue)}
+.tag.Y{background:var(--orange-l);color:var(--orange)}
+.tag.E{background:var(--pink-l);color:var(--pink)}
+.legend{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.legend i{display:inline-block;width:14px;height:10px;vertical-align:middle;margin-right:4px;border-radius:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:1250px){.two{grid-template-columns:1fr}}
+canvas{width:100%;display:block}
+#selInfo{font-size:13px}
+.det{font-size:12.5px;max-height:260px;overflow:auto}
+.det div{padding:3px 0;border-bottom:1px dashed var(--line)}
+.scroll{overflow-x:auto}
+.note{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Evrimsel Algoritma (EA) Laboratuvarı — Platform Seviyesi Evrimi</h1>
+  <p>Genotip: 12 bitlik dize (1 = boşluk/çukur, 0 = zemin). Sözde kodu satır satır yürütün; her adımın somut sayısal açıklaması sağda görünür.</p>
+</header>
+
+<div class="wrap">
+<aside>
+  <div class="card">
+    <h2>Problem ve uygunluk fonksiyonu</h2>
+    <div class="note">Hedef: tam <b>4 çukur</b> içeren ve iki çukuru <b>yan yana</b> olmayan (atlanabilir) 12 sütunluk bir bölüm.</div>
+    <div class="formula">g = 1 sayısı (çukur)<br>a = yan yana "11" çifti sayısı<br>f = max(0, 12 − |g − 4| − 2·a)<br>f<sub>maks</sub> = 12  (g = 4, a = 0)</div>
+  </div>
+
+  <div class="card">
+    <h2>Parametreler</h2>
+    <label>Popülasyon büyüklüğü μ <span class="v" id="vMu"></span></label><input type="range" id="mu" min="4" max="16" step="2" value="8">
+    <label>Seçilim yöntemi
+      <select id="sel"><option value="tour">Turnuva seçilimi</option><option value="roul">Rulet tekerleği seçilimi</option></select></label>
+    <label>Turnuva boyutu k <span class="v" id="vK"></span></label><input type="range" id="k" min="2" max="5" value="2">
+    <label>Çaprazlama olasılığı p<sub>c</sub> <span class="v" id="vPc"></span></label><input type="range" id="pc" min="0" max="1" step="0.05" value="0.9">
+    <label>Bit başına mutasyon p<sub>m</sub> <span class="v" id="vPm"></span></label><input type="range" id="pm" min="0" max="0.3" step="0.01" value="0.08">
+    <label>Elde tutma (satır 6)
+      <select id="surv"><option value="plus">(μ+λ): en iyi μ</option><option value="gen">Nesil değişimi + elitizm</option></select></label>
+    <label>Elit sayısı e <span class="v" id="vE"></span></label><input type="range" id="el" min="0" max="4" value="2">
+    <label>Maks. nesil G <input type="number" id="maxG" min="1" max="500" value="30"></label>
+    <label>Hedef uygunluk <input type="number" id="target" min="1" max="12" value="12"></label>
+    <label>Rastgele tohum (seed) <input type="number" id="seed" value="502"></label>
+    <div class="btns"><button class="ghost" id="bReset">↺ Sıfırla (yeni ayarlar)</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Sözde kod</h2>
+    <div class="pseudo" id="pseudo"></div>
+    <div class="btns">
+      <button id="bStep">▶ Adım (1 satır)</button>
+      <button id="bGen">⏭ 1 nesil</button>
+      <button class="alt" id="bPlay">⏵ Oynat</button>
+      <button class="ghost" id="bEnd">⏩ Sona kadar</button>
+    </div>
+    <label>Oynatma hızı <span class="v" id="vSp"></span></label><input type="range" id="speed" min="1" max="10" value="5">
+  </div>
+</aside>
+
+<main>
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><b id="sGen">0</b><small>Nesil t</small></div>
+      <div class="stat"><b id="sBest">–</b><small>En iyi f</small></div>
+      <div class="stat"><b id="sAvg">–</b><small>Ortalama f</small></div>
+      <div class="stat"><b id="sEval">0</b><small>Değerlendirme sayısı</small></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="exTitle">Şu anki adım</h2>
+    <div id="explain">“Adım” düğmesiyle 1. satırdan başlayın.</div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2 id="popTitle">Popülasyon</h2>
+      <div class="scroll" id="popTable"></div>
+      <div class="legend">
+        <span><i style="background:#3b4652"></i>1 = çukur</span>
+        <span><i style="background:repeating-linear-gradient(45deg,#ffd6e2 0 3px,#d8ecfb 3px 6px)"></i>yan yana çukur (ceza)</span>
+        <span><i style="background:#eaf7f0;border:1px solid #9bd3b7"></i>en iyi / tutulan</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Yavrular (λ) — varyasyon operatörleri</h2>
+      <div class="scroll" id="offTable"><span class="note">Satır 4 çalıştığında burada görünür.</span></div>
+      <div class="legend">
+        <span><i style="background:#eef1f4;box-shadow:inset 0 -4px 0 #447099"></i>1. ebeveynden</span>
+        <span><i style="background:#eef1f4;box-shadow:inset 0 -4px 0 #FF6F20"></i>2. ebeveynden</span>
+        <span><i style="background:#eef1f4;outline:2px solid #FF3D7F;outline-offset:-1px"></i>mutasyonla değişen bit</span>
+        <span><i style="background:#FF3D7F;width:3px"></i>kesme noktası</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2 id="selTitle">Seçilim</h2>
+      <canvas id="wheel" height="260"></canvas>
+      <div id="selInfo" class="note"></div>
+    </div>
+    <div class="card">
+      <h2>Uygunluğun nesiller boyunca değişimi</h2>
+      <canvas id="chart" height="260"></canvas>
+      <div class="legend"><span><i style="background:#FF6F20"></i>en iyi f</span><span><i style="background:#447099"></i>ortalama f</span><span><i style="background:#FF3D7F"></i>en kötü f</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Eşleşme günlüğü (satır 4 ayrıntısı)</h2>
+    <div class="det" id="details"><span class="note">Henüz varyasyon yapılmadı.</span></div>
+  </div>
+</main>
+</div>
+
+<script>
+// ==CORE_START==
+const L = 12, T = 4, FMAX = 12;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function countGaps(g){let s=0;for(const b of g)s+=b;return s;}
+function countAdj(g){let a=0;for(let i=0;i<g.length-1;i++)if(g[i]&&g[i+1])a++;return a;}
+function fitness(g){return Math.max(0, FMAX - Math.abs(countGaps(g)-T) - 2*countAdj(g));}
+function randomGenome(rng){const g=[];for(let i=0;i<L;i++)g.push(rng()<0.5?1:0);return g;}
+
+function tournament(pop,k,rng){
+  const cands=[];for(let i=0;i<k;i++)cands.push(Math.floor(rng()*pop.length));
+  let w=cands[0];for(const c of cands)if(pop[c].f>pop[w].f)w=c;
+  return {type:'tour',winner:w,cands};
+}
+function roulette(pop,rng){
+  const tot=pop.reduce((s,p)=>s+p.f,0);const r=rng();
+  if(tot===0)return {type:'roul',winner:Math.floor(r*pop.length),r,tot};
+  let acc=0,lastPos=0;
+  for(let i=0;i<pop.length;i++){if(pop[i].f>0)lastPos=i;acc+=pop[i].f/tot;if(pop[i].f>0&&r<acc)return {type:'roul',winner:i,r,tot};}
+  return {type:'roul',winner:lastPos,r,tot};
+}
+function crossover(a,b,pc,rng){
+  if(rng()<pc){const cut=1+Math.floor(rng()*(L-1));
+    return {c1:a.slice(0,cut).concat(b.slice(cut)),c2:b.slice(0,cut).concat(a.slice(cut)),cut};}
+  return {c1:a.slice(),c2:b.slice(),cut:null};
+}
+function mutate(g,pm,rng){const out=g.slice(),flips=[];for(let i=0;i<L;i++)if(rng()<pm){out[i]^=1;flips.push(i);}return {g:out,flips};}
+
+// Satır 4: λ = μ yavru üret
+function vary(pop,P,rng){
+  const off=[],log=[];
+  while(off.length<pop.length){
+    const s1=P.sel==='tour'?tournament(pop,P.k,rng):roulette(pop,rng);
+    const s2=P.sel==='tour'?tournament(pop,P.k,rng):roulette(pop,rng);
+    const x=crossover(pop[s1.winner].g,pop[s2.winner].g,P.pc,rng);
+    const m1=mutate(x.c1,P.pm,rng),m2=mutate(x.c2,P.pm,rng);
+    const pair=[[m1,s1.winner,s2.winner],[m2,s2.winner,s1.winner]];
+    for(const [m,pa,pb] of pair){
+      if(off.length>=pop.length)break;
+      off.push({g:m.g,f:null,pa,pb,cut:x.cut,flips:m.flips,firstFromA:true});
+    }
+    log.push({s1,s2,cut:x.cut,flips:[m1.flips,m2.flips]});
+  }
+  return {off,log};
+}
+// Satır 6: elde tutma
+function survive(pop,off,P){
+  const mu=pop.length;
+  const pool=pop.map((p,i)=>({g:p.g,f:p.f,src:'P',idx:i})).concat(off.map((o,i)=>({g:o.g,f:o.f,src:'Y',idx:i})));
+  const keep=new Set(),elite=new Set();
+  if(P.surv==='plus'){
+    const order=pool.map((_,i)=>i).sort((x,y)=>pool[y].f-pool[x].f||x-y);
+    order.slice(0,mu).forEach(i=>keep.add(i));
+  }else{
+    const e=Math.min(P.e,mu);
+    const pOrder=pop.map((_,i)=>i).sort((x,y)=>pop[y].f-pop[x].f||x-y);
+    pOrder.slice(0,e).forEach(i=>{keep.add(i);elite.add(i);});
+    for(let i=0;i<mu-e;i++)keep.add(mu+i);
+  }
+  const next=[...keep].sort((x,y)=>pool[y].f-pool[x].f||x-y).map(i=>({g:pool[i].g.slice(),f:pool[i].f}));
+  return {pool,keep,elite,next};
+}
+function stats(pop){const fs=pop.map(p=>p.f);return {best:Math.max(...fs),avg:fs.reduce((a,b)=>a+b,0)/fs.length,worst:Math.min(...fs)};}
+// ==CORE_END==
+
+// ---------- Durum makinesi ----------
+const $=id=>document.getElementById(id);
+const PSEUDO=[
+ ['1','Genotip temsilindeki bireylerden oluşan bir popülasyon başlat (ilklendir)'],
+ ['2','Popülasyondaki bireyleri uygunluk fonksiyonunu kullanarak değerlendir'],
+ ['3','<span class="kw">while</span> durdurma koşulu karşılanmadığı sürece <span class="kw">do</span>'],
+ ['4','    Popülasyon üzerinde varyasyonlar (çeşitlemeler) gerçekleştir'],
+ ['5','    Güncellenmiş bireyleri uygunluk fonksiyonuyla değerlendir'],
+ ['6','    Popülasyonda kalacak belirli sayıda üyeyi seç'],
+ ['7','<span class="kw">end while</span>'],
+ ['8','<span class="kw">return</span> Popülasyonu döndür']];
+let S,P,timer=null;
+
+function readParams(){
+  return {mu:+$('mu').value,sel:$('sel').value,k:+$('k').value,pc:+$('pc').value,pm:+$('pm').value,
+    surv:$('surv').value,e:+$('el').value,maxG:Math.max(1,+$('maxG').value||1),
+    target:Math.min(FMAX,Math.max(1,+$('target').value||FMAX)),seed:+$('seed').value||0};
+}
+function syncLabels(){
+  $('vMu').textContent=$('mu').value;$('vK').textContent=$('k').value;
+  $('vPc').textContent=(+$('pc').value).toFixed(2);$('vPm').textContent=(+$('pm').value).toFixed(2);
+  $('vE').textContent=$('el').value;$('vSp').textContent=$('speed').value;
+  $('k').disabled=$('sel').value!=='tour';$('el').disabled=$('surv').value!=='gen';
+}
+function reset(){
+  stop();P=readParams();
+  S={rng:mulberry32(P.seed),pop:[],off:[],log:[],sv:null,gen:0,line:0,next:1,evals:0,hist:[],done:false,lastSel:null};
+  $('explain').innerHTML='“Adım” düğmesiyle 1. satırdan başlayın.';$('exTitle').textContent='Şu anki adım';
+  $('offTable').innerHTML='<span class="note">Satır 4 çalıştığında burada görünür.</span>';
+  $('details').innerHTML='<span class="note">Henüz varyasyon yapılmadı.</span>';
+  renderAll();
+}
+
+function step(){
+  if(S.done)return;
+  const ln=S.next;S.line=ln;
+  if(ln===1){S.pop=[];for(let i=0;i<P.mu;i++)S.pop.push({g:randomGenome(S.rng),f:null});S.next=2;}
+  else if(ln===2){S.pop.forEach(p=>p.f=fitness(p.g));S.evals+=S.pop.length;S.hist.push(stats(S.pop));S.next=3;}
+  else if(ln===3){const st=stats(S.pop);S.stopNow=(S.gen>=P.maxG||st.best>=P.target);S.next=S.stopNow?8:4;}
+  else if(ln===4){const r=vary(S.pop,P,S.rng);S.off=r.off;S.log=r.log;S.sv=null;
+    const l=r.log[r.log.length-1];S.lastSel=l.s1;S.next=5;}
+  else if(ln===5){S.off.forEach(o=>o.f=fitness(o.g));S.evals+=S.off.length;S.next=6;}
+  else if(ln===6){S.sv=survive(S.pop,S.off,P);S.next=7;}
+  else if(ln===7){S.prevAvg=stats(S.pop).avg;S.pop=S.sv.next;S.gen++;S.hist.push(stats(S.pop));S.off=[];S.next=3;}
+  else if(ln===8){S.done=true;stop();}
+  renderAll();
+}
+function runGen(){if(S.done)return;let guard=0;do{step();guard++;}while(!S.done&&S.line!==7&&guard<10);}
+function runEnd(){stop();let guard=0;while(!S.done&&guard<20000){step();guard++;}}
+function play(){if(timer){stop();return;}$('bPlay').textContent='⏸ Duraklat';
+  const tick=()=>{if(S.done){stop();return;}step();timer=setTimeout(tick,1100-(+$('speed').value)*100);};tick();}
+function stop(){if(timer)clearTimeout(timer);timer=null;$('bPlay').textContent='⏵ Oynat';}
+
+// ---------- Görselleştirme ----------
+function bitsHTML(g,o){o=o||{};let h='<span class="bits">';
+  for(let i=0;i<g.length;i++){
+    if(o.cut!=null&&i===o.cut)h+='<span class="cut"></span>';
+    let c='bit'+(g[i]?' one':'');
+    if(o.cut!=null)c+=i<o.cut?' fromA':' fromB';else if(o.copy)c+=' fromA';
+    if(o.flips&&o.flips.includes(i))c+=' mut';
+    h+=`<span class="${c}">${g[i]}</span>`;}
+  return h+'</span>';}
+function lvlHTML(g){let h='<span class="lvl">';
+  for(let i=0;i<g.length;i++){const adj=g[i]&&((i>0&&g[i-1])||(i<g.length-1&&g[i+1]));
+    h+=`<span class="cell ${g[i]?'h':'g'}${adj?' adj':''}"></span>`;}
+  return h+'</span>';}
+function fCell(p){if(p.f==null)return '<td>?</td><td>?</td><td><b>?</b></td>';
+  const g=countGaps(p.g),a=countAdj(p.g);return `<td>${g}</td><td>${a}</td><td><b>${p.f}</b></td>`;}
+
+function renderPop(){
+  const t=$('popTable');
+  if(S.line===6&&S.sv){
+    $('popTitle').textContent='Elde tutma havuzu (ebeveyn + yavru)';
+    const sv=S.sv;let h='<table><tr><th>Kaynak</th><th>Genotip</th><th>Seviye</th><th>g</th><th>a</th><th>f</th><th>Durum</th></tr>';
+    sv.pool.forEach((p,i)=>{const k=sv.keep.has(i);const tag=sv.elite.has(i)?'<span class="tag E">elit</span>':'';
+      h+=`<tr class="${k?'kept':'dropped'}"><td><span class="tag ${p.src}">${p.src}${p.idx+1}</span>${tag}</td><td class="bitsTd">${bitsHTML(p.g)}</td><td class="lvlTd">${lvlHTML(p.g)}</td>${fCell(p)}<td>${k?'✔ kalır':'✘ elenir'}</td></tr>`;});
+    t.innerHTML=h+'</table>';return;}
+  $('popTitle').textContent=`Popülasyon — nesil t = ${S.gen}`;
+  if(!S.pop.length){t.innerHTML='<span class="note">Henüz ilklendirilmedi.</span>';return;}
+  const best=S.pop[0].f==null?-1:Math.max(...S.pop.map(p=>p.f));
+  let h='<table><tr><th>#</th><th>Genotip</th><th>Fenotip (seviye)</th><th>g</th><th>a</th><th>f</th></tr>';
+  S.pop.forEach((p,i)=>{h+=`<tr class="${p.f===best?'best':''}"><td><span class="tag P">P${i+1}</span></td><td>${bitsHTML(p.g)}</td><td>${lvlHTML(p.g)}</td>${fCell(p)}</tr>`;});
+  t.innerHTML=h+'</table>';
+}
+function renderOff(){
+  if(!S.off.length)return; // önceki neslin yavruları bir sonraki satır 4'e kadar görünür kalır
+  let h='<table><tr><th>#</th><th>Ebeveynler</th><th>Genotip</th><th>Seviye</th><th>g</th><th>a</th><th>f</th></tr>';
+  S.off.forEach((o,i)=>{h+=`<tr><td><span class="tag Y">Y${i+1}</span></td><td class="mono">P${o.pa+1}×P${o.pb+1}</td><td>${bitsHTML(o.g,{cut:o.cut,flips:o.flips,copy:o.cut==null})}</td><td>${lvlHTML(o.g)}</td>${fCell(o)}</tr>`;});
+  $('offTable').innerHTML=h+'</table>';
+}
+function selText(s){
+  if(s.type==='tour')return `turnuva {${s.cands.map(c=>'P'+(c+1)+'(f='+S.pop[c].f+')').join(', ')}} → <b>P${s.winner+1}</b>`;
+  if(s.tot===0)return `rulet: Σf=0 → eşit olasılık, r=${s.r.toFixed(3)} → <b>P${s.winner+1}</b>`;
+  return `rulet: r=${s.r.toFixed(3)} (r·Σf=${(s.r*s.tot).toFixed(2)}) → <b>P${s.winner+1}</b>`;
+}
+function renderDetails(){
+  if(!S.log.length||S.line<4||S.line===3&&!S.off.length)return;
+  let h='';S.log.forEach((l,j)=>{
+    const c=l.cut==null?'çaprazlama yok (kopya)':`tek noktalı çaprazlama, kesme ${l.cut}. bitten sonra`;
+    const m=l.flips.map((f,q)=>`Y${2*j+q+1}: ${f.length?'{'+f.map(x=>x+1).join(',')+'}':'—'}`).join('; ');
+    h+=`<div><b>Eşleşme ${j+1}</b>: ${selText(l.s1)} &nbsp;|&nbsp; ${selText(l.s2)}<br>${c}; mutasyonla değişen bit(ler): ${m}</div>`;});
+  $('details').innerHTML=h;
+}
+function renderPseudo(){
+  $('pseudo').innerHTML=PSEUDO.map(([n,t])=>`<div class="${S.line===+n?'on':''}"><span class="n">${n}:</span>${t}</div>`).join('');
+}
+function renderStats(){
+  $('sGen').textContent=S.gen;$('sEval').textContent=S.evals;
+  if(S.pop.length&&S.pop[0].f!=null){const st=stats(S.pop);$('sBest').textContent=st.best;$('sAvg').textContent=st.avg.toFixed(2);}
+  else{$('sBest').textContent='–';$('sAvg').textContent='–';}
+}
+
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1;const w=cv.clientWidth,h=+cv.getAttribute('height');
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w,h};}
+const PAL=['#447099','#FF6F20','#FF3D7F','#2e9e6a','#7a5bb5','#d4a017','#3aa6b9','#b5652b','#6b7c8f','#e07a5f','#81b29a','#9d4edd','#ef476f','#118ab2','#06d6a0','#ffd166'];
+
+function renderWheel(){
+  const {ctx,w,h}=setupCanvas($('wheel'));ctx.clearRect(0,0,w,h);
+  const ready=S.pop.length&&S.pop[0].f!=null;
+  if(!ready){ctx.fillStyle='#5f6b78';ctx.font='13px Open Sans';ctx.fillText('Popülasyon değerlendirildiğinde (satır 2) seçilim olasılıkları burada görünür.',10,24);$('selInfo').innerHTML='';return;}
+  const pop=S.pop,tot=pop.reduce((s,p)=>s+p.f,0);
+  if(P.sel==='roul'){
+    $('selTitle').textContent='Seçilim — rulet tekerleği  pᵢ = fᵢ / Σf';
+    const cx=Math.min(w*0.32,135),cy=h/2,R=Math.min(cx-8,h/2-10);let a0=-Math.PI/2;
+    pop.forEach((p,i)=>{const fr=tot?p.f/tot:1/pop.length;const a1=a0+fr*2*Math.PI;
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a0,a1);ctx.closePath();ctx.fillStyle=PAL[i%PAL.length];ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+      if(fr>0.04){const am=(a0+a1)/2;ctx.fillStyle='#fff';ctx.font='bold 12px Open Sans';ctx.textAlign='center';ctx.fillText('P'+(i+1),cx+Math.cos(am)*R*0.68,cy+Math.sin(am)*R*0.68+4);}
+      a0=a1;});
+    const ls=S.line>=4&&S.log.length?S.log[0].s1:null;
+    if(ls&&ls.type==='roul'){const ang=-Math.PI/2+ls.r*2*Math.PI;ctx.strokeStyle='#1f2933';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang)*(R+6),cy+Math.sin(ang)*(R+6));ctx.stroke();}
+    ctx.textAlign='left';ctx.font='12px Fira Code';let y=16;const x0=cx+R+18;
+    pop.forEach((p,i)=>{ctx.fillStyle=PAL[i%PAL.length];ctx.fillRect(x0,y-9,10,10);ctx.fillStyle='#1f2933';
+      const pr=tot?p.f/tot:1/pop.length;ctx.fillText(`P${i+1}  f=${String(p.f).padStart(2)}  p=${pr.toFixed(3)}`,x0+14,y);y+=Math.min(22,(h-10)/pop.length);});
+    $('selInfo').innerHTML=`Σf = ${tot}. Örnek: P1'in seçilme olasılığı = ${pop[0].f}/${tot} = ${(tot?pop[0].f/tot:1/pop.length).toFixed(3)}. `+(ls&&ls.type==='roul'?`Siyah çizgi: 1. eşleşmenin 1. çekilişi (r = ${ls.r.toFixed(3)}).`:'');
+  }else{
+    $('selTitle').textContent=`Seçilim — turnuva (k = ${P.k})`;
+    // Kesin kazanma olasılığı: iadeli k çekiliş, eşitlikte ilk çekilen kazanır
+    const n=pop.length,probs=tourProbs(pop,P.k);
+    const bw=(w-50)/n,maxP=Math.max(...probs,1e-9);
+    ctx.font='11px Open Sans';ctx.textAlign='center';
+    pop.forEach((p,i)=>{const bh=(h-60)*probs[i]/maxP;const x=40+i*bw;
+      ctx.fillStyle=PAL[i%PAL.length];ctx.fillRect(x+3,h-30-bh,bw-6,bh);ctx.fillStyle='#1f2933';
+      ctx.fillText('P'+(i+1),x+bw/2,h-16);ctx.fillText('f='+p.f,x+bw/2,h-4);ctx.fillText(probs[i].toFixed(2),x+bw/2,h-34-bh);});
+    ctx.textAlign='left';ctx.fillStyle='#5f6b78';ctx.fillText('Tek turnuvayı kazanma olasılığı',40,14);
+    const ls=S.line>=4&&S.log.length?S.log[0].s1:null;
+    $('selInfo').innerHTML=`Her turnuvada ${P.k} birey iadeli rastgele çekilir, uygunluğu en yüksek olan kazanır. Yalnızca <b>sıralama</b> önemlidir; f değerlerinin oranı değil. `+(ls&&ls.type==='tour'?`1. eşleşme: ${selText(ls)}.`:'');
+  }
+}
+// Kesin hesap: k iadeli çekiliş; kazanan = en yüksek f, eşitlikte ilk çekilen.
+function tourProbs(pop,k){
+  // Markov zinciri: durum = o ana kadarki kazanan; O(k·n²)
+  const n=pop.length;let d=new Array(n).fill(1/n);
+  for(let s=1;s<k;s++){const nd=new Array(n).fill(0);
+    for(let b=0;b<n;b++){if(!d[b])continue;for(let c=0;c<n;c++){nd[pop[c].f>pop[b].f?c:b]+=d[b]/n;}}
+    d=nd;}
+  return d;
+}
+function renderChart(){
+  const {ctx,w,h}=setupCanvas($('chart'));ctx.clearRect(0,0,w,h);
+  const H=S.hist,pl=34,pr=10,pt=10,pb=26,W=w-pl-pr,HH=h-pt-pb;
+  ctx.strokeStyle='#d9e1e8';ctx.fillStyle='#5f6b78';ctx.font='11px Open Sans';ctx.lineWidth=1;
+  for(let v=0;v<=12;v+=3){const y=pt+HH*(1-v/12);ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(w-pr,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(v,pl-5,y+4);}
+  const n=Math.max(H.length-1,1),gx=Math.max(n,5);
+  ctx.textAlign='center';for(let t=0;t<=gx;t+=Math.ceil(gx/6)){ctx.fillText(t,pl+W*t/gx,h-8);}
+  if(!H.length)return;
+  const line=(key,col)=>{ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.beginPath();
+    H.forEach((s,t)=>{const x=pl+W*t/gx,y=pt+HH*(1-s[key]/12);t?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+    H.forEach((s,t)=>{const x=pl+W*t/gx,y=pt+HH*(1-s[key]/12);ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,2.5,0,7);ctx.fill();});};
+  line('worst','#FF3D7F');line('avg','#447099');line('best','#FF6F20');
+  if(P.target<12){const y=pt+HH*(1-P.target/12);ctx.setLineDash([4,4]);ctx.strokeStyle='#2e9e6a';ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(w-pr,y);ctx.stroke();ctx.setLineDash([]);}
+}
+
+// ---------- Somut sayısal açıklamalar ----------
+function exampleIdx(pop){let b=0;pop.forEach((p,i)=>{if(p.f>pop[b].f)b=i;});return b;}
+function fCalc(g){const n=countGaps(g),a=countAdj(g),raw=FMAX-Math.abs(n-T)-2*a;
+  return `g = ${n}, a = ${a} → f = max(0, 12 − |${n} − 4| − 2·${a}) = max(0, ${raw}) = <b>${Math.max(0,raw)}</b>`;}
+function explain(){
+  const ln=S.line,ex=$('explain');$('exTitle').textContent=`Satır ${ln} — ${['','İlklendirme','Değerlendirme','Durdurma koşulu','Varyasyon','Yavruların değerlendirilmesi','Elde tutma (hayatta kalan seçimi)','Döngü sonu','Sonuç'][ln]}`;
+  if(ln===1){const p=S.pop[0].g;ex.innerHTML=`μ = ${P.mu} birey rastgele üretildi; her bit bağımsız olarak %50 olasılıkla 1 (çukur). Genotip uzayının büyüklüğü 2¹² = 4096; bunlardan yalnızca belirli bir alt küme f = 12 verir.<br>Örnek: P1 = <code>${p.join('')}</code>. Uygunluklar henüz bilinmiyor (“?”).`;}
+  else if(ln===2){const i=exampleIdx(S.pop),st=stats(S.pop);ex.innerHTML=`Her birey f ile puanlandı (${S.pop.length} değerlendirme).<br>En iyi birey P${i+1} = <code>${S.pop[i].g.join('')}</code>: ${fCalc(S.pop[i].g)}<br>Popülasyon: en iyi = ${st.best}, ortalama = ${st.avg.toFixed(2)}, en kötü = ${st.worst}.`;}
+  else if(ln===3){const st=stats(S.pop);ex.innerHTML=`Kontrol: t = ${S.gen} ≥ G = ${P.maxG}? <b>${S.gen>=P.maxG?'evet':'hayır'}</b>. En iyi f = ${st.best} ≥ hedef ${P.target}? <b>${st.best>=P.target?'evet':'hayır'}</b>.<br>→ ${S.stopNow?'Koşul sağlandı: döngüden çıkılıyor (satır 8).':'Koşul sağlanmadı: döngü gövdesine giriliyor (satır 4).'}`;}
+  else if(ln===4){const l=S.log[0],o1=S.off[0];
+    const selDesc=P.sel==='tour'?`<b>Turnuva seçilimi</b> (k = ${P.k}): ${P.k} birey rastgele çekilir, en yüksek f'li kazanır.`:`<b>Rulet tekerleği seçilimi</b>: pᵢ = fᵢ/Σf, Σf = ${S.pop.reduce((s,p)=>s+p.f,0)}. [0,1) aralığında r çekilir, kümülatif olasılığı ilk aşan birey seçilir.`;
+    let xo=l.cut==null?`p<sub>c</sub> = ${P.pc} denemesi başarısız → yavrular ebeveynlerin kopyası.`:`Kesme noktası ${l.cut}: Y1 = P${l.s1.winner+1}[1..${l.cut}] + P${l.s2.winner+1}[${l.cut+1}..12].`;
+    ex.innerHTML=`${selDesc}<ul><li>Eşleşme 1: ${selText(l.s1)} ve ${selText(l.s2)}</li><li>Çaprazlama: ${xo}</li><li>Mutasyon (p<sub>m</sub> = ${P.pm}, beklenen ${ (P.pm*12).toFixed(2)} bit/yavru): Y1'de değişen bitler ${l.flips[0].length?'{'+l.flips[0].map(x=>x+1).join(', ')+'}':'yok'} → Y1 = <code>${o1.g.join('')}</code></li></ul>Toplam λ = ${S.off.length} yavru üretildi (${S.log.length} eşleşme). Ayrıntılar aşağıdaki günlükte.`;}
+  else if(ln===5){const st=stats(S.off),i=exampleIdx(S.off);ex.innerHTML=`${S.off.length} yavru değerlendirildi (toplam değerlendirme: ${S.evals}).<br>En iyi yavru Y${i+1} = <code>${S.off[i].g.join('')}</code>: ${fCalc(S.off[i].g)}<br>Yavrular: en iyi = ${st.best}, ortalama = ${st.avg.toFixed(2)}; ebeveynler: en iyi = ${stats(S.pop).best}, ortalama = ${stats(S.pop).avg.toFixed(2)}.`;}
+  else if(ln===6){const sv=S.sv,kp=[...sv.keep].map(i=>sv.pool[i]),nP=kp.filter(p=>p.src==='P').length;
+    ex.innerHTML=(P.surv==='plus'?`<b>(μ+λ) seçimi</b>: ${P.mu} ebeveyn + ${S.off.length} yavru = ${sv.pool.length} bireylik havuz f'ye göre sıralanır, en iyi ${P.mu} tutulur (eşitlikte havuzdaki sıra). Bu, örtük bir elitizmdir: en iyi birey asla kaybolmaz.`
+      :`<b>Nesil değişimi + elitizm (e = ${Math.min(P.e,P.mu)})</b>: ebeveynlerin en iyi ${Math.min(P.e,P.mu)} tanesi doğrudan aktarılır, kalan ${P.mu-Math.min(P.e,P.mu)} yer ilk ${P.mu-Math.min(P.e,P.mu)} yavruyla doldurulur — yavrunun uygunluğuna bakılmaz.`)
+      +`<br>Sonuç: ${nP} ebeveyn + ${kp.length-nP} yavru kaldı. Yeni ortalama f = ${(kp.reduce((s,p)=>s+p.f,0)/kp.length).toFixed(2)} (önceki: ${stats(S.pop).avg.toFixed(2)}).`;}
+  else if(ln===7){const st=stats(S.pop);ex.innerHTML=`Nesil ${S.gen} oluştu. Ortalama f: ${S.prevAvg.toFixed(2)} → ${st.avg.toFixed(2)} (Δ = ${(st.avg-S.prevAvg>=0?'+':'')}${(st.avg-S.prevAvg).toFixed(2)}); en iyi f = ${st.best}. Kontrol tekrar satır 3'e döner.`;}
+  else if(ln===8){const i=exampleIdx(S.pop);ex.innerHTML=`Algoritma ${S.gen} nesil ve ${S.evals} uygunluk değerlendirmesinin ardından durdu. Döndürülen popülasyonun en iyisi P${i+1} = <code>${S.pop[i].g.join('')}</code>: ${fCalc(S.pop[i].g)}<br>Karşılaştırma: 4096 genotipin tamamını denemek 4096 değerlendirme gerektirirdi.`;}
+}
+function renderAll(){renderPseudo();renderStats();renderPop();renderOff();renderDetails();renderWheel();renderChart();if(S.line)explain();
+  ['bStep','bGen','bPlay','bEnd'].forEach(b=>$(b).disabled=S.done&&b!=='bPlay');if(S.done)$('bPlay').disabled=true;else $('bPlay').disabled=false;}
+
+['mu','sel','k','pc','pm','surv','el','maxG','target','seed'].forEach(id=>$(id).addEventListener('change',()=>{syncLabels();reset();}));
+['mu','k','pc','pm','el','speed'].forEach(id=>$(id).addEventListener('input',syncLabels));
+$('bReset').onclick=reset;$('bStep').onclick=()=>{stop();step();};$('bGen').onclick=()=>{stop();runGen();};$('bEnd').onclick=runEnd;$('bPlay').onclick=play;
+window.addEventListener('resize',()=>{renderWheel();renderChart();});
+syncLabels();reset();
+</script>
+</body>
+</html>

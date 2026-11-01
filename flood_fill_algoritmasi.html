@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flood-Fill Algoritması — Etkileşimli Anlatım</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F;
+    --ink:#26333f; --muted:#66757f; --line:#e2e8ee; --bg:#f7f9fb; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Open Sans',system-ui,sans-serif; line-height:1.55; padding:24px 16px 56px;}
+  .wrap{max-width:1120px; margin:0 auto;}
+  header.top{border-left:6px solid var(--orange); padding:6px 0 6px 16px; margin-bottom:22px;}
+  header.top h1{font-family:'Roboto Slab',serif; font-weight:700; color:var(--blue); margin:0 0 4px; font-size:1.7rem;}
+  header.top p{margin:0; color:var(--muted); font-size:.95rem;}
+  .grid{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:22px;}
+  @media(max-width:900px){ .grid{grid-template-columns:1fr;} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 1px 3px rgba(38,51,63,.05);}
+  h2{font-family:'Roboto Slab',serif; color:var(--blue); font-size:1.15rem; margin:0 0 12px;}
+  h3{font-family:'Roboto Slab',serif; color:var(--ink); font-size:1rem; margin:18px 0 8px;}
+  canvas{width:100%; height:auto; display:block; border-radius:8px; background:#fff; cursor:crosshair; touch-action:none;}
+  .canvas-frame{border:1px solid var(--line); border-radius:12px; padding:10px; background:#fdfdfe;}
+  .controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px;}
+  button{font-family:'Open Sans',sans-serif; font-weight:600; font-size:.9rem; border:1px solid var(--blue); background:var(--blue); color:#fff; padding:8px 14px; border-radius:9px; cursor:pointer; transition:.15s;}
+  button.ghost{background:#fff; color:var(--blue);}
+  button.accent{background:var(--orange); border-color:var(--orange);}
+  button:hover{filter:brightness(1.06);}
+  .toggles{display:flex; flex-wrap:wrap; gap:16px 20px; margin-top:12px; font-size:.88rem; color:var(--muted); align-items:center;}
+  .toggles label{display:flex; align-items:center; gap:6px; cursor:pointer;}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+  .seg button{border:none; border-radius:0; background:#fff; color:var(--muted); padding:6px 12px; font-size:.82rem;}
+  .seg button.on{background:var(--blue); color:#fff;}
+  input[type=range]{accent-color:var(--orange);}
+  .hint{font-size:.82rem; color:var(--muted); margin-top:10px; font-style:italic;}
+  .metrics{display:flex; gap:14px; margin-top:14px; flex-wrap:wrap;}
+  .metric{background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 14px; text-align:center; min-width:92px;}
+  .metric .v{font-family:'Roboto Slab',serif; font-size:1.25rem; color:var(--blue);}
+  .metric .k{font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
+  .legend{display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:14px; font-size:.82rem; color:var(--muted);}
+  .legend span{display:flex; align-items:center; gap:7px;}
+  .sw{width:14px; height:14px; border-radius:3px; display:inline-block; border:1px solid rgba(0,0,0,.1);}
+  p.lead{margin-top:0;}
+  ol.flow, ul.uses{margin:0; padding-left:20px;}
+  ol.flow li, ul.uses li{margin-bottom:7px;}
+  code, .mono{font-family:'Fira Code',monospace; font-size:.86em; background:#eef2f6; padding:1px 5px; border-radius:4px; color:#324a5e;}
+  pre{background:#1f2b36; color:#e6edf3; border-radius:10px; padding:14px 16px; overflow:auto; font-family:'Fira Code',monospace; font-size:.79rem; line-height:1.5;}
+  pre .kw{color:#ff9d6b;} pre .cm{color:#8aa0b0; font-style:italic;} pre .fn{color:#7fd1c9;}
+  .pill{display:inline-block; background:var(--pink); color:#fff; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:20px; vertical-align:middle; margin-left:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Flood-Fill (Taşma Doldurma) <span class="pill">Connectivity</span></h1>
+    <p>Bir tohum hücreden başlayıp komşulara yayılan doldurma — boya kovasından, üretilen haritalarda bağlılık analizine.</p>
+  </header>
+
+  <div class="grid">
+    <!-- SOL: Görselleştirme -->
+    <div class="card">
+      <h2>Etkileşimli Görselleştirme</h2>
+      <div class="canvas-frame">
+        <canvas id="cv" width="720" height="420"></canvas>
+      </div>
+
+      <div class="controls">
+        <button class="ghost" id="btnNew">↻ Yeni mağara</button>
+        <button class="accent" id="btnAll">Tüm bölgeleri bul</button>
+        <button class="ghost" id="btnClear">Temizle</button>
+      </div>
+
+      <div class="toggles">
+        <span>Komşuluk:
+          <span class="seg" id="segConn">
+            <button data-v="4" class="on">4-komşu</button>
+            <button data-v="8">8-komşu</button>
+          </span>
+        </span>
+        <span>Gezinme:
+          <span class="seg" id="segMode">
+            <button data-v="bfs" class="on">BFS (dalga)</button>
+            <button data-v="dfs">DFS (yığın)</button>
+          </span>
+        </span>
+        <label>Hız <input type="range" id="speed" min="1" max="40" value="8"></label>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="v" id="mVisited">0</div><div class="k">Ziyaret</div></div>
+        <div class="metric"><div class="v" id="mFrontier">0</div><div class="k">Sınır (kuyruk)</div></div>
+        <div class="metric"><div class="v" id="mRegions">—</div><div class="k">Bölge sayısı</div></div>
+        <div class="metric"><div class="v" id="mLargest">—</div><div class="k">En büyük %</div></div>
+      </div>
+
+      <div class="legend">
+        <span><span class="sw" style="background:#334354"></span>Duvar</span>
+        <span><span class="sw" style="background:#eef2f6"></span>Boşluk</span>
+        <span><span class="sw" style="background:var(--orange)"></span>Dolan / en büyük bölge</span>
+        <span><span class="sw" style="background:var(--pink)"></span>Sınır (frontier)</span>
+      </div>
+      <p class="hint">Bir <strong>boşluğa tıklayın</strong> → o bağlı bölge, seçtiğiniz gezinme sırasıyla dolar. “Tüm bölgeleri bul” her cebi ayrı renkle etiketler ve en büyüğünü turuncuya boyar.</p>
+    </div>
+
+    <!-- SAĞ: Açıklama -->
+    <div class="card">
+      <h2>Flood-fill nasıl kullanılır?</h2>
+      <p class="lead">Flood-fill, bir <strong>tohum (seed)</strong> hücreden başlayıp aynı özelliği (renk, tür, “boşluk olma”) paylaşan komşu hücrelere yayılarak bağlı bir bölgeyi doldurur; farklı özellikteki hücreler (duvarlar) sınır oluşturur. Karmaşıklığı ziyaret edilen hücre sayısında <span class="mono">O(N)</span>'dir.</p>
+
+      <h3>Başlıca kullanım alanları</h3>
+      <ul class="uses">
+        <li><strong>Boya kovası:</strong> Görüntü/piksel editörlerinde tıklanan bölgenin tamamını yeni renge boyar.</li>
+        <li><strong>Bağlılık analizi (PCG):</strong> Üretilen mağara/zindan haritasında <em>izole cepleri</em> bulmak, <em>en büyük bölgeyi</em> ana alan seçmek ve ulaşılamaz boşlukları kapatmak için kullanılır. (Hafta 03'teki hücresel otomat mağarasının bağlantı onarımı bu adımdır.)</li>
+        <li><strong>Bağlı bileşen etiketleme:</strong> Görüntü işlemede nesne/segment sayma ve etiketleme.</li>
+        <li><strong>Oyun mantığı:</strong> Minesweeper'da boş hücrelerin açılması, Go'da taş grubu/özgürlük tespiti, tahta bölgelerinin belirlenmesi.</li>
+        <li><strong>Erişilebilirlik:</strong> Bir ajanın belirli bir noktadan nerelere ulaşabileceğini (reachability) çıkarma.</li>
+      </ul>
+
+      <h3>Tasarım kararları</h3>
+      <ul class="uses">
+        <li><strong>4- vs 8-komşuluk:</strong> Köşegenlerin “bağlı” sayılıp sayılmaması bölge sayısını değiştirir. (Sağdaki anahtarla deneyin.)</li>
+        <li><strong>BFS vs DFS:</strong> Kuyruk (BFS) tohumdan dalga dalga yayılır; yığın (DFS) tek bir kolu sonuna kadar takip eder. Sonuç aynı bölgedir, yalnızca gezinme sırası farklıdır.</li>
+        <li><strong>Özyinelemeli vs iteratif:</strong> Özyinelemeli sürüm büyük alanlarda <em>stack overflow</em> riski taşır; oyun/görüntü ölçeğinde <em>iteratif</em> (açık yığın/kuyruk) sürüm tercih edilir.</li>
+        <li><strong>Scanline optimizasyonu:</strong> Hücre hücre yerine satır aralıklarını doldurmak, geniş boş alanlarda ziyareti ve bellek trafiğini büyük ölçüde azaltır.</li>
+      </ul>
+
+      <h3>Çekirdek (iteratif BFS)</h3>
+      <pre><span class="fn">flood</span>(grid, sx, sy, komsu):
+  q = <span class="kw">yeni</span> kuyruk; q.ekle((sx,sy))
+  ziyaret[sy][sx] = <span class="kw">true</span>
+  <span class="kw">while</span> q boş değil:
+     (x,y) = q.çıkar()          <span class="cm"># BFS: baştan | DFS: sondan</span>
+     doldur(x,y)
+     <span class="kw">for</span> (nx,ny) <span class="kw">in</span> komsular(x,y):   <span class="cm"># 4 veya 8</span>
+        <span class="kw">if</span> sınır_içi <span class="kw">and</span> !ziyaret[ny][nx]
+           <span class="kw">and</span> grid[ny][nx]==boşluk:
+           ziyaret[ny][nx] = <span class="kw">true</span>
+           q.ekle((nx,ny))</pre>
+      <p class="hint">BYZ502 ders materyali · marka renkleri ve tipografisi.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const COLS=48, ROWS=28, CELL=15;
+  const W=COLS*CELL, H=ROWS*CELL;
+  const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const PALETTE=['#FF6F20','#447099','#FF3D7F','#2f9e6b','#8a63d2','#3a9bd6','#e0a800','#c0554a'];
+  let grid, fill, seed=7, conn8=false, mode='bfs', speed=8;
+  let anim=null, raf=null, largestId=-1, regionCount=0, floorTotal=0;
+
+  function makeRng(s){ s=s>>>0; return ()=>{ s=(Math.imul(s,1103515245)+12345)&0x7fffffff; return s/0x7fffffff; }; }
+
+  function genCave(s){
+    const rnd=makeRng(s);
+    let g=[];
+    for(let y=0;y<ROWS;y++){ g[y]=[]; for(let x=0;x<COLS;x++){
+      g[y][x]=(x===0||y===0||x===COLS-1||y===ROWS-1)?1:(rnd()<0.45?1:0);
+    }}
+    for(let it=0; it<4; it++){
+      const n=[];
+      for(let y=0;y<ROWS;y++){ n[y]=[]; for(let x=0;x<COLS;x++){
+        let w=0;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+          if(dx===0&&dy===0)continue;
+          const nx=x+dx,ny=y+dy;
+          if(nx<0||ny<0||nx>=COLS||ny>=ROWS) w++; else w+=g[ny][nx];
+        }
+        n[y][x]=(w>=5)?1:(w<=3?0:g[y][x]);
+      }}
+      g=n;
+    }
+    return g;
+  }
+
+  function resetFill(){
+    fill=Array.from({length:ROWS},()=>new Array(COLS).fill(null));
+    largestId=-1; regionCount=0;
+    if(raf){ cancelAnimationFrame(raf); raf=null; } anim=null;
+    setMetric('mVisited',0); setMetric('mFrontier',0);
+    document.getElementById('mRegions').textContent='—';
+    document.getElementById('mLargest').textContent='—';
+  }
+  function newCave(){ grid=genCave(seed); floorTotal=0; for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++) if(grid[y][x]===0) floorTotal++; resetFill(); render(); }
+
+  function dirs(){ const d4=[[1,0],[-1,0],[0,1],[0,-1]]; return conn8? d4.concat([[1,1],[1,-1],[-1,1],[-1,-1]]) : d4; }
+
+  // ---- animasyonlu tekli doldurma (tıklama) ----
+  function beginFill(sx,sy){
+    if(grid[sy][sx]===1) return;
+    if(raf){ cancelAnimationFrame(raf); raf=null; }
+    const visited=Array.from({length:ROWS},()=>new Array(COLS).fill(false));
+    visited[sy][sx]=true;
+    anim={ frontier:[[sx,sy]], visited, color:'#FF6F20', count:0, seed:[sx,sy] };
+    document.getElementById('mRegions').textContent='—';
+    document.getElementById('mLargest').textContent='—';
+    loop();
+  }
+  function loop(){
+    if(!anim){ raf=null; return; }
+    const D=dirs();
+    for(let n=0;n<speed && anim.frontier.length;n++){
+      const cell = mode==='bfs' ? anim.frontier.shift() : anim.frontier.pop();
+      const x=cell[0], y=cell[1];
+      fill[y][x]=anim.color; anim.count++;
+      for(const [dx,dy] of D){
+        const nx=x+dx, ny=y+dy;
+        if(nx>=0&&ny>=0&&nx<COLS&&ny<ROWS && grid[ny][nx]===0 && !anim.visited[ny][nx]){
+          anim.visited[ny][nx]=true; anim.frontier.push([nx,ny]);
+        }
+      }
+    }
+    setMetric('mVisited',anim.count);
+    setMetric('mFrontier',anim.frontier.length);
+    render();
+    if(anim.frontier.length===0){ anim=null; raf=null; return; }
+    raf=requestAnimationFrame(loop);
+  }
+
+  // ---- tüm bölgeleri anlık etiketle ----
+  function labelAll(){
+    if(raf){ cancelAnimationFrame(raf); raf=null; } anim=null;
+    resetFill();
+    const D=dirs();
+    const lab=Array.from({length:ROWS},()=>new Array(COLS).fill(0));
+    let reg=0; const sizes=[];
+    for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+      if(grid[y][x]===0 && lab[y][x]===0){
+        reg++; let cnt=0; const q=[[x,y]]; lab[y][x]=reg;
+        while(q.length){ const [cx,cy]=q.pop(); cnt++;
+          for(const [dx,dy] of D){ const nx=cx+dx,ny=cy+dy;
+            if(nx>=0&&ny>=0&&nx<COLS&&ny<ROWS&&grid[ny][nx]===0&&lab[ny][nx]===0){ lab[ny][nx]=reg; q.push([nx,ny]); }
+          }
+        }
+        sizes[reg]=cnt;
+      }
+    }
+    let maxId=1; for(let r=1;r<=reg;r++) if((sizes[r]||0)>(sizes[maxId]||0)) maxId=r;
+    largestId=maxId; regionCount=reg;
+    // renklendir: en büyük turuncu, diğerleri palet
+    let pi=1;
+    const colorOf={};
+    for(let r=1;r<=reg;r++){ colorOf[r]= (r===maxId)? PALETTE[0] : PALETTE[1+((pi++ -1)%(PALETTE.length-1))]; }
+    for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++) if(lab[y][x]>0) fill[y][x]=colorOf[lab[y][x]];
+    const floor=sizes.reduce((a,b)=>a+(b||0),0);
+    document.getElementById('mRegions').textContent=reg;
+    document.getElementById('mLargest').textContent=Math.round((sizes[maxId]/floor)*100)+'%';
+    setMetric('mVisited',floor); setMetric('mFrontier',0);
+    render();
+  }
+
+  // ---- çizim ----
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+      let c;
+      if(grid[y][x]===1) c='#334354';
+      else if(fill[y][x]) c=fill[y][x];
+      else c='#eef2f6';
+      ctx.fillStyle=c;
+      ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+    }
+    // sınır (frontier) vurgusu
+    if(anim){
+      ctx.fillStyle='rgba(255,61,127,0.85)';
+      for(const [x,y] of anim.frontier) ctx.fillRect(x*CELL+2, y*CELL+2, CELL-4, CELL-4);
+      // tohum halkası
+      const [sx,sy]=anim.seed;
+      ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+      ctx.strokeRect(sx*CELL+1.5, sy*CELL+1.5, CELL-3, CELL-3);
+    }
+    // ince ızgara
+    ctx.strokeStyle='rgba(51,67,84,0.06)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let x=0;x<=COLS;x++){ ctx.moveTo(x*CELL+0.5,0); ctx.lineTo(x*CELL+0.5,H); }
+    for(let y=0;y<=ROWS;y++){ ctx.moveTo(0,y*CELL+0.5); ctx.lineTo(W,y*CELL+0.5); }
+    ctx.stroke();
+  }
+  function setMetric(id,v){ document.getElementById(id).textContent=v; }
+
+  // ---- olaylar ----
+  cv.addEventListener('click',e=>{
+    const r=cv.getBoundingClientRect();
+    const x=Math.floor(((e.clientX-r.left)*W/r.width)/CELL);
+    const y=Math.floor(((e.clientY-r.top)*H/r.height)/CELL);
+    if(x<0||y<0||x>=COLS||y>=ROWS) return;
+    // yeni tekli doldurmadan önce eski etiketleri temizle
+    resetFill();
+    beginFill(x,y);
+  });
+  document.getElementById('btnNew').onclick=()=>{ seed=(Math.random()*1e6)|0; newCave(); };
+  document.getElementById('btnAll').onclick=labelAll;
+  document.getElementById('btnClear').onclick=()=>{ resetFill(); render(); };
+  document.getElementById('speed').oninput=e=>{ speed=+e.target.value; };
+  function seg(id,cb){ const el=document.getElementById(id);
+    el.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      el.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); cb(b.dataset.v);
+    });
+  }
+  seg('segConn',v=>{ conn8=(v==='8'); if(regionCount) labelAll(); });
+  seg('segMode',v=>{ mode=v; });
+
+  // başlat
+  newCave();
+})();
+</script>
+</body>
+</html>

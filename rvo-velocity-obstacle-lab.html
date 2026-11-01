@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hız Engeli (RVO) Laboratuvarı — BYZ502</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099;--blue-deep:#2f5070;--orange:#FF6F20;--pink:#FF3D7F;
+    --ink:#1e2933;--muted:#5a6b7a;--line:#d8e0e8;--paper:#f4f6f8;--card:#fff;
+    --good:#2e9e6b;--bad:#e23d3d;--violet:#8a4fd6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Open Sans',sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px 64px;}
+  header.hero{border-left:6px solid var(--orange);padding:6px 0 6px 18px;margin-bottom:8px;}
+  .eyebrow{font-family:'Fira Code',monospace;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:500;}
+  h1{font-family:'Roboto Slab',serif;font-weight:700;font-size:1.85rem;line-height:1.15;margin:.18em 0 .12em;}
+  .sub{color:var(--muted);font-size:1rem;max-width:64ch;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin:22px 0 16px;}
+  h2{font-family:'Roboto Slab',serif;font-weight:700;font-size:1.22rem;margin:.1em 0 .5em;}
+  p.lead{color:var(--muted);font-size:.96rem;margin:0 0 14px;}
+  .spaces{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:720px){.spaces{grid-template-columns:1fr;}}
+  .space-wrap{}
+  .space-title{font-family:'Fira Code',monospace;font-size:.78rem;color:var(--muted);margin:0 0 6px;letter-spacing:.04em;}
+  .stage{background:#eef2f6;border-radius:12px;border:1px solid var(--line);width:100%;display:block;touch-action:none;}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 4px;}
+  .btn{font-family:'Open Sans',sans-serif;font-weight:600;font-size:.9rem;border-radius:9px;padding:10px 15px;cursor:pointer;transition:.16s;background:var(--card);color:var(--blue);border:1px solid var(--line);}
+  .btn[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .seg .btn{border:none;border-radius:0;}
+  .verdict{font-family:'Fira Code',monospace;font-size:.9rem;font-weight:500;padding:10px 14px;border-radius:9px;margin-top:14px;display:block;}
+  .verdict.good{background:rgba(46,158,107,.12);color:var(--good);}
+  .verdict.bad{background:rgba(226,61,61,.12);color:var(--bad);}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:12px;}
+  .swatch{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;}
+  .hint{font-size:.86rem;color:var(--muted);margin-top:10px;}
+  .hint b{color:var(--ink);}
+  footer{margin-top:30px;font-family:'Fira Code',monospace;font-size:.76rem;color:var(--muted);text-align:center;}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">BYZ502 · Hafta 02 · İnteraktif Eklenti</div>
+    <h1>Hız Engeli (RVO) Laboratuvarı</h1>
+    <p class="sub">İki karakter çarpışma rotasında. Solda <b>fiziksel uzayı</b>, sağda <b>hız uzayını</b> görün: bir ajanın belirli hızları neden "çarpışma konisi"ne düşer ve RVO bunu nasıl en küçük sapmayla aşar?</p>
+  </header>
+
+  <div class="card">
+    <h2>İki Uzay, Tek Karar</h2>
+    <p class="lead">Mavi ajanı (B), hedefi ve B'nin hız okunu sürükleyin. Turuncu ajan (A) hedefine tam hızla gitmek ister; sistem onun <b>tercih ettiği hızı</b> çarpışma konisinin dışına iter.</p>
+
+    <div class="spaces">
+      <div class="space-wrap">
+        <p class="space-title">FİZİKSEL UZAY — konum ve hareket</p>
+        <svg id="phys" class="stage" viewBox="0 0 340 320" role="img" aria-label="Fiziksel uzayda iki ajan"></svg>
+      </div>
+      <div class="space-wrap">
+        <p class="space-title">HIZ UZAYI — A'nın seçebileceği hızlar</p>
+        <svg id="vel" class="stage" viewBox="0 0 340 320" role="img" aria-label="Hız uzayında çarpışma konisi"></svg>
+      </div>
+    </div>
+
+    <div class="controls">
+      <span class="seg" role="group" aria-label="Kaçınma modeli">
+        <button class="btn" id="voBtn" aria-pressed="false">VO (tek taraflı)</button>
+        <button class="btn" id="rvoBtn" aria-pressed="true">RVO (karşılıklı)</button>
+      </span>
+      <button class="btn" id="reset">Sıfırla</button>
+    </div>
+
+    <div class="verdict" id="verdict"></div>
+
+    <div class="legend">
+      <span class="swatch"><span class="dot" style="background:var(--orange)"></span>A (tercih hızı)</span>
+      <span class="swatch"><span class="dot" style="background:var(--good)"></span>A (seçilen güvenli hız)</span>
+      <span class="swatch"><span class="dot" style="background:var(--blue)"></span>B ajanı / hızı</span>
+      <span class="swatch"><span class="dot" style="background:rgba(226,61,61,.5)"></span>Çarpışma konisi</span>
+    </div>
+    <p class="hint"><b>RVO ile VO farkı:</b> VO'da kaçınmanın tamamını A yapar. RVO'da koni, iki ajanın ortalama hızına göre kaydırılır; A yalnızca <b>yarı sorumluluk</b> alır, B diğer yarısını. Böylece ikisi birbirine "dans ettirmeden" simetrik olarak yan geçer. (Koni, sadelik için zaman ufkuyla kırpılmadan, tam açıyla çiziliyor.)</p>
+  </div>
+
+  <footer>BYZ502 — Oyun Motorunda Yapay Zekâ Uygulamaları · Hacettepe Üniversitesi</footer>
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]], add=(a,b)=>[a[0]+b[0],a[1]+b[1]], scl=(a,s)=>[a[0]*s,a[1]*s];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1], len=a=>Math.hypot(a[0],a[1]), norm=a=>{const l=len(a)||1;return [a[0]/l,a[1]/l];};
+const rot=(a,ang)=>{const c=Math.cos(ang),s=Math.sin(ang);return [a[0]*c-a[1]*s,a[0]*s+a[1]*c];};
+
+const physSvg=document.getElementById('phys'), velSvg=document.getElementById('vel');
+const rA=16, rB=16, MAXSPEED=58, VK=1.6; // velocity->pixel scale in velocity space
+
+const DEF={A:[80,160], B:[270,165], G:[300,150], vB:[-46,-4]};
+let A=DEF.A.slice(), B=DEF.B.slice(), G=DEF.G.slice(), vB=DEF.vB.slice();
+let mode='rvo';
+
+function vPref(){
+  let dir=sub(G,A); const l=len(dir)||1; return scl([dir[0]/l,dir[1]/l],MAXSPEED);
+}
+function solve(){
+  const vp=vPref();
+  const d=sub(B,A), L=Math.max(len(d),rA+rB+1), u=norm(d), R=rA+rB;
+  const theta=Math.asin(Math.min(0.999,R/L));
+  const apex=(mode==='rvo')?scl(add(vp,vB),0.5):vB;
+  const rel=sub(vp,apex);
+  const legL=rot(u,theta), legR=rot(u,-theta);
+  let colliding=false;
+  if(len(rel)>1e-6){const ang=Math.acos(Math.max(-1,Math.min(1,dot(norm(rel),u))));colliding=dot(rel,u)>0&&ang<theta;}
+  let chosen=vp;
+  if(colliding){
+    const tL=Math.max(0,dot(rel,legL)),pL=scl(legL,tL);
+    const tR=Math.max(0,dot(rel,legR)),pR=scl(legR,tR);
+    chosen=add(apex, len(sub(rel,pL))<=len(sub(rel,pR))?pL:pR);
+    // cap to max speed
+    if(len(chosen)>MAXSPEED)chosen=scl(norm(chosen),MAXSPEED);
+  }
+  return {vp,chosen,colliding,apex,legL,legR,u,theta,L,R};
+}
+
+function arrow(svg,from,to,color,w){
+  svg.appendChild(el('line',{x1:from[0],y1:from[1],x2:to[0],y2:to[1],stroke:color,'stroke-width':w||2.5,'marker-end':`url(#ah-${color.replace(/[^a-z]/gi,'')})`}));
+}
+function defArrow(svg,color){
+  let defs=svg.querySelector('defs');if(!defs){defs=el('defs',{});svg.appendChild(defs);}
+  const id='ah-'+color.replace(/[^a-z]/gi,'');
+  if(svg.querySelector('#'+id))return;
+  const m=el('marker',{id,markerWidth:7,markerHeight:7,refX:5.5,refY:3,orient:'auto'});
+  m.appendChild(el('path',{d:'M0,0 L6,3 L0,6 Z',fill:color}));defs.appendChild(m);
+}
+
+function render(){
+  const s=solve();
+  // ---- physical space ----
+  physSvg.innerHTML='';
+  ['var(--orange)','var(--good)','var(--blue)'].forEach(c=>defArrow(physSvg,c));
+  // B radius
+  physSvg.appendChild(el('circle',{cx:B[0],cy:B[1],r:rB,fill:'rgba(68,112,153,.10)',stroke:'var(--blue)','stroke-width':1.5}));
+  physSvg.appendChild(el('circle',{cx:A[0],cy:A[1],r:rA,fill:'rgba(255,111,32,.10)',stroke:'var(--orange)','stroke-width':1.5}));
+  // velocity arrows (physical)
+  arrow(physSvg,A,add(A,scl(s.vp,0.9)),'var(--orange)',2);
+  arrow(physSvg,A,add(A,scl(s.chosen,0.9)),'var(--good)',3);
+  arrow(physSvg,B,add(B,scl(vB,0.9)),'var(--blue)',2.5);
+  // goal (draggable)
+  physSvg.appendChild(el('circle',{cx:G[0],cy:G[1],r:6,fill:'none',stroke:'var(--good)','stroke-width':2,'data-drag':'G',cursor:'grab',tabindex:0,role:'slider','aria-label':'A hedefi'}));
+  const gt=el('text',{x:G[0],y:G[1]-11,'text-anchor':'middle','font-family':'Fira Code','font-size':9,fill:'var(--good)'});gt.textContent='hedef';physSvg.appendChild(gt);
+  // B velocity handle (draggable)
+  const vbEnd=add(B,scl(vB,0.9));
+  physSvg.appendChild(el('circle',{cx:vbEnd[0],cy:vbEnd[1],r:6,fill:'var(--blue)','data-drag':'vB',cursor:'grab',tabindex:0,role:'slider','aria-label':'B hız oku ucu'}));
+  // A & B core dots + labels
+  physSvg.appendChild(el('circle',{cx:A[0],cy:A[1],r:5,fill:'var(--orange)'}));
+  const at=el('text',{x:A[0],y:A[1]+rA+13,'text-anchor':'middle','font-family':'Fira Code','font-size':10,fill:'var(--ink)'});at.textContent='A';physSvg.appendChild(at);
+  physSvg.appendChild(el('circle',{cx:B[0],cy:B[1],r:5,fill:'var(--blue)','data-drag':'B',cursor:'grab',tabindex:0,role:'slider','aria-label':'B ajanı konumu'}));
+  const bt=el('text',{x:B[0],y:B[1]+rB+13,'text-anchor':'middle','font-family':'Fira Code','font-size':10,fill:'var(--ink)'});bt.textContent='B';physSvg.appendChild(bt);
+
+  // ---- velocity space ----
+  velSvg.innerHTML='';
+  ['var(--orange)','var(--good)'].forEach(c=>defArrow(velSvg,c));
+  const cx=170,cy=160;
+  // axes
+  velSvg.appendChild(el('line',{x1:20,y1:cy,x2:320,y2:cy,stroke:'#d4dde5','stroke-width':1}));
+  velSvg.appendChild(el('line',{x1:cx,y1:20,x2:cx,y2:300,stroke:'#d4dde5','stroke-width':1}));
+  // max speed circle
+  velSvg.appendChild(el('circle',{cx,cy,r:MAXSPEED*VK,fill:'none',stroke:'#c2cdd8','stroke-width':1,'stroke-dasharray':'3 4'}));
+  const mt=el('text',{x:cx+MAXSPEED*VK-2,y:cy-5,'text-anchor':'end','font-family':'Fira Code','font-size':8,fill:'#9fb0bd'});mt.textContent='maks hız';velSvg.appendChild(mt);
+  const toVel=v=>[cx+v[0]*VK, cy+v[1]*VK];
+  // cone (wedge from apex)
+  const BIG=420;
+  const ap=toVel(s.apex);
+  const pL=toVel(add(s.apex,scl(s.legL,BIG))), pR=toVel(add(s.apex,scl(s.legR,BIG)));
+  velSvg.appendChild(el('path',{d:`M${ap} L${pR} L${pL} Z`,fill:'rgba(226,61,61,.16)',stroke:'rgba(226,61,61,.4)','stroke-width':1}));
+  // apex marker
+  velSvg.appendChild(el('circle',{cx:ap[0],cy:ap[1],r:3.5,fill:'var(--bad)'}));
+  const apt=el('text',{x:ap[0]+6,y:ap[1]+12,'font-family':'Fira Code','font-size':9,fill:'var(--bad)'});apt.textContent=mode==='rvo'?'koni tepesi (RVO)':'koni tepesi = vB';velSvg.appendChild(apt);
+  // preferred velocity
+  const vpp=toVel(s.vp);
+  arrow(velSvg,[cx,cy],vpp,'var(--orange)',2.5);
+  velSvg.appendChild(el('circle',{cx:vpp[0],cy:vpp[1],r:5,fill:'var(--orange)'}));
+  const vpt=el('text',{x:vpp[0],y:vpp[1]-9,'text-anchor':'middle','font-family':'Fira Code','font-size':9,fill:'var(--orange)'});vpt.textContent='tercih';velSvg.appendChild(vpt);
+  // chosen velocity
+  const chp=toVel(s.chosen);
+  if(s.colliding){
+    arrow(velSvg,[cx,cy],chp,'var(--good)',3);
+    velSvg.appendChild(el('circle',{cx:chp[0],cy:chp[1],r:5,fill:'var(--good)'}));
+    const cht=el('text',{x:chp[0],y:chp[1]+16,'text-anchor':'middle','font-family':'Fira Code','font-size':9,fill:'var(--good)'});cht.textContent='seçilen';velSvg.appendChild(cht);
+  }
+  const ot=el('text',{x:cx-6,y:cy+14,'text-anchor':'end','font-family':'Fira Code','font-size':9,fill:'#9fb0bd'});ot.textContent='0';velSvg.appendChild(ot);
+
+  // verdict
+  const v=document.getElementById('verdict');
+  if(s.colliding){
+    const defl=(Math.acos(Math.max(-1,Math.min(1,dot(norm(s.vp),norm(s.chosen)))))*180/Math.PI);
+    v.className='verdict bad';
+    v.textContent=`Çarpışma öngörüldü: tercih hızı koninin içinde. A, rotasını ${defl.toFixed(0)}° saptırarak güvenli hıza geçti.`;
+  }else{
+    v.className='verdict good';
+    v.textContent='Çarpışma yok: tercih edilen hız zaten koninin dışında. A serbestçe ilerleyebilir.';
+  }
+}
+
+/* dragging (physical space) */
+let drag=null;
+function toPhys(evt){const r=physSvg.getBoundingClientRect();return [((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)/r.width*340,((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)/r.height*320];}
+physSvg.addEventListener('pointerdown',e=>{const t=e.target.getAttribute&&e.target.getAttribute('data-drag');if(t)drag=t;});
+window.addEventListener('pointermove',e=>{
+  if(!drag)return;e.preventDefault();const p=toPhys(e);
+  const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
+  if(drag==='B'){B=[clamp(p[0],20,320),clamp(p[1],20,300)];}
+  else if(drag==='G'){G=[clamp(p[0],20,320),clamp(p[1],20,300)];}
+  else if(drag==='vB'){let nv=sub(p,B);nv=scl(nv,1/0.9);if(len(nv)>MAXSPEED)nv=scl(norm(nv),MAXSPEED);vB=nv;}
+  render();
+});
+window.addEventListener('pointerup',()=>drag=null);
+// keyboard support for focused draggables
+physSvg.addEventListener('keydown',e=>{
+  const t=e.target.getAttribute&&e.target.getAttribute('data-drag');if(!t)return;
+  const s=8;let dx=0,dy=0;
+  if(e.key==='ArrowLeft')dx=-s;else if(e.key==='ArrowRight')dx=s;else if(e.key==='ArrowUp')dy=-s;else if(e.key==='ArrowDown')dy=s;else return;
+  e.preventDefault();
+  if(t==='B')B=[B[0]+dx,B[1]+dy];else if(t==='G')G=[G[0]+dx,G[1]+dy];else if(t==='vB'){let nv=add(vB,[dx,dy]);if(len(nv)>MAXSPEED)nv=scl(norm(nv),MAXSPEED);vB=nv;}
+  render();
+});
+
+document.getElementById('voBtn').onclick=function(){mode='vo';this.setAttribute('aria-pressed',true);document.getElementById('rvoBtn').setAttribute('aria-pressed',false);render();};
+document.getElementById('rvoBtn').onclick=function(){mode='rvo';this.setAttribute('aria-pressed',true);document.getElementById('voBtn').setAttribute('aria-pressed',false);render();};
+document.getElementById('reset').onclick=()=>{A=DEF.A.slice();B=DEF.B.slice();G=DEF.G.slice();vB=DEF.vB.slice();render();};
+render();
+</script>
+</body>
+</html>

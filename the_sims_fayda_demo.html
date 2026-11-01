@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Sims — Akıllı Nesneler & Fayda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F;
+    --ink:#1f2430; --muted:#5b6470; --bg:#eef1f4; --panel:#fff; --line:#dde3ea;
+    --calm:#447099; --urgent:#FF6F20;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Open Sans",system-ui,sans-serif;line-height:1.5;padding:26px 18px 46px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .eyebrow{font-family:"Fira Code",monospace;font-size:.72rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--blue);font-weight:600;margin:0 0 6px}
+  h1{font-family:"Roboto Slab",serif;font-weight:700;font-size:clamp(1.6rem,4vw,2.3rem);
+    margin:0;line-height:1.1}
+  h1 .em{color:var(--orange)}
+  .lede{color:var(--muted);margin:8px 0 0;max-width:64ch;font-size:.97rem}
+  .formula{font-family:"Fira Code",monospace;font-size:.82rem;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;margin:14px 0 0;display:inline-block}
+  .formula b{color:var(--orange)}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 18px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 13px;cursor:pointer;
+    font-family:"Open Sans";font-weight:600;font-size:.83rem;color:var(--muted);transition:.15s}
+  .chip:hover{border-color:var(--blue);color:var(--blue)}
+  .spacer{flex:1}
+  .btn{border:0;border-radius:10px;padding:9px 15px;cursor:pointer;font-weight:700;font-size:.86rem;
+    font-family:"Open Sans";transition:.15s filter}
+  .btn-primary{background:var(--orange);color:#fff}.btn-primary:hover{filter:brightness(1.06)}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .check{display:inline-flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);cursor:pointer;margin-left:4px}
+  .check input{width:16px;height:16px;accent-color:var(--blue)}
+
+  .status{font-family:"Fira Code",monospace;font-size:.9rem;background:#fff;border:1px solid var(--line);
+    border-left:4px solid var(--orange);border-radius:0 10px 10px 0;padding:10px 14px;margin-bottom:16px}
+  .status b{color:var(--orange)}
+
+  .grid{display:grid;grid-template-columns:330px 1fr;gap:20px;align-items:start}
+  @media (max-width:860px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .panel h2{font-family:"Roboto Slab",serif;font-size:1rem;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+  .panel h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--blue)}
+  .panel.obj h2::before{background:var(--orange)}
+
+  /* Needs */
+  .need{margin-bottom:15px}
+  .need:last-child{margin-bottom:0}
+  .need .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .need .nm{font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:7px}
+  .need .nm .ic{font-size:1rem}
+  .need .val{font-family:"Fira Code",monospace;font-size:.82rem;color:var(--muted)}
+  .need .bar{height:10px;border-radius:6px;background:#edf1f4;overflow:hidden;border:1px solid var(--line)}
+  .need .fill{height:100%;border-radius:6px;transition:width .25s,background .25s}
+  .need input[type=range]{width:100%;margin-top:8px;accent-color:var(--blue)}
+  .need .wt{font-family:"Fira Code",monospace;font-size:.68rem;color:var(--muted);margin-top:2px}
+  .need .wt b{color:var(--urgent)}
+
+  /* Objects */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .card{border:1.5px solid var(--line);border-radius:12px;padding:13px;background:#fff;position:relative;
+    transition:border-color .2s,box-shadow .2s,transform .2s}
+  .card .hd{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .card .icon{font-size:1.5rem;line-height:1}
+  .card .name{font-family:"Roboto Slab",serif;font-weight:700;font-size:.95rem}
+  .card .ads{font-size:.78rem;color:var(--muted);margin-bottom:9px;min-height:2.4em}
+  .card .ads .tag{display:inline-block;background:#eef3f7;color:var(--blue);border-radius:6px;
+    padding:1px 7px;margin:2px 3px 0 0;font-family:"Fira Code",monospace;font-size:.72rem;font-weight:600}
+  .card .ubar{height:8px;border-radius:5px;background:#edf1f4;overflow:hidden;margin-bottom:6px}
+  .card .ufill{height:100%;background:var(--blue);width:0;border-radius:5px;transition:width .3s,background .3s}
+  .card .urow{display:flex;justify-content:space-between;align-items:baseline}
+  .card .ulab{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+  .card .uval{font-family:"Fira Code",monospace;font-weight:600;font-size:1.05rem;color:var(--blue)}
+  .card .calc{font-family:"Fira Code",monospace;font-size:.7rem;color:var(--muted);margin-top:7px;
+    border-top:1px dashed var(--line);padding-top:6px;display:none;line-height:1.5}
+  .card.show-calc .calc{display:block}
+  .card.win{border-color:var(--orange);box-shadow:0 6px 20px rgba(255,111,32,.18);transform:translateY(-2px)}
+  .card.win .ufill{background:var(--orange)}
+  .card.win .uval{color:var(--orange)}
+  .card .badge{position:absolute;top:-10px;right:10px;background:var(--orange);color:#fff;
+    font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:20px;opacity:0;transform:scale(.8);
+    transition:.2s;font-family:"Open Sans"}
+  .card.win .badge{opacity:1;transform:scale(1)}
+
+  .tip{margin-top:18px;font-size:.85rem;color:var(--muted);border-left:3px solid var(--blue);
+    padding:8px 0 8px 14px;background:#fff;border-radius:0 8px 8px 0}
+  .tip b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">BYZ502 · Oyun Yapay Zekâsı · Fayda Tabanlı YZ</p>
+  <h1>The Sims — Akıllı Nesneler ve <span class="em">Fayda</span></h1>
+  <p class="lede">Karakter "aptaldır"; zekâ <b>nesnelerdedir</b>. Her nesne bir <b>reklam</b> yayınlar ("bana gel, açlığını +40 doyururum"). Sim her reklamı <b>o anki ihtiyacına göre</b> puanlar ve en yüksek puanlıya gider. İhtiyaç çubuklarını kaydırın, kazanan nesnenin nasıl değiştiğini izleyin.</p>
+  <div class="formula">Fayda = Σ ( reklam değeri × <b>ağırlık</b> ),&nbsp;&nbsp; ağırlık = (100 − ihtiyaç) / 100</div>
+
+  <div class="toolbar">
+    <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Senaryo:</span>
+    <button class="chip" data-preset="morning">Sabah uyandı</button>
+    <button class="chip" data-preset="starving">Açlıktan bitkin</button>
+    <button class="chip" data-preset="bored">Canı sıkkın</button>
+    <button class="chip" data-preset="balanced">Dengeli</button>
+    <span class="spacer"></span>
+    <label class="check"><input type="checkbox" id="calcTog"> Hesabı göster</label>
+    <button class="btn btn-ghost" id="reset">Sıfırla</button>
+    <button class="btn btn-primary" id="sim">▶ Simüle et</button>
+  </div>
+
+  <div class="status" id="status">Sim bekliyor…</div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>İhtiyaçlar (0 = acil · 100 = tok)</h2>
+      <div id="needs"></div>
+    </div>
+    <div class="panel obj">
+      <h2>Nesneler ve Reklamları</h2>
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+
+  <div class="tip">
+    <b>Deneyin:</b> Tek bir ihtiyacı (örn. Mesane) çok düşürün — ona hitap eden nesne (Tuvalet) anında kazanır. Sonra onu doldurun; kazanan başka bir nesneye geçer. <b>Simüle et</b>'e basınca Sim, ihtiyaçlar azaldıkça nesneler arasında gezinerek hepsini dengede tutmaya çalışır — işte "akıllı nesne" döngüsü budur.
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const needs = [
+    {key:"hunger",  label:"Açlık",     ic:"🍔", value:60, decay:6},
+    {key:"energy",  label:"Enerji",    ic:"⚡", value:60, decay:3},
+    {key:"fun",     label:"Eğlence",   ic:"🎮", value:60, decay:5},
+    {key:"social",  label:"Sosyallik", ic:"💬", value:60, decay:3},
+    {key:"hygiene", label:"Hijyen",    ic:"🧼", value:60, decay:2},
+    {key:"bladder", label:"Mesane",    ic:"🚽", value:60, decay:8},
+  ];
+  const needByKey = Object.fromEntries(needs.map(n=>[n.key,n]));
+
+  const objects = [
+    {name:"Buzdolabı", icon:"🧊", ads:{hunger:40}},
+    {name:"Pizza",     icon:"🍕", ads:{hunger:30, fun:15}},
+    {name:"Yatak",     icon:"🛏️", ads:{energy:50}},
+    {name:"Kahve",     icon:"☕", ads:{energy:25, fun:5}},
+    {name:"TV",        icon:"📺", ads:{fun:35}},
+    {name:"Telefon",   icon:"📞", ads:{social:30}},
+    {name:"Duş",       icon:"🚿", ads:{hygiene:45}},
+    {name:"Tuvalet",   icon:"🚽", ads:{bladder:60}},
+  ];
+
+  const needsEl = document.getElementById("needs");
+  const cardsEl = document.getElementById("cards");
+  let showCalc = false, timer = null;
+
+  const clamp = v => Math.max(0, Math.min(100, v));
+  const weight = v => (100 - v) / 100;
+  function utility(o){
+    let u = 0;
+    for(const k in o.ads) u += o.ads[k] * weight(needByKey[k].value);
+    return u;
+  }
+  function urgencyColor(v){ // 0 -> turuncu (acil), 100 -> mavi (sakin)
+    const t = v/100;
+    const a=[255,111,32], b=[68,112,153];
+    const c=a.map((x,i)=>Math.round(x+(b[i]-x)*t));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  // ---- İlk render: iskeletleri kur ----
+  needs.forEach(n=>{
+    const d=document.createElement("div");
+    d.className="need";
+    d.innerHTML=`
+      <div class="top">
+        <span class="nm"><span class="ic">${n.ic}</span>${n.label}</span>
+        <span class="val" id="v-${n.key}"></span>
+      </div>
+      <div class="bar"><div class="fill" id="f-${n.key}"></div></div>
+      <input type="range" min="0" max="100" id="s-${n.key}" value="${n.value}">
+      <div class="wt" id="w-${n.key}"></div>`;
+    needsEl.appendChild(d);
+    d.querySelector("input").addEventListener("input",e=>{
+      n.value=+e.target.value; stopSim(); recompute();
+    });
+  });
+
+  objects.forEach((o,i)=>{
+    const tags=Object.entries(o.ads)
+      .map(([k,g])=>`<span class="tag">${needByKey[k].label} +${g}</span>`).join("");
+    const c=document.createElement("div");
+    c.className="card"; c.id="c-"+i;
+    c.innerHTML=`
+      <span class="badge">🏆 Sim buna gider</span>
+      <div class="hd"><span class="icon">${o.icon}</span><span class="name">${o.name}</span></div>
+      <div class="ads">${tags}</div>
+      <div class="ubar"><div class="ufill" id="uf-${i}"></div></div>
+      <div class="urow"><span class="ulab">Fayda</span><span class="uval" id="uv-${i}">0</span></div>
+      <div class="calc" id="cc-${i}"></div>`;
+    cardsEl.appendChild(c);
+  });
+
+  // ---- Hesapla & çiz ----
+  function recompute(){
+    // ihtiyaç çubukları
+    needs.forEach(n=>{
+      document.getElementById("s-"+n.key).value=n.value;
+      document.getElementById("v-"+n.key).textContent=Math.round(n.value)+" / 100";
+      const f=document.getElementById("f-"+n.key);
+      f.style.width=n.value+"%"; f.style.background=urgencyColor(n.value);
+      document.getElementById("w-"+n.key).innerHTML=
+        `ağırlık = (100 − ${Math.round(n.value)}) / 100 = <b>${weight(n.value).toFixed(2)}</b>`;
+    });
+
+    // faydalar
+    const us=objects.map(utility);
+    const maxU=Math.max(...us, 0.0001);
+    let winIdx=0; us.forEach((u,i)=>{ if(u>us[winIdx]) winIdx=i; });
+
+    objects.forEach((o,i)=>{
+      const card=document.getElementById("c-"+i);
+      document.getElementById("uv-"+i).textContent=us[i].toFixed(1);
+      document.getElementById("uf-"+i).style.width=(us[i]/maxU*100)+"%";
+      card.classList.toggle("win", i===winIdx && us[i]>0);
+      card.classList.toggle("show-calc", showCalc);
+      if(showCalc){
+        const parts=Object.entries(o.ads).map(([k,g])=>
+          `${g}×${weight(needByKey[k].value).toFixed(2)}`).join(" + ");
+        document.getElementById("cc-"+i).innerHTML=`${parts} = <b>${us[i].toFixed(1)}</b>`;
+      }
+    });
+
+    const w=objects[winIdx];
+    const drivers=Object.keys(w.ads).map(k=>needByKey[k].label).join(", ");
+    document.getElementById("status").innerHTML=
+      `🧍 Sim şu an <b>${w.name}</b>'e gidiyor &nbsp;·&nbsp; en yüksek fayda: ${us[winIdx].toFixed(1)} (${drivers})`;
+  }
+
+  // ---- Simülasyon ----
+  function tick(){
+    needs.forEach(n=> n.value=clamp(n.value - n.decay));   // ihtiyaçlar azalır
+    const us=objects.map(utility);
+    let w=0; us.forEach((u,i)=>{ if(u>us[w]) w=i; });
+    const o=objects[w];
+    for(const k in o.ads) needByKey[k].value=clamp(needByKey[k].value + o.ads[k]*0.6); // nesneyi kullan
+    recompute();
+  }
+  function startSim(){
+    document.getElementById("sim").textContent="⏸ Duraklat";
+    timer=setInterval(tick,650);
+  }
+  function stopSim(){
+    if(timer){clearInterval(timer);timer=null;}
+    document.getElementById("sim").textContent="▶ Simüle et";
+  }
+
+  // ---- Senaryolar ----
+  const presets={
+    morning:  {energy:15,bladder:20,hygiene:30,hunger:55,fun:65,social:60},
+    starving: {hunger:5,energy:65,fun:60,social:60,hygiene:60,bladder:60},
+    bored:    {fun:10,social:25,hunger:60,energy:60,hygiene:60,bladder:60},
+    balanced: {hunger:60,energy:60,fun:60,social:60,hygiene:60,bladder:60},
+  };
+  function applyPreset(p){
+    stopSim();
+    const cfg=presets[p];
+    needs.forEach(n=> n.value = (p in presets && cfg[n.key]!=null)? cfg[n.key] : n.value);
+    recompute();
+  }
+
+  // ---- Olaylar ----
+  document.querySelectorAll(".chip").forEach(b=>
+    b.addEventListener("click",()=>applyPreset(b.dataset.preset)));
+  document.getElementById("calcTog").addEventListener("change",e=>{showCalc=e.target.checked;recompute();});
+  document.getElementById("reset").addEventListener("click",()=>applyPreset("balanced"));
+  document.getElementById("sim").addEventListener("click",()=>{ timer?stopSim():startSim(); });
+
+  recompute();
+})();
+</script>
+</body>
+</html>

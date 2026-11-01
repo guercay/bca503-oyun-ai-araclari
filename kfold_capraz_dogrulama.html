@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>K-Katlı Çapraz Doğrulama — İnteraktif Gösterim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F; --gold:#FFB02E;
+    --ink:#1f2430; --muted:#5b6470; --bg:#eef1f4; --panel:#fff; --line:#dde3ea;
+    --train:#bcd6e6; --test:#FF6F20;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Open Sans",system-ui,sans-serif;line-height:1.5;padding:26px 18px 46px}
+  .wrap{max-width:1120px;margin:0 auto}
+  .eyebrow{font-family:"Fira Code",monospace;font-size:.72rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--blue);font-weight:600;margin:0 0 6px}
+  h1{font-family:"Roboto Slab",serif;font-weight:700;font-size:clamp(1.55rem,4vw,2.2rem);margin:0;line-height:1.1}
+  h1 .em{color:var(--orange)}
+  .lede{color:var(--muted);margin:8px 0 0;max-width:64ch;font-size:.96rem}
+
+  .layout{display:grid;grid-template-columns:290px 1fr;gap:20px;align-items:start;margin-top:18px}
+  @media (max-width:900px){.layout{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .panel + .panel{margin-top:14px}
+  .panel h2{font-family:"Roboto Slab",serif;font-size:1rem;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .panel h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--orange)}
+
+  .field{margin-bottom:14px}.field:last-child{margin-bottom:0}
+  .field label.lab{display:block;font-size:.78rem;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .field .row{display:flex;align-items:center;gap:10px}
+  .field .row output{font-family:"Fira Code",monospace;font-weight:600;color:var(--blue);min-width:2.2em;text-align:right}
+  input[type=range]{width:100%;accent-color:var(--blue)}
+  select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    font-family:"Open Sans";font-size:.88rem;color:var(--ink)}
+  .check{display:flex;align-items:center;gap:9px;font-size:.9rem;cursor:pointer}
+  .check input{width:16px;height:16px;accent-color:var(--blue)}
+
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .actions .full{grid-column:1/-1}
+  .btn{border:0;border-radius:10px;padding:10px;cursor:pointer;font-weight:700;font-size:.87rem;
+    font-family:"Open Sans";transition:.15s filter}
+  .btn-primary{background:var(--orange);color:#fff}.btn-primary:hover{filter:brightness(1.06)}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .stage + .stage{margin-top:14px}
+  .stage h2{font-family:"Roboto Slab",serif;font-size:1rem;margin:0 0 12px}
+
+  /* K-fold grid */
+  .kgrid{display:grid;gap:5px}
+  .krow{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px}
+  .krow .lbl{font-family:"Fira Code",monospace;font-size:.76rem;color:var(--muted);white-space:nowrap;width:52px}
+  .krow.cur .lbl{color:var(--gold);font-weight:700}
+  .cells{display:flex;gap:3px}
+  .cell{flex:1;height:22px;border-radius:4px;background:var(--train);transition:background .2s,opacity .2s}
+  .cell.test{background:var(--test)}
+  .krow.dim{opacity:.32}
+  .krow.cur .cells{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+  .legend{display:flex;gap:16px;margin-top:12px;font-size:.82rem;color:var(--muted)}
+  .legend .sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
+
+  /* scatter */
+  svg{width:100%;height:auto;display:block}
+  .axis{stroke:var(--line);stroke-width:1}
+  .curve{fill:none;stroke:var(--pink);stroke-width:2.5}
+  .pt-train{fill:var(--blue)}
+  .pt-test{fill:var(--orange);stroke:#fff;stroke-width:1.5}
+  .caption{font-size:.82rem;color:var(--muted);margin-top:6px}
+
+  /* results */
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .stat{background:#f5f8fa;border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .k{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700}
+  .stat .v{font-family:"Fira Code",monospace;font-size:1.15rem;font-weight:600;color:var(--blue);margin-top:2px}
+  .stat.cv .v{color:var(--orange)}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:90px;margin-top:14px}
+  .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+  .bar .fill{width:100%;background:var(--blue);border-radius:4px 4px 0 0;transition:height .25s}
+  .bar.cur .fill{background:var(--orange)}
+  .bar .cap{font-family:"Fira Code",monospace;font-size:.62rem;color:var(--muted)}
+
+  /* degree compare */
+  .dcompare .bars{height:120px}
+  .dbar .fill{background:#9db8cc}
+  .dbar.best .fill{background:var(--orange)}
+  .dbar.sel .fill{outline:2px solid var(--gold);outline-offset:-2px}
+  .dbar .lab{font-family:"Fira Code",monospace;font-size:.66rem;color:var(--ink)}
+
+  .tip{margin-top:16px;font-size:.85rem;color:var(--muted);border-left:3px solid var(--orange);
+    padding:8px 0 8px 14px;background:#fff;border-radius:0 8px 8px 0}
+  .tip b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">BYZ502 · Oyun Yapay Zekâsı · Model Değerlendirme</p>
+  <h1>K-Katlı <span class="em">Çapraz Doğrulama</span></h1>
+  <p class="lede">Veri K parçaya bölünür. Her turda bir parça <b>test</b> (turuncu), geri kalanı <b>eğitim</b> (mavi) olur; model K kez eğitilir ve sonuçların ortalaması alınır. Böylece tek bir şanslı/şanssız bölmeye takılmayız. Her turda modelin eğri uyumunu ve test hatasını izleyin.</p>
+
+  <div class="layout">
+    <div>
+      <div class="panel">
+        <h2>Veri &amp; Model</h2>
+        <div class="field">
+          <label class="lab" for="dataset">Veri kümesi</label>
+          <select id="dataset">
+            <option value="levels">Seviye yükseklikleri (12 nokta)</option>
+            <option value="noisy">Gürültülü eğri (20 nokta)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="lab">Kat sayısı (K)</label>
+          <div class="row"><input type="range" id="K" min="2" max="8" value="4"><output id="Kout">4</output></div>
+        </div>
+        <div class="field">
+          <label class="lab">Polinom derecesi (d)</label>
+          <div class="row"><input type="range" id="deg" min="0" max="7" value="1"><output id="degout">1</output></div>
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="shuffle" checked> Bölmeden önce karıştır</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Çalıştırma</h2>
+        <div class="actions">
+          <button class="btn btn-primary full" id="run">▶ Turları oynat</button>
+          <button class="btn btn-ghost" id="step">Adım</button>
+          <button class="btn btn-ghost" id="reset">Sıfırla</button>
+          <button class="btn btn-ghost full" id="reshuffle">🔀 Yeniden karıştır</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Model Seçimi</h2>
+        <p style="font-size:.85rem;color:var(--muted);margin:0 0 10px">Her derece için tam K-katlı CV çalıştırıp en düşük doğrulama hatasını (tatlı nokta) bulun.</p>
+        <button class="btn btn-ghost full" id="compare">Tüm dereceleri karşılaştır</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="stage">
+        <h2>K-Katlı Bölme</h2>
+        <div class="kgrid" id="kgrid"></div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--train)"></span>Eğitim</span>
+          <span><span class="sw" style="background:var(--test)"></span>Test / doğrulama</span>
+          <span><span class="sw" style="background:#fff;outline:2px solid var(--gold);outline-offset:-2px"></span>Bu turdaki test katı</span>
+        </div>
+      </div>
+
+      <div class="stage">
+        <h2>Bu Turdaki Uyum</h2>
+        <svg id="scatter" viewBox="0 0 560 300" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="caption" id="scatterCap">Mavi = eğitim noktaları · Turuncu = test noktaları · Pembe eğri = bu tur eğitilen model</div>
+      </div>
+
+      <div class="stage">
+        <h2>Sonuçlar</h2>
+        <div class="stats">
+          <div class="stat"><div class="k">Bu tur test MSE</div><div class="v" id="curMse">—</div></div>
+          <div class="stat cv"><div class="k">CV ortalaması ± std</div><div class="v" id="cvMse">—</div></div>
+          <div class="stat"><div class="k">Ortalama eğitim MSE</div><div class="v" id="trMse">—</div></div>
+        </div>
+        <div class="bars" id="bars"></div>
+      </div>
+
+      <div class="stage dcompare" id="dcompareBox" style="display:none">
+        <h2>Dereceye Göre CV Hatası</h2>
+        <div class="bars" id="dbars"></div>
+        <div class="caption" id="dcap"></div>
+      </div>
+
+      <div class="tip">
+        <b>Deneyin:</b> Dereceyi 1 yapın (yetersiz öğrenme, CV hatası yüksek), sonra 7 yapın (aşırı öğrenme, CV hatası yine yüksek). "Tüm dereceleri karşılaştır"a basınca CV hatasının ortada bir yerde en küçük olduğunu (tatlı nokta) görürsünüz. İşte çapraz doğrulama <b>doğru model karmaşıklığını</b> böyle seçtirir.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- yardımcılar ----
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  let rng = mulberry32(42);
+
+  function makeData(kind){
+    if(kind==="levels"){
+      const ys=[1,1,1,2,2,1,1,2,3,4,1,1];
+      return ys.map((y,i)=>({x:i+1,y}));
+    }
+    // gürültülü eğri: y = 2*sin(0.9x) + gürültü
+    const d=[];
+    for(let i=0;i<20;i++){const x=i*0.5; d.push({x, y:2*Math.sin(0.9*x)+(rng()-0.5)*1.1});}
+    return d;
+  }
+
+  function normalize(data){
+    const xs=data.map(p=>p.x), lo=Math.min(...xs), hi=Math.max(...xs);
+    data.forEach(p=> p.xn = hi>lo ? (p.x-lo)/(hi-lo)*2-1 : 0);
+    return {lo,hi};
+  }
+
+  // en küçük kareler polinom uyumu (normal denklemler + Gauss eliminasyonu)
+  function solve(A,b){
+    const n=A.length, M=A.map((r,i)=>r.concat(b[i]));
+    for(let c=0;c<n;c++){
+      let piv=c; for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[piv][c])) piv=r;
+      [M[c],M[piv]]=[M[piv],M[c]];
+      const dv=M[c][c]; if(Math.abs(dv)<1e-12) continue;
+      for(let r=0;r<n;r++){ if(r===c) continue; const f=M[r][c]/dv;
+        for(let k=c;k<=n;k++) M[r][k]-=f*M[c][k]; }
+    }
+    return M.map((row,i)=> Math.abs(M[i][i])<1e-12?0:row[n]/M[i][i]);
+  }
+  function fit(rows,d){
+    const cols=d+1, A=Array.from({length:cols},()=>new Array(cols).fill(0)), b=new Array(cols).fill(0);
+    for(const p of rows){ const pw=[]; let v=1; for(let k=0;k<cols;k++){pw.push(v);v*=p.xn;}
+      for(let i=0;i<cols;i++){ b[i]+=pw[i]*p.y; for(let j=0;j<cols;j++) A[i][j]+=pw[i]*pw[j]; } }
+    for(let i=0;i<cols;i++) A[i][i]+=1e-9;
+    return solve(A,b);
+  }
+  const predict=(w,xn)=>{let v=1,s=0;for(let k=0;k<w.length;k++){s+=w[k]*v;v*=xn;}return s;};
+  const mse=(w,rows)=> rows.reduce((a,p)=>a+(predict(w,p.xn)-p.y)**2,0)/rows.length;
+
+  // ---- durum ----
+  let data, range, foldOf=[], K=4, deg=1, revealed=0, results=[], timer=null;
+
+  function assignFolds(){
+    const N=data.length, idx=[...Array(N).keys()];
+    if(document.getElementById("shuffle").checked)
+      for(let i=N-1;i>0;i--){const j=Math.floor(rng()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+    foldOf=new Array(N);
+    const base=Math.floor(N/K), rem=N%K; let pos=0;
+    for(let f=0;f<K;f++){ const size=base+(f<rem?1:0);
+      for(let s=0;s<size;s++) foldOf[idx[pos++]]=f; }
+  }
+  function computeRounds(d){
+    const out=[];
+    for(let f=0;f<K;f++){
+      const tr=data.filter((_,i)=>foldOf[i]!==f), te=data.filter((_,i)=>foldOf[i]===f);
+      const w=fit(tr,d);
+      out.push({w, test:mse(w,te), train:mse(w,tr)});
+    }
+    return out;
+  }
+
+  // ---- çizim ----
+  function renderGrid(){
+    const g=document.getElementById("kgrid"); g.innerHTML="";
+    for(let f=0;f<K;f++){
+      const row=document.createElement("div");
+      row.className="krow"+(f===revealed?" cur":"")+(revealed<K&&f>revealed?" dim":"");
+      let cells="";
+      data.forEach((_,i)=> cells+=`<div class="cell${foldOf[i]===f?" test":""}"></div>`);
+      row.innerHTML=`<span class="lbl">Tur ${f+1}</span><div class="cells">${cells}</div>`;
+      g.appendChild(row);
+    }
+  }
+  function renderScatter(){
+    const svg=document.getElementById("scatter");
+    const W=560,H=300,m={l:40,r:14,t:14,b:28};
+    const xs=data.map(p=>p.x), ys=data.map(p=>p.y);
+    const xlo=Math.min(...xs),xhi=Math.max(...xs);
+    let ylo=Math.min(...ys),yhi=Math.max(...ys); const yp=(yhi-ylo||1)*0.25; ylo-=yp; yhi+=yp;
+    const X=x=>m.l+(x-xlo)/(xhi-xlo)*(W-m.l-m.r);
+    const Y=y=>H-m.b-(y-ylo)/(yhi-ylo)*(H-m.t-m.b);
+    const cur = revealed<K ? revealed : K-1;
+    const w = results.length? results[cur].w : fit(data,deg);
+    // eğri
+    let path=""; const clamp=v=>Math.max(ylo,Math.min(yhi,v));
+    for(let i=0;i<=120;i++){ const x=xlo+(xhi-xlo)*i/120; const xn=(x-range.lo)/(range.hi-range.lo)*2-1;
+      path+=(i?"L":"M")+X(x).toFixed(1)+","+Y(clamp(predict(w,xn))).toFixed(1)+" "; }
+    // noktalar
+    let pts="";
+    data.forEach((p,i)=>{ const isTest=foldOf[i]===cur;
+      pts+=`<circle class="${isTest?"pt-test":"pt-train"}" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${isTest?5:4}"/>`; });
+    svg.innerHTML=`
+      <line class="axis" x1="${m.l}" y1="${H-m.b}" x2="${W-m.r}" y2="${H-m.b}"/>
+      <line class="axis" x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${H-m.b}"/>
+      <path class="curve" d="${path}"/>${pts}`;
+    document.getElementById("scatterCap").textContent=
+      `Tur ${cur+1}: pembe eğri, turuncu (test) katı dışındaki mavi noktalar üzerinde eğitildi (derece ${deg}).`;
+  }
+  function renderResults(){
+    const shown=results.slice(0,Math.max(revealed,0));
+    const tests=shown.map(r=>r.test);
+    document.getElementById("curMse").textContent =
+      (revealed>=1 && revealed<=K) ? results[revealed-1].test.toFixed(3) : "—";
+    if(revealed>=K && results.length){
+      const mean=results.reduce((a,r)=>a+r.test,0)/K;
+      const sd=Math.sqrt(results.reduce((a,r)=>a+(r.test-mean)**2,0)/K);
+      const trm=results.reduce((a,r)=>a+r.train,0)/K;
+      document.getElementById("cvMse").textContent=mean.toFixed(3)+" ± "+sd.toFixed(2);
+      document.getElementById("trMse").textContent=trm.toFixed(3);
+    } else { document.getElementById("cvMse").textContent="—"; document.getElementById("trMse").textContent="—"; }
+    // barlar
+    const box=document.getElementById("bars"); box.innerHTML="";
+    const mx=Math.max(0.001,...results.map(r=>r.test));
+    for(let f=0;f<K;f++){
+      const on=f<revealed;
+      const b=document.createElement("div"); b.className="bar"+(f===revealed-1?" cur":"");
+      const h=on? (results[f].test/mx*70+4):0;
+      b.innerHTML=`<div class="fill" style="height:${h}px"></div><div class="cap">T${f+1}${on?"<br>"+results[f].test.toFixed(2):""}</div>`;
+      box.appendChild(b);
+    }
+  }
+  function render(){ renderGrid(); renderScatter(); renderResults(); }
+
+  // ---- akış ----
+  function rebuild(){
+    stop();
+    data=makeData(document.getElementById("dataset").value);
+    range=normalize(data);
+    assignFolds();
+    results=computeRounds(deg);
+    revealed=0; render();
+    document.getElementById("dcompareBox").style.display="none";
+  }
+  function step(){ if(revealed<K){revealed++; render();} }
+  function run(){
+    if(revealed>=K) revealed=0;
+    setPlaying(true);
+    const t=()=>{ if(revealed>=K){setPlaying(false);return;} step(); timer=setTimeout(t,750); };
+    timer=setTimeout(t,300);
+  }
+  function stop(){ if(timer){clearTimeout(timer);timer=null;} setPlaying(false); }
+  function setPlaying(p){ document.getElementById("run").textContent=p?"⏸ Duraklat":"▶ Turları oynat";
+    document.getElementById("step").disabled=p; }
+
+  function compareDegrees(){
+    stop();
+    const box=document.getElementById("dbars"); box.innerHTML="";
+    const scores=[];
+    for(let d=0;d<=7;d++){ const r=computeRounds(d); scores.push(r.reduce((a,x)=>a+x.test,0)/K); }
+    const best=scores.indexOf(Math.min(...scores)), mx=Math.max(...scores);
+    scores.forEach((s,d)=>{
+      const b=document.createElement("div");
+      b.className="bar dbar"+(d===best?" best":"")+(d===deg?" sel":"");
+      b.innerHTML=`<div class="fill" style="height:${(s/mx*100+6).toFixed(0)}px"></div><div class="lab">d=${d}</div>`;
+      box.appendChild(b);
+    });
+    document.getElementById("dcompareBox").style.display="";
+    document.getElementById("dcap").innerHTML=
+      `En düşük CV hatası <b>derece ${best}</b>'te (${scores[best].toFixed(3)}). Sarı çerçeve şu an seçili derece (d=${deg}). Küçük d → yetersiz, büyük d → aşırı öğrenme.`;
+  }
+
+  // ---- olaylar ----
+  const $=id=>document.getElementById(id);
+  $("dataset").addEventListener("change",rebuild);
+  $("K").addEventListener("input",e=>{K=+e.target.value;$("Kout").textContent=K;rebuild();});
+  $("deg").addEventListener("input",e=>{deg=+e.target.value;$("degout").textContent=deg;
+    results=computeRounds(deg); revealed=Math.min(revealed,K); render();
+    if($("dcompareBox").style.display!=="none") compareDegrees();});
+  $("shuffle").addEventListener("change",rebuild);
+  $("run").addEventListener("click",()=>{ timer?stop():run(); });
+  $("step").addEventListener("click",()=>{ stop(); step(); });
+  $("reset").addEventListener("click",()=>{ stop(); revealed=0; render(); });
+  $("reshuffle").addEventListener("click",()=>{ rng=mulberry32((Math.random()*1e9)|0); rebuild(); });
+  $("compare").addEventListener("click",compareDegrees);
+
+  rebuild();
+})();
+</script>
+</body>
+</html>
