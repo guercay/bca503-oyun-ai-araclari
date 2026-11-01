@@ -6,7 +6,7 @@ Hacettepe Üniversitesi, Bilgisayar Animasyonu ve Oyun Teknolojileri yüksek lis
 
 Tüm araçlar GitHub Pages üzerinden, kurulum gerektirmeden doğrudan tarayıcıda çalışır:
 
-**https://<kullanici-adiniz>.github.io/<repo-adi>/**
+**https://guercay.github.io/bca503-oyun-ai-araclari/**
 
 (Bu repoyu GitHub'a yükleyip Pages'i etkinleştirdikten sonra gerçek linki bu satırın yerine yazabilirsiniz.)
 
