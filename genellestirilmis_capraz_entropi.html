@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genelleştirilmiş Çapraz Entropi</title>
+<style>
+:root{
+  --bg:#f5f8f6; --surface:#ffffff; --surface2:#eef4f0; --ink:#13241c; --muted:#4f6559; --line:#d5e2da;
+  --accent:#0f8a5f; --accent-rgb:15,138,95; --accent-soft:#d8f0e4; --warn:#b45309; --warn-soft:#fdf0dc; --bad:#c2410c; --bad-rgb:194,65,12; --bad-soft:#fde4d8;
+  --c1:#d97706; --c2:#2563eb; --c3:#dc2626; --face:#fde7c8; --faceline:#7c4a1e;
+  --code:#0d1f17; --codeink:#e2f0ea; --shadow:0 1px 2px rgba(19,36,28,.06),0 4px 16px rgba(19,36,28,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-rgb:52,211,153; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-rgb:251,146,60; --bad-soft:#3d2216;
+  --c1:#fbbf24; --c2:#60a5fa; --c3:#f87171; --face:#e9c9a0; --faceline:#4a2a10;
+  --code:#06110c; --shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-rgb:52,211,153; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-rgb:251,146,60; --bad-soft:#3d2216;
+  --c1:#fbbf24; --c2:#60a5fa; --c3:#f87171; --face:#e9c9a0; --faceline:#4a2a10;
+  --code:#06110c; --shadow:none;}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:32px 16px 64px;position:relative}
+.kicker{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(1.9rem,5vw,2.7rem);line-height:1.15;margin:.3em 0}
+h2{font-size:1.45rem;margin:0 0 .5em;line-height:1.3}
+h3{font-size:1.08rem;margin:1.2em 0 .4em}
+p{margin:.5em 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:62ch}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;margin:20px 0;box-shadow:var(--shadow)}
+.secnum{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.9rem;margin-right:8px;vertical-align:2px}
+.muted{color:var(--muted)} .small{font-size:.88rem}
+.note{border-radius:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--line)}
+.note.warn{background:var(--warn-soft);border-color:transparent}
+.note.bad{background:var(--bad-soft);border-color:transparent}
+.note.good{background:var(--accent-soft);border-color:transparent}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.btn{font:inherit;font-size:.9rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.themebtn{position:absolute;top:12px;right:16px}
+.math{font-family:"Cambria Math",Cambria,"STIX Two Math","Times New Roman",serif;font-size:1.25rem;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center;overflow-x:auto;margin:12px 0;white-space:nowrap}
+.math .lim{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1;margin:0 .1em}
+.math .lim small{font-size:.55em}
+.math .sum{font-size:1.7em}
+.math .lbl{display:block;font-family:system-ui,sans-serif;font-size:.72rem;color:var(--muted);margin-top:6px;white-space:normal}
+.calc{font-family:"Cambria Math",Cambria,serif;font-size:1.02rem;background:var(--surface2);border-radius:10px;padding:10px 14px;overflow-x:auto;white-space:nowrap;margin:8px 0}
+.calc b{color:var(--accent)}
+.tablewrap{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;font-size:.93rem}
+th{color:var(--muted);font-weight:600;font-size:.85rem}
+td.l,th.l{text-align:left}
+tfoot td{font-weight:700;border-bottom:0}
+.result{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{flex:1 1 150px;background:var(--surface2);border-radius:10px;padding:12px 14px}
+.stat .v{font-size:1.55rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .l{font-size:.83rem;color:var(--muted)}
+.stat.hl .v{color:var(--accent)}
+.lab{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.panel{background:var(--surface2);border-radius:12px;padding:14px}
+.panel h3{margin:0 0 6px}
+.facebox{display:flex;justify-content:center}
+.ctrl{display:grid;grid-template-columns:90px 1fr 52px;gap:8px;align-items:center;margin:6px 0;font-size:.92rem}
+.ctrl input{width:100%}
+.ctrl output{font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+.ctrl.e1 input{accent-color:var(--c1)} .ctrl.e2 input{accent-color:var(--c2)} .ctrl.e3 input{accent-color:var(--c3)}
+.dist{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:8px 0 2px}
+.dist div{transition:width .2s}
+.d1{background:var(--c1)} .d2{background:var(--c2)} .d3{background:var(--c3)}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.presets .btn{font-size:.82rem;padding:4px 10px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.decomp{display:flex;height:30px;border-radius:8px;overflow:hidden;margin:8px 0;font-size:.8rem;font-weight:700}
+.decomp div{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;transition:width .25s}
+.decomp .h{background:rgba(var(--accent-rgb),.35);color:var(--ink)} .decomp .k{background:rgba(var(--bad-rgb),.55);color:var(--ink)}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:10px}
+.vs .panel .v{font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums}
+code{overflow-wrap:anywhere}
+pre{background:var(--code);color:var(--codeink);border-radius:10px;padding:14px;overflow-x:auto;font:13px/1.55 ui-monospace,"Cascadia Code",Consolas,"Courier New",monospace;margin:10px 0}
+pre .c{color:#7fa592} pre .s{color:#fbbf24} pre .k{color:#34d399} pre .n{color:#a3e635}
+.quiz .q{margin:16px 0;padding-top:12px;border-top:1px solid var(--line)}
+.quiz .q:first-child{border-top:0;padding-top:0}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opts button{font:inherit;text-align:left;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer}
+.opts button:hover{border-color:var(--accent)}
+.opts button.ok{background:var(--accent-soft);border-color:var(--accent)}
+.opts button.no{background:var(--bad-soft);border-color:var(--bad)}
+.fb{margin-top:8px;font-size:.95rem}
+footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:28px}
+@media (max-width:560px){section{padding:18px}.math{font-size:1.02rem}.ctrl{grid-template-columns:76px 1fr 46px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<button class="btn themebtn" id="themeBtn" aria-label="Temayı değiştir">◐ Tema</button>
+
+<header>
+  <div class="kicker">Hatanın Ölçülmesi · Sınıflandırma</div>
+  <h1>Genelleştirilmiş Çapraz Entropi</h1>
+  <p class="lead">Gerçek etiketlerin kendisi olasılık olduğunda, yani bir örnek “tamamen tek bir sınıfa” ait olmadığında çapraz entropiyi nasıl hesaplarız? Örnekler 3B yüz animasyonu ve oyun yapay zekâsından.</p>
+</header>
+
+<section id="hatirlatma">
+  <h2><span class="secnum">1</span>Hatırlatma: standart çapraz entropi</h2>
+  <p>Sınıflandırıcılar genellikle doğrudan etiket değil, her sınıf için bir olasılık verir; bir örneğin olasılıkları toplamı 1'dir. Çapraz entropi, tüm örnekler üzerinden <strong>gerçek sınıfa verilen olasılığın</strong> doğal logaritmalarının toplamının negatifidir:</p>
+  <div class="math">CE = − <span class="lim"><small>n</small><span class="sum">Σ</span><small>i = 1</small></span> ln ŷ<sub>i, gerçek sınıf</sub></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Örnek</th><th>y (gerçek)</th><th>ŷ (Sağlıklı)</th><th>ŷ (Hasta)</th><th>−ln ŷ<sub>gerçek</sub></th></tr></thead>
+    <tbody>
+      <tr><td class="l">Hasta 1</td><td>Sağlıklı</td><td><strong>0,7</strong></td><td>0,3</td><td>0,357</td></tr>
+      <tr><td class="l">Hasta 2</td><td>Sağlıklı</td><td><strong>0,6</strong></td><td>0,4</td><td>0,511</td></tr>
+      <tr><td class="l">Hasta 3</td><td>Hasta</td><td>0,1</td><td><strong>0,9</strong></td><td>0,105</td></tr>
+      <tr><td class="l">Hasta 4</td><td>Sağlıklı</td><td><strong>0,2</strong></td><td>0,8</td><td>1,609</td></tr>
+    </tbody>
+    <tfoot><tr><td class="l" colspan="4">Toplam</td><td>2,582</td></tr></tfoot>
+  </table></div>
+  <div class="grid2">
+    <div class="note good">Doğru sınıftan tamamen emin: ln(1) = 0 → ceza yok.</div>
+    <div class="note bad">Yanlış sınıftan tamamen emin: ln(0) → −∞ → sınırsız ceza.</div>
+  </div>
+</section>
+
+<section id="kesinOlmayan">
+  <h2><span class="secnum">2</span>Etiketler kesin olmadığında</h2>
+  <p>Bazı problemlerde gerçek etiket y de bir olasılık dağılımıdır. Bunun iki nedeni olabilir:</p>
+  <div class="grid2">
+    <div class="note"><strong>Verideki belirsizlik</strong><br>Etiketleyiciler aynı örnek için anlaşamaz ya da ölçüm kesin değildir.</div>
+    <div class="note"><strong>Problemin doğası</strong><br>Kitaptaki örnek: soyu beş alt popülasyona bölünmüş çeltik (pirinç) örnekleri. Burada belirsizlik yok; karma soy, adı üstünde karma bir soydur.</div>
+  </div>
+  <p style="margin-top:12px">Bu durumda her örnek için hem y hem ŷ, 0 ile 1 arasında değerlerden oluşan ve toplamı 1 olan vektörlerdir. Genelleştirilmiş çapraz entropi:</p>
+  <div class="math">CE = <span class="lim"><small>n</small><span class="sum">Σ</span><small>i = 1</small></span><span class="lim"><small>K</small><span class="sum">Σ</span><small>j = 1</small></span> − y<sub>ij</sub> · ln ŷ<sub>ij</sub>
+    <span class="lbl">i: örnekler (n adet) · j: sınıflar (K adet) · y<sub>ij</sub>: i. örneğin j. sınıfa ait olma payı · ŷ<sub>ij</sub>: modelin o sınıfa verdiği olasılık</span></div>
+  <div class="note good"><strong>Standarda indirgenir:</strong> Etiket kesinse y doğru sınıf için 1, diğerleri için 0'dır. İç toplamdaki 0 · ln ŷ terimleri düşer, yalnızca −ln ŷ<sub>gerçek sınıf</sub> kalır ve denklem standart çapraz entropiye dönüşür.</div>
+</section>
+
+<section id="yuz">
+  <h2><span class="secnum">3</span>Animasyon örneği: sesten yüz ifadesi</h2>
+  <p>3B bir karakterin yüz animasyonunu ses tonundan otomatik üreten bir model düşünelim. Model her an için karakterin duygusunu [Mutlu, Üzgün, Öfkeli] olarak tahmin ediyor; Blender'daki yüz şekil anahtarları (shape keys) bu değerlere göre bükülüyor.</p>
+  <h3>a) Kesin etiket</h3>
+  <p>Ses kaydında karakter ağlıyor; durum kesinlikle “Üzgün”: y = [0, 1, 0]. Model sesi tam ayırt edemiyor: ŷ = [0,1; 0,6; 0,3].</p>
+  <div class="calc">CE = −(0 · ln 0,1 + 1 · ln 0,6 + 0 · ln 0,3) = −ln 0,6 = <b>0,511</b></div>
+  <div class="note warn"><strong>Dikkat:</strong> Etiket kesinse yalnızca doğru sınıfa verilen olasılık sayılır. ŷ = [0,3; 0,6; 0,1] tahmini de aynı 0,511 değerini verir. Yani standart çapraz entropi, kalan 0,4'ün “Öfkeli”ye mi “Mutlu”ya mı gittiğini doğrudan ayırt etmez. Yanlış sınıflar yalnızca doğru sınıfın payını azalttıkları ölçüde cezalandırılır.</div>
+  <h3>b) Olasılıksal etiket: karışık duygular</h3>
+  <p>Animatörler bir sahnede karakterin “buruk bir gülümseme” ile konuştuğunu ve yüzün %50 mutlu, %40 üzgün, %10 öfkeli şekil anahtarlarının karışımı olması gerektiğini belirliyor: y = [0,5; 0,4; 0,1]. Bu bir belirsizlik değil; hedef ifadenin kendisi bir karışım. Model ŷ = [0,6; 0,3; 0,1] tahmin ediyor:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Duygu j</th><th>y<sub>j</sub></th><th>ŷ<sub>j</sub></th><th>ln ŷ<sub>j</sub></th><th>−y<sub>j</sub> · ln ŷ<sub>j</sub></th></tr></thead>
+    <tbody>
+      <tr><td class="l">Mutlu</td><td>0,5</td><td>0,6</td><td>−0,511</td><td>0,255</td></tr>
+      <tr><td class="l">Üzgün</td><td>0,4</td><td>0,3</td><td>−1,204</td><td>0,482</td></tr>
+      <tr><td class="l">Öfkeli</td><td>0,1</td><td>0,1</td><td>−2,303</td><td>0,230</td></tr>
+    </tbody>
+    <tfoot><tr><td class="l" colspan="4">CE</td><td>0,967</td></tr></tfoot>
+  </table></div>
+  <p>Artık <em>her</em> sınıf hesaba katılıyor: hedefte payı olan her duygu için modelin ne kadar olasılık ayırdığı ölçülüyor.</p>
+</section>
+
+<section id="lab">
+  <h2><span class="secnum">4</span>Etkileşimli laboratuvar: yüzü eşleştirin</h2>
+  <p class="muted">Soldaki hedef ifadeyi (y) ve sağdaki model tahminini (ŷ) değiştirin. Kaydırıcı değerleri otomatik olarak toplamı 1 olacak şekilde normalize edilir. Yüz çizimi dağılımın karışımını gösterir.</p>
+  <div class="presets">
+    <button class="btn" data-p="sad">Kitap örneği (kesin “Üzgün”)</button>
+    <button class="btn" data-p="bitter">Buruk gülümseme</button>
+    <button class="btn" data-p="perfect">Mükemmel tahmin</button>
+    <button class="btn" data-p="confident">Aşırı emin, yanlış</button>
+  </div>
+  <div class="lab">
+    <div class="panel">
+      <h3>Hedef ifade y</h3>
+      <div class="facebox"><svg id="faceY" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Hedef yüz ifadesi"></svg></div>
+      <div class="ctrl e1"><label for="y0">Mutlu</label><input type="range" id="y0" min="0" max="100" value="50"><output id="y0o"></output></div>
+      <div class="ctrl e2"><label for="y1">Üzgün</label><input type="range" id="y1" min="0" max="100" value="40"><output id="y1o"></output></div>
+      <div class="ctrl e3"><label for="y2">Öfkeli</label><input type="range" id="y2" min="0" max="100" value="10"><output id="y2o"></output></div>
+      <div class="dist" id="distY"><div class="d1"></div><div class="d2"></div><div class="d3"></div></div>
+    </div>
+    <div class="panel">
+      <h3>Model tahmini ŷ</h3>
+      <div class="facebox"><svg id="faceP" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Tahmin edilen yüz ifadesi"></svg></div>
+      <div class="ctrl e1"><label for="p0">Mutlu</label><input type="range" id="p0" min="1" max="100" value="60"><output id="p0o"></output></div>
+      <div class="ctrl e2"><label for="p1">Üzgün</label><input type="range" id="p1" min="1" max="100" value="30"><output id="p1o"></output></div>
+      <div class="ctrl e3"><label for="p2">Öfkeli</label><input type="range" id="p2" min="1" max="100" value="10"><output id="p2o"></output></div>
+      <div class="dist" id="distP"><div class="d1"></div><div class="d2"></div><div class="d3"></div></div>
+    </div>
+  </div>
+  <div class="legend" style="margin-top:8px"><span><span class="sw d1"></span>Mutlu</span><span><span class="sw d2"></span>Üzgün</span><span><span class="sw d3"></span>Öfkeli</span></div>
+  <div class="tablewrap"><table id="labTable"></table></div>
+  <div class="calc" id="labCalc"></div>
+  <div class="result" aria-live="polite">
+    <div class="stat hl"><div class="v" id="vCE"></div><div class="l">çapraz entropi CE(y, ŷ)</div></div>
+    <div class="stat"><div class="v" id="vH"></div><div class="l">en düşük olası değer: H(y)</div></div>
+    <div class="stat"><div class="v" id="vKL"></div><div class="l">fazlalık: CE − H(y)</div></div>
+  </div>
+  <div class="decomp" id="decomp" aria-hidden="true"><div class="h" id="dH"></div><div class="k" id="dK"></div></div>
+  <div class="note" id="labNote" style="margin-top:10px"></div>
+</section>
+
+<section id="minimum">
+  <h2><span class="secnum">5</span>Önemli fark: en iyi değer artık 0 değil</h2>
+  <p>Kesin etiketlerde mükemmel bir model CE = 0 alır. Olasılıksal etiketlerde ise en düşük değer, model tahmini hedefle <strong>tam olarak aynı</strong> olduğunda (ŷ = y) elde edilir ve bu değer hedefin kendi entropisine eşittir:</p>
+  <div class="math">CE(y, ŷ) = H(y) + D<sub>KL</sub>(y ‖ ŷ) &nbsp;&nbsp;,&nbsp;&nbsp; H(y) = − <span class="lim"><small>K</small><span class="sum">Σ</span><small>j = 1</small></span> y<sub>j</sub> ln y<sub>j</sub></div>
+  <ul>
+    <li><strong>H(y):</strong> hedefin kendi belirsizliği. Model ne yaparsa yapsın bu kısım kalır.</li>
+    <li><strong>D<sub>KL</sub>(y ‖ ŷ) ≥ 0:</strong> Kullback–Leibler ıraksaması. Yalnızca ŷ = y olduğunda sıfırdır. Modelin gerçekten küçültebileceği kısım budur.</li>
+  </ul>
+  <div class="calc">Buruk gülümseme: CE = 0,967 = H(y) 0,943 + D<sub>KL</sub> 0,024</div>
+  <p class="small muted">Bu ayrıştırma kitapta yer almıyor; genelleştirilmiş çapraz entropiyi yorumlamayı kolaylaştırdığı için eklendi.</p>
+</section>
+
+<section id="oyun">
+  <h2><span class="secnum">6</span>Oyun örneği: profesyonellerden taklitle öğrenme</h2>
+  <p>Bir strateji oyununda NPC'nin davranışı, profesyonel oyuncuların kayıtlarından öğreniliyor (davranış klonlama). Aynı oyun durumunda (canı %40, iki düşman yakında) 50 profesyonel oyuncunun kararları:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l"></th><th>Saldır</th><th>Savun</th><th>Kaç</th></tr></thead>
+    <tbody><tr><td class="l">Oyuncu sayısı</td><td>30</td><td>15</td><td>5</td></tr>
+    <tr><td class="l">Olasılıksal hedef y</td><td>0,6</td><td>0,3</td><td>0,1</td></tr></tbody>
+  </table></div>
+  <p>Burada “tek doğru cevap” yok; iyi oyuncular bile farklı seçimler yapıyor. Yumuşak hedef, bu çeşitliliği korur. İki modeli karşılaştıralım:</p>
+  <div class="vs">
+    <div class="panel"><strong>Model A: çeşitliliği öğrenmiş</strong><div class="small muted">ŷ = [0,60; 0,30; 0,10]</div><div class="v" style="color:var(--accent)">0,898</div><div class="small">= H(y); ulaşılabilecek en düşük değer</div></div>
+    <div class="panel"><strong>Model B: çoğunluğa kilitlenmiş</strong><div class="small muted">ŷ = [0,98; 0,01; 0,01]</div><div class="v" style="color:var(--bad)">1,854</div><div class="small">Savunma ve kaçışa neredeyse hiç olasılık vermediği için cezalandırılıyor</div></div>
+  </div>
+  <div class="calc">Model B: −(0,6 · ln 0,98 + 0,3 · ln 0,01 + 0,1 · ln 0,01) = 0,012 + 1,382 + 0,461 = <b>1,854</b></div>
+  <div class="note warn" style="margin-top:10px"><strong>Neden önemli?</strong> Hedef yalnızca çoğunluk oyu olarak “Saldır” = [1, 0, 0] alınsaydı, Model B standart çapraz entropiyle 0,020 alıp Model A'dan (0,511) çok daha iyi görünürdü. Sonuç: her seferinde saldıran, tahmin edilebilir ve kolay yenilen bir NPC. Genelleştirilmiş çapraz entropi, oyuncuların karar çeşitliliğini kayıp fonksiyonuna taşır.</div>
+</section>
+
+<section id="toplu">
+  <h2><span class="secnum">7</span>Birden çok örnek: dış toplam</h2>
+  <p>Formüldeki dış toplam (i) tüm örnekleri toplar. Bir animasyon klibinden üç kare:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Kare i</th><th>y [Mutlu; Üzgün; Öfkeli]</th><th>ŷ [Mutlu; Üzgün; Öfkeli]</th><th>Σ<sub>j</sub> −y<sub>ij</sub> ln ŷ<sub>ij</sub></th></tr></thead>
+    <tbody>
+      <tr><td class="l">1 · buruk gülümseme</td><td>[0,5; 0,4; 0,1]</td><td>[0,6; 0,3; 0,1]</td><td>0,967</td></tr>
+      <tr><td class="l">2 · ağlama (kesin)</td><td>[0; 1; 0]</td><td>[0,1; 0,6; 0,3]</td><td>0,511</td></tr>
+      <tr><td class="l">3 · kızgın hayal kırıklığı</td><td>[0,2; 0,1; 0,7]</td><td>[0,2; 0,2; 0,6]</td><td>0,840</td></tr>
+    </tbody>
+    <tfoot><tr><td class="l" colspan="3">Toplam CE</td><td>2,318</td></tr></tfoot>
+  </table></div>
+  <p class="small muted">Kesin ve olasılıksal etiketler aynı veri kümesinde birlikte kullanılabilir: kare 2'de formül kendiliğinden standart hâline indirgenir. Pratikte toplam yerine ortalama (bu örnekte 2,318 / 3 ≈ 0,773) da sık raporlanır.</p>
+</section>
+
+<section id="yaygin">
+  <h2><span class="secnum">8</span>Derin öğrenmede yumuşak etiketlerin yaygın kullanımları</h2>
+  <div class="grid2">
+    <div class="note"><strong>Etiket düzleştirme (label smoothing)</strong><br>Kesin etiket ε = 0,1 ile yumuşatılır: [0; 1; 0] → [0,033; 0,933; 0,033]. Modelin aşırı emin olmasını engeller. Kitap örneğindeki yüz tahmini için CE 0,511'den 0,594'e çıkar.</div>
+    <div class="note"><strong>Bilgi damıtma (knowledge distillation)</strong><br>Küçük bir “öğrenci” ağ, büyük bir “öğretmen” ağın olasılık çıktılarını hedef olarak alır. Örneğin bir mobil oyun için sıkıştırılmış bir yüz animasyonu modeli.</div>
+    <div class="note"><strong>Etiketleyici anlaşmazlığı</strong><br>10 playtest uzmanından 7'si bir anı “eğlenceli”, 2'si “sıkıcı”, 1'i “sinir bozucu” diye etiketlerse hedef [0,7; 0,2; 0,1] olur.</div>
+    <div class="note"><strong>Karışım oranları</strong><br>Çeltik soy oranları, blend shape ağırlıkları, bir NPC'nin ait olduğu davranış profillerinin payları gibi doğası gereği karma hedefler.</div>
+  </div>
+</section>
+
+<section id="kod">
+  <h2><span class="secnum">9</span>Python ile</h2>
+<pre><span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="k">def</span> genel_capraz_entropi(Y, Y_hat, eps=<span class="n">1e-15</span>):
+    <span class="s">"""Y, Y_hat: (n örnek x K sınıf); her satırın toplamı 1."""</span>
+    Y_hat = np.clip(Y_hat, eps, <span class="n">1.0</span>)          <span class="c"># ln(0) = -sonsuz olmasın</span>
+    <span class="k">return</span> -np.sum(Y * np.log(Y_hat))
+
+<span class="c">#              Mutlu Üzgün Öfkeli</span>
+Y     = np.array([[<span class="n">0.5</span>, <span class="n">0.4</span>, <span class="n">0.1</span>],    <span class="c"># buruk gülümseme</span>
+                  [<span class="n">0.0</span>, <span class="n">1.0</span>, <span class="n">0.0</span>],    <span class="c"># ağlama (kesin)</span>
+                  [<span class="n">0.2</span>, <span class="n">0.1</span>, <span class="n">0.7</span>]])   <span class="c"># kızgın hayal kırıklığı</span>
+Y_hat = np.array([[<span class="n">0.6</span>, <span class="n">0.3</span>, <span class="n">0.1</span>],
+                  [<span class="n">0.1</span>, <span class="n">0.6</span>, <span class="n">0.3</span>],
+                  [<span class="n">0.2</span>, <span class="n">0.2</span>, <span class="n">0.6</span>]])
+
+print(round(genel_capraz_entropi(Y, Y_hat), <span class="n">4</span>))   <span class="c"># 2.3185</span></pre>
+  <p class="small muted">PyTorch'ta <code>torch.nn.functional.cross_entropy(logits, hedef_olasiliklar)</code> 1.10 sürümünden beri olasılıksal hedefleri doğrudan kabul eder; varsayılan olarak örnekler üzerinden ortalama alır.</p>
+</section>
+
+<section id="test" class="quiz">
+  <h2><span class="secnum">10</span>Kendinizi test edin</h2>
+  <div id="quiz"></div>
+</section>
+
+<section id="ozet">
+  <h2><span class="secnum">11</span>Özet</h2>
+  <ul>
+    <li>Genelleştirilmiş çapraz entropi: CE = Σ<sub>i</sub> Σ<sub>j</sub> −y<sub>ij</sub> ln ŷ<sub>ij</sub>. Gerçek etiketler de olasılık dağılımı olabilir.</li>
+    <li>Kesin (one-hot) etiketlerde standart çapraz entropiye indirgenir: yalnızca −ln ŷ<sub>gerçek sınıf</sub> kalır.</li>
+    <li>Olasılıksal etiketlerde en düşük değer 0 değil H(y)'dir ve ŷ = y olduğunda elde edilir.</li>
+    <li>Karma hedefler (duygu karışımları, oyuncu karar çeşitliliği, soy oranları) tek bir sınıfa zorlanmadan öğrenilebilir.</li>
+    <li>Hedefte payı olan bir sınıfa ŷ = 0 vermek sonsuz ceza demektir; pratikte olasılıklar ε ile kırpılır.</li>
+  </ul>
+</section>
+
+<footer>Kaynak: “Hatanın Ölçülmesi: Öğrenme Modellerinin Doğrulanması” bölümü · Çapraz Entropi ve “Etiketler Kesin Olmadığında” kutusu; ekteki prosedürel mimik örneği. Oyun ve animasyon senaryoları öğretim amaçlıdır.</footer>
+</div>
+
+<script>
+(function(){
+  const root=document.documentElement;
+  let saved=null; try{saved=localStorage.getItem('gce-theme');}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  document.getElementById('themeBtn').addEventListener('click',()=>{
+    const isDark=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);
+    const next=isDark?'light':'dark'; root.setAttribute('data-theme',next);
+    try{localStorage.setItem('gce-theme',next);}catch(e){}
+  });
+  const f=(x,d=3)=>isFinite(x)?x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'∞';
+  const E=['Mutlu','Üzgün','Öfkeli'];
+
+  function face(svg,w){
+    const [m,s,a]=w;
+    const curve=(m-s)*26;                 // gülümseme (+) / üzüntü (−)
+    const browTilt=a*14 - s*10;           // öfke: içe aşağı, üzüntü: içe yukarı
+    const eyeH=6-3*a+2*s;
+    const tear=s>0.45?`<path d="M54 ${76+eyeH} q-4 10 0 14 q4 -4 0 -14" style="fill:var(--c2)" opacity="${Math.min(1,(s-0.45)*2.5)}"/>`:'';
+    const blush=m>0.4?`<circle cx="44" cy="96" r="9" style="fill:var(--c1)" opacity="${(m-0.4)*0.6}"/><circle cx="116" cy="96" r="9" style="fill:var(--c1)" opacity="${(m-0.4)*0.6}"/>`:'';
+    const red=a>0.35?`opacity="${Math.min(.5,(a-0.35))}"`:'opacity="0"';
+    svg.innerHTML=`
+      <circle cx="80" cy="82" r="66" style="fill:var(--face);stroke:var(--faceline)" stroke-width="3"/>
+      <circle cx="80" cy="82" r="66" style="fill:var(--c3)" ${red}/>
+      ${blush}
+      <line x1="40" y1="${56-browTilt*0.2}" x2="68" y2="${56+browTilt}" style="stroke:var(--faceline)" stroke-width="4" stroke-linecap="round"/>
+      <line x1="92" y1="${56+browTilt}" x2="120" y2="${56-browTilt*0.2}" style="stroke:var(--faceline)" stroke-width="4" stroke-linecap="round"/>
+      <ellipse cx="56" cy="76" rx="6" ry="${Math.max(1.5,eyeH)}" style="fill:var(--faceline)"/>
+      <ellipse cx="104" cy="76" rx="6" ry="${Math.max(1.5,eyeH)}" style="fill:var(--faceline)"/>
+      ${tear}
+      <path d="M52 ${112-curve*0.3} Q80 ${112+curve} 108 ${112-curve*0.3}" style="fill:none;stroke:var(--faceline)" stroke-width="4" stroke-linecap="round"/>`;
+  }
+  const ys=[0,1,2].map(i=>document.getElementById('y'+i));
+  const ps=[0,1,2].map(i=>document.getElementById('p'+i));
+  const norm=a=>{const s=a.reduce((x,y)=>x+y,0);return s>0?a.map(v=>v/s):[1/3,1/3,1/3];};
+  function upd(){
+    const y=norm(ys.map(e=>+e.value)), p=norm(ps.map(e=>+e.value));
+    y.forEach((v,i)=>document.getElementById('y'+i+'o').textContent=f(v,2));
+    p.forEach((v,i)=>document.getElementById('p'+i+'o').textContent=f(v,2));
+    ['distY','distP'].forEach((id,k)=>{const d=k?p:y;[...document.getElementById(id).children].forEach((c,i)=>c.style.width=(100*d[i])+'%');});
+    face(document.getElementById('faceY'),y); face(document.getElementById('faceP'),p);
+    let rows='', parts=[], ce=0, H=0;
+    y.forEach((yj,j)=>{
+      const t= yj>0 ? -yj*Math.log(p[j]) : 0; ce+=t;
+      if(yj>0) H+=-yj*Math.log(yj);
+      rows+=`<tr><td class="l">${E[j]}</td><td>${f(yj,2)}</td><td>${f(p[j],2)}</td><td>${f(Math.log(p[j]))}</td><td>${yj>0?f(t):'0 (y = 0)'}</td></tr>`;
+      parts.push(`${f(yj,2)} · ln ${f(p[j],2)}`);
+    });
+    document.getElementById('labTable').innerHTML=`<thead><tr><th class="l">Duygu j</th><th>y<sub>j</sub></th><th>ŷ<sub>j</sub></th><th>ln ŷ<sub>j</sub></th><th>−y<sub>j</sub> · ln ŷ<sub>j</sub></th></tr></thead><tbody>${rows}</tbody>`;
+    document.getElementById('labCalc').innerHTML=`CE = −(${parts.join(' + ')}) = <b>${f(ce)}</b>`;
+    const kl=Math.max(0,ce-H);
+    document.getElementById('vCE').textContent=f(ce); document.getElementById('vH').textContent=f(H); document.getElementById('vKL').textContent=f(kl);
+    const tot=Math.max(ce,1e-9), hw=100*H/tot, kw=100-hw;
+    const dH=document.getElementById('dH'), dK=document.getElementById('dK');
+    dH.style.width=hw+'%'; dK.style.width=kw+'%';
+    dH.textContent=hw>18?'H(y) '+f(H,2):''; dK.textContent=kw>18?'KL '+f(kl,2):'';
+    const n=document.getElementById('labNote'), oneHot=y.some(v=>v>0.999);
+    if(kl<0.005){n.className='note good';n.innerHTML=`<strong>Tahmin hedefle neredeyse aynı.</strong> CE en düşük değerine, H(y) = ${f(H)} değerine ulaştı.${oneHot?' Hedef kesin olduğu için bu değer 0.':' Hedef karışık olduğu için bu değer 0 değil.'}`;}
+    else if(oneHot){n.className='note';n.innerHTML=`<strong>Kesin hedef:</strong> Yalnızca doğru duyguya verilen olasılık önemli; diğer iki kaydırıcının oranını değiştirip doğru duygunun payını sabit tutarsanız CE değişmez.`;}
+    else if(kl>1){n.className='note bad';n.innerHTML=`<strong>Büyük fazlalık:</strong> Model, hedefte payı olan bir duyguya çok az olasılık veriyor. ln ŷ çok negatif olduğu için o terim CE'yi büyütüyor.`;}
+    else{n.className='note';n.innerHTML=`Modeli hedefe yaklaştırdıkça kırmızı KL kısmı küçülür; yeşil H(y) kısmı ise yalnızca hedefe bağlıdır.`;}
+  }
+  [...ys,...ps].forEach(e=>e.addEventListener('input',upd));
+  const PR={sad:[[0,100,0],[10,60,30]],bitter:[[50,40,10],[60,30,10]],perfect:[[50,40,10],[50,40,10]],confident:[[50,40,10],[2,2,96]]};
+  document.querySelectorAll('.presets button').forEach(b=>b.addEventListener('click',()=>{
+    const [y,p]=PR[b.dataset.p]; y.forEach((v,i)=>ys[i].value=v); p.forEach((v,i)=>ps[i].value=Math.max(1,v)); upd();
+  }));
+  upd();
+
+  const Q=[
+    {q:'y = [0; 1; 0] ve ŷ = [0,2; 0,5; 0,3] için genelleştirilmiş çapraz entropi kaçtır?',o:['−ln 0,2 ≈ 1,609','−ln 0,5 ≈ 0,693','−(ln 0,2 + ln 0,5 + ln 0,3) ≈ 3,507','0'],a:1,e:'Kesin etikette 0 · ln ŷ terimleri düşer; yalnızca −ln 0,5 kalır.'},
+    {q:'Olasılıksal hedef y = [0,6; 0,3; 0,1] için ulaşılabilecek en düşük CE değeri hangisidir?',o:['0','H(y) ≈ 0,898','ln 3 ≈ 1,099','1'],a:1,e:'Minimum, ŷ = y olduğunda elde edilir ve hedefin entropisine eşittir: −(0,6 ln 0,6 + 0,3 ln 0,3 + 0,1 ln 0,1) ≈ 0,898.'},
+    {q:'Hedef y = [0,5; 0,5; 0] iken model üçüncü sınıfa ŷ₃ = 0 veriyor. Ne olur?',o:['CE sonsuz olur','Üçüncü terim 0 olur, sorun yok','CE negatif olur','Formül tanımsızdır, hiç hesaplanamaz'],a:1,e:'y₃ = 0 olduğu için o terim hesaba girmez (0 · ln 0 = 0 kabul edilir). Sonsuz ceza, yalnızca hedefte payı olan bir sınıfa ŷ = 0 verildiğinde oluşur.'},
+    {q:'Davranış klonlamada profesyonellerin %60 saldır, %30 savun, %10 kaç dağılımını yumuşak hedef olarak kullanmanın NPC açısından faydası nedir?',o:['Eğitim daha hızlı biter','NPC her zaman en sık seçilen hamleyi yapar','NPC oyuncuların karar çeşitliliğini öğrenir ve daha az tahmin edilebilir olur','Çapraz entropi her zaman 0 olur'],a:2,e:'Yumuşak hedef, tek bir hamleye kilitlenen modeli cezalandırır (örnekte 1,854 > 0,898).'},
+  ];
+  const qz=document.getElementById('quiz');
+  Q.forEach((it,qi)=>{
+    const d=document.createElement('div'); d.className='q';
+    d.innerHTML=`<strong>${qi+1}. ${it.q}</strong><div class="opts"></div><div class="fb" aria-live="polite"></div>`;
+    const opts=d.querySelector('.opts'), fb=d.querySelector('.fb');
+    it.o.forEach((t,oi)=>{const b=document.createElement('button'); b.textContent=t;
+      b.onclick=()=>{opts.querySelectorAll('button').forEach(x=>x.classList.remove('ok','no'));
+        if(oi===it.a){b.classList.add('ok');fb.innerHTML='<strong>Doğru.</strong> '+it.e;} else {b.classList.add('no');fb.innerHTML='<strong>Tekrar deneyin.</strong>';}};
+      opts.appendChild(b);});
+    qz.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>

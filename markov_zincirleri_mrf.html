@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yüksek Dereceli, Çok Boyutlu Markov Zincirleri ve MRF</title>
+<style>
+:root{
+  --bg:#f5f8f6; --surface:#ffffff; --surface2:#eef4f0; --ink:#13241c; --muted:#4f6559; --line:#d5e2da;
+  --accent:#0f8a5f; --accent-rgb:15,138,95; --accent-soft:#d8f0e4; --warn:#b45309; --warn-soft:#fdf0dc; --bad:#c2410c; --bad-rgb:194,65,12; --bad-soft:#fde4d8;
+  --blue:#2563eb; --blue-rgb:37,99,235; --grid:#dfe8e2;
+  --code:#0d1f17; --codeink:#e2f0ea; --shadow:0 1px 2px rgba(19,36,28,.06),0 4px 16px rgba(19,36,28,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-rgb:52,211,153; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-rgb:251,146,60; --bad-soft:#3d2216;
+  --blue:#60a5fa; --blue-rgb:96,165,250; --grid:#1f3a2c; --code:#06110c; --shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-rgb:52,211,153; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-rgb:251,146,60; --bad-soft:#3d2216;
+  --blue:#60a5fa; --blue-rgb:96,165,250; --grid:#1f3a2c; --code:#06110c; --shadow:none;}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:32px 16px 64px;position:relative}
+.kicker{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(2rem,5vw,2.8rem);line-height:1.15;margin:.3em 0}
+h2{font-size:1.45rem;margin:0 0 .5em;line-height:1.3}
+h3{font-size:1.08rem;margin:1.2em 0 .4em}
+p{margin:.5em 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:64ch}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;margin:20px 0;box-shadow:var(--shadow)}
+.secnum{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.9rem;margin-right:8px;vertical-align:2px}
+.muted{color:var(--muted)} .small{font-size:.88rem}
+code{overflow-wrap:anywhere;font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.note{border-radius:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--line)}
+.note.warn{background:var(--warn-soft);border-color:transparent}
+.note.bad{background:var(--bad-soft);border-color:transparent}
+.note.good{background:var(--accent-soft);border-color:transparent}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.btn{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#06110c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{color:#06110c}}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.themebtn{position:absolute;top:12px;right:16px}
+.math{font-family:"Cambria Math",Cambria,"STIX Two Math","Times New Roman",serif;font-size:1.22rem;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center;overflow-x:auto;margin:12px 0;white-space:nowrap}
+.math .lbl{display:block;font-family:system-ui,sans-serif;font-size:.75rem;color:var(--muted);margin-top:6px;white-space:normal}
+.calc{font-family:"Cambria Math",Cambria,serif;font-size:1rem;background:var(--surface2);border-radius:10px;padding:10px 14px;overflow-x:auto;white-space:nowrap;margin:8px 0}
+.calc b{color:var(--accent)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:10px 0;display:grid;gap:8px}
+.steps li{counter-increment:s;background:var(--surface2);border-radius:10px;padding:10px 14px 10px 52px;position:relative}
+.steps li::before{content:counter(s);position:absolute;left:14px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--surface);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.85rem}
+.tablewrap{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;font-size:.9rem}
+th{color:var(--muted);font-weight:600;font-size:.82rem}
+td.l,th.l{text-align:left}
+.ctrl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;margin:8px 0}
+.ctrl label{font-weight:600;font-size:.95rem}
+.ctrl output{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
+.ctrl input{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.result{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{flex:1 1 120px;background:var(--surface2);border-radius:10px;padding:10px 12px}
+.stat .v{font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .l{font-size:.8rem;color:var(--muted)}
+.two{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:780px){.two{grid-template-columns:minmax(0,1fr)}}
+svg.plot{width:100%;height:auto;display:block}
+svg.plot text{fill:var(--muted);font-size:12px;font-family:system-ui,sans-serif}
+canvas{width:100%;height:auto;display:block;border-radius:10px;image-rendering:pixelated;background:var(--surface2)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-top:6px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.log{font-family:ui-monospace,Consolas,monospace;font-size:.82rem;background:var(--surface2);border-radius:10px;padding:10px 12px;min-height:3.2em;white-space:pre-wrap}
+.walker{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0}
+pre{background:var(--code);color:var(--codeink);border-radius:10px;padding:14px;overflow-x:auto;font:13px/1.55 ui-monospace,"Cascadia Code",Consolas,"Courier New",monospace;margin:10px 0}
+pre .c{color:#7fa592} pre .s{color:#fbbf24} pre .k{color:#34d399} pre .n{color:#a3e635}
+.quiz .q{margin:16px 0;padding-top:12px;border-top:1px solid var(--line)}
+.quiz .q:first-child{border-top:0;padding-top:0}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opts button{font:inherit;text-align:left;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer}
+.opts button:hover{border-color:var(--accent)}
+.opts button.ok{background:var(--accent-soft);border-color:var(--accent)}
+.opts button.no{background:var(--bad-soft);border-color:var(--bad)}
+.fb{margin-top:8px;font-size:.95rem}
+footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:28px}
+@media (max-width:560px){section{padding:18px}.math{font-size:1rem}}
+</style>
+<style>
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.toc a{font-size:.88rem;text-decoration:none;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:5px 12px}
+.part{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:34px 4px -8px}
+.seq{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.tok{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 6px;border-radius:7px;font-weight:700;font-size:.9rem;color:#fff}
+.tok.new{outline:3px solid var(--ink);outline-offset:-3px}
+.t-H{background:#0f8a5f}.t-A{background:#c2410c}.t-B{background:#2563eb}
+.t-İ{background:#64748b}.t-Y{background:#0f8a5f}.t-K{background:#b45309}.t-Z{background:#7c3aed}
+textarea,select{font:inherit;font-size:.92rem;width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface);color:var(--ink)}
+select{width:auto}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+.g3{display:grid;grid-template-columns:repeat(3,64px);gap:4px;margin:8px 0}
+.g3 button,.g3 div{height:64px;border-radius:8px;border:1px solid var(--line);font:inherit;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center}
+.g3 button{cursor:pointer}
+.c-grass{background:#8cc152;color:#13241c}.c-water{background:#2f7fb8;color:#fff}.c-q{background:var(--surface2);color:var(--ink);border:2px dashed var(--accent)!important}
+.g2{display:grid;grid-template-columns:repeat(2,70px);gap:4px;margin:8px 0}
+.g2 div{height:56px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;border:1px solid var(--line)}
+td.hi{background:var(--accent-soft);font-weight:700}
+.bar{height:10px;border-radius:5px;background:var(--surface2);overflow:hidden;margin-top:4px}
+.calc{white-space:normal}
+@media (max-width:560px){header{padding-top:34px}}
+.bar span{display:block;height:100%;background:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<button class="btn themebtn" id="themeBtn" aria-label="Temayı değiştir">◐ Tema</button>
+
+<header>
+  <div class="kicker">Olasılıksal Modeller · Oyun ve Animasyon</div>
+  <h1>Markov Zincirlerinden Markov Rastgele Alanlarına</h1>
+  <p class="lead">Üç adımda bağlamın büyümesi: önce zamanda geriye daha çok bakan zincirler, sonra iki eksende birden bakan zincirler, en sonunda da her yöndeki komşulara bakan alanlar. Her adım bir oyun ve bir animasyon örneğiyle, sayısal olarak.</p>
+  <nav class="toc" aria-label="İçindekiler">
+    <a href="#ayrim">Üç model</a><a href="#y1">Saldırı kombosu</a><a href="#y2">Animasyon geçişleri</a><a href="#ylab">Zincir laboratuvarı</a><a href="#c1">2B platform</a><a href="#clab">2B üretici</a><a href="#m1">Su ve çim</a><a href="#m2">Doku tamamlama</a><a href="#notlar">Kaynak notları</a><a href="#test">Test</a>
+  </nav>
+</header>
+
+<section id="ayrim">
+  <h2><span class="secnum">0</span>Üç model, üç farklı “bağlam”</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Model</th><th class="l">Bir sonraki değer neye bağlı?</th><th class="l">Formül</th><th class="l">Tipik kullanım</th></tr></thead>
+    <tbody>
+      <tr><td class="l"><strong>1. derece Markov zinciri</strong></td><td class="l">Yalnızca bir önceki duruma</td><td class="l"><code>P(Xₜ | Xₜ₋₁)</code></td><td class="l">Basit NPC durum geçişleri</td></tr>
+      <tr><td class="l"><strong>Yüksek dereceli (n. derece) zincir</strong></td><td class="l">Son n duruma (zamanda geriye)</td><td class="l"><code>P(Xₜ | Xₜ₋₁, …, Xₜ₋ₙ)</code></td><td class="l">Kombolar, animasyon dizileri, melodi</td></tr>
+      <tr><td class="l"><strong>Çok boyutlu Markov zinciri (MdMC)</strong></td><td class="l">Önceden üretilmiş uzaysal komşulara (sol ve üst)</td><td class="l"><code>P(Xᵢ,ⱼ | Xᵢ,ⱼ₋₁, Xᵢ₋₁,ⱼ)</code></td><td class="l">Karo haritası, piksel deseni</td></tr>
+      <tr><td class="l"><strong>Markov rastgele alanı (MRF)</strong></td><td class="l">Her yöndeki komşulara; yön ve sıra yok</td><td class="l"><code>P(Xᵢ | Mᵢ) , P(X) ∝ e^(−E(X))</code></td><td class="l">Harita düzeltme, doku tamamlama</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note warn small"><strong>Terim notu:</strong> Birinci kaynak metin “çok boyutlu” adını, son birkaç <em>zaman</em> adımına bakan zincir için kullanıyor. Literatürde bunun adı <strong>yüksek dereceli (higher-order)</strong> Markov zinciridir. “Çok boyutlu Markov zinciri” (MdMC) ise ikinci metindeki gibi birden fazla <em>uzaysal</em> eksene bakan modeldir. Bu sayfada ikisi ayrı adlarla anılıyor.</div>
+</section>
+
+<!-- ============ BÖLÜM 1 ============ -->
+<div class="part">Bölüm 1 · Yüksek dereceli Markov zincirleri</div>
+
+<section id="y1">
+  <h2><span class="secnum">1</span>Oyun örneği: oyuncunun saldırı kombosu</h2>
+  <p>Bir aksiyon oyununda oyuncunun üç hareketi var: <strong>H</strong> (hafif saldırı), <strong>A</strong> (ağır saldırı), <strong>B</strong> (blok). Düşman yapay zekâsı, oyuncunun bir sonraki hareketini son <em>iki</em> hareketine bakarak tahmin etmek istiyor. Kaydedilen 19 hareket:</p>
+  <div class="seq" id="seqH"></div>
+  <p>Ardışık her üçlü (a, b → c) bir sayım verir; 19 hareketten 17 üçlü çıkar. Sayımlar ve koşullu olasılıklar:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Son iki hareket</th><th>→ H</th><th>→ A</th><th>→ B</th><th>Toplam</th><th>P(H)</th><th>P(A)</th><th>P(B)</th></tr></thead>
+    <tbody>
+      <tr><td class="l">(H, H)</td><td>0</td><td>4</td><td>0</td><td>4</td><td>0,00</td><td class="hi">1,00</td><td>0,00</td></tr>
+      <tr><td class="l">(H, A)</td><td>1</td><td>1</td><td>2</td><td>4</td><td>0,25</td><td>0,25</td><td class="hi">0,50</td></tr>
+      <tr><td class="l">(A, H)</td><td>0</td><td>1</td><td>1</td><td>2</td><td>0,00</td><td>0,50</td><td>0,50</td></tr>
+      <tr><td class="l">(A, A)</td><td>1</td><td>0</td><td>0</td><td>1</td><td class="hi">1,00</td><td>0,00</td><td>0,00</td></tr>
+      <tr><td class="l">(A, B)</td><td>2</td><td>0</td><td>0</td><td>2</td><td class="hi">1,00</td><td>0,00</td><td>0,00</td></tr>
+      <tr><td class="l">(H, B)</td><td>1</td><td>0</td><td>0</td><td>1</td><td class="hi">1,00</td><td>0,00</td><td>0,00</td></tr>
+      <tr><td class="l">(B, H)</td><td>3</td><td>0</td><td>0</td><td>3</td><td class="hi">1,00</td><td>0,00</td><td>0,00</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Yeni bir dizi üretmek (zar: u ~ U(0,1), sıra H → A → B, u kümülatif olasılıktan küçükse o hareket seçilir)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Adım</th><th class="l">Son iki</th><th class="l">Olasılıklar</th><th>u</th><th class="l">Seçim</th><th class="l">Dizi</th></tr></thead>
+    <tbody>
+      <tr><td class="l">1</td><td class="l">(H, H)</td><td class="l">A = 1</td><td>—</td><td class="l">A</td><td class="l">H H A</td></tr>
+      <tr><td class="l">2</td><td class="l">(H, A)</td><td class="l">H 0,25 · A 0,25 · B 0,50 → kümülatif 0,25 / 0,50 / 1,00</td><td>0,50</td><td class="l">B (0,50 &lt; 0,50 değil)</td><td class="l">H H A B</td></tr>
+      <tr><td class="l">3</td><td class="l">(A, B)</td><td class="l">H = 1</td><td>—</td><td class="l">H</td><td class="l">H H A B H</td></tr>
+      <tr><td class="l">4</td><td class="l">(B, H)</td><td class="l">H = 1</td><td>—</td><td class="l">H</td><td class="l">H H A B H H</td></tr>
+      <tr><td class="l">5</td><td class="l">(H, H)</td><td class="l">A = 1</td><td>—</td><td class="l">A</td><td class="l">H H A B H H A</td></tr>
+    </tbody>
+  </table></div>
+  <h3>1. derece ile karşılaştırma (aynı veri)</h3>
+  <div class="grid2">
+    <div class="note"><strong>1. derece, son hareket H:</strong> H'den sonra 10 geçiş var: H 4, A 5, B 1. Yani P(A | H) = <strong>0,50</strong>. Model “H, H, A” kombosunu göremez.</div>
+    <div class="note good"><strong>2. derece, son iki hareket (H, H):</strong> 4 geçişin 4'ü de A. P(A | H, H) = <strong>1,00</strong>. Düşman, ağır saldırıya karşı bloğu tam zamanında hazırlayabilir.</div>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Ölçüt</th><th>1. derece</th><th>2. derece</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Tutarlılık (kombo yakalama)</td><td>Düşük</td><td>Yüksek</td></tr>
+      <tr><td class="l">Olası geçmiş sayısı (3 hareket)</td><td>3</td><td>3² = 9</td></tr>
+      <tr><td class="l">Tablo büyüklüğü (geçmiş × sonraki)</td><td>3 × 3 = 9</td><td>9 × 3 = 27</td></tr>
+      <tr><td class="l">Gerekli veri</td><td>Az</td><td>Çok (bu veride 9 geçmişten 2'si hiç görülmedi)</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">n. dereceden bir zincirde, k durumlu bir sistem için kᴺ geçmiş vardır; tablo hızla büyür ve seyrekleşir. Görülmemiş geçmişler için bir yedek kural gerekir (örneğin 1. dereceye geri düşmek).</p>
+</section>
+
+<section id="y2">
+  <h2><span class="secnum">2</span>Animasyon örneği: karakter hareket geçişleri</h2>
+  <p>Bir karakterin dört animasyon durumu var: <strong>İ</strong> (boşta, idle), <strong>Y</strong> (yürüme), <strong>K</strong> (koşu), <strong>Z</strong> (zıplama). Hareket yakalama (motion capture) kaydından 19 kare:</p>
+  <div class="seq" id="seqA"></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Son iki durum</th><th>→ İ</th><th>→ Y</th><th>→ K</th><th>→ Z</th><th>Toplam</th><th class="l">Koşullu olasılık</th></tr></thead>
+    <tbody>
+      <tr><td class="l">(İ, İ)</td><td>0</td><td>2</td><td>0</td><td>0</td><td>2</td><td class="l">P(Y) = 1,00</td></tr>
+      <tr><td class="l">(İ, Y)</td><td>0</td><td>2</td><td>0</td><td>0</td><td>2</td><td class="l">P(Y) = 1,00</td></tr>
+      <tr><td class="l">(Y, Y)</td><td>0</td><td>1</td><td>2</td><td>0</td><td>3</td><td class="l">P(Y) = 0,33 · P(K) = 0,67</td></tr>
+      <tr><td class="l">(Y, K)</td><td>0</td><td>0</td><td>2</td><td>0</td><td>2</td><td class="l">P(K) = 1,00</td></tr>
+      <tr><td class="l">(K, K)</td><td>0</td><td>0</td><td>1</td><td>2</td><td>3</td><td class="l">P(K) = 0,33 · P(Z) = 0,67</td></tr>
+      <tr><td class="l">(K, Z)</td><td>0</td><td>0</td><td>0</td><td>2</td><td>2</td><td class="l">P(Z) = 1,00</td></tr>
+      <tr><td class="l">(Z, Z)</td><td>2</td><td>0</td><td>0</td><td>0</td><td>2</td><td class="l">P(İ) = 1,00</td></tr>
+      <tr><td class="l">(Z, İ)</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td class="l">P(İ) = 1,00</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Üretim (başlangıç İ, İ):</strong> (İ,İ) → Y · (İ,Y) → Y · (Y,Y), u = 0,80 &gt; 0,33 → K · (Y,K) → K · (K,K), u = 0,80 &gt; 0,33 → Z · (K,Z) → Z · (Z,Z) → İ · (Z,İ) → İ · (İ,İ) → Y</p>
+  <div class="seq" id="seqGen"></div>
+  <div class="grid3">
+    <div class="note"><strong>Momentum:</strong> Zıplamaya yalnızca (K, K) geçmişinden geçiliyor (0,67); yürüyüşten doğrudan zıplama verisi yok.</div>
+    <div class="note"><strong>İniş:</strong> (Z, Z) her zaman İ'ye gidiyor; zıplamadan sonra iniş/boşta animasyonu otomatik oynar.</div>
+    <div class="note"><strong>Hızlanma:</strong> (Y, Y) geçmişinin %67'si koşuya geçiyor; karakter yürüyüşü bir süre sürdürüp hızlanıyor.</div>
+  </div>
+</section>
+
+<section id="ylab">
+  <h2><span class="secnum">3</span>Etkileşimli: zincir laboratuvarı</h2>
+  <p class="muted">Eğitim dizisini değiştirin (boşlukla ayrılmış semboller), dereceyi seçin ve yeni diziler üretin. Tablo ve üretilen dizi anında güncellenir.</p>
+  <div class="row">
+    <label for="labEx"><strong>Örnek:</strong></label>
+    <select id="labEx"><option value="H">Saldırı kombosu (H/A/B)</option><option value="A">Animasyon (İ/Y/K/Z)</option></select>
+    <label for="labOrd"><strong>Derece:</strong></label>
+    <select id="labOrd"><option value="1">1. derece</option><option value="2" selected>2. derece</option><option value="3">3. derece</option></select>
+  </div>
+  <textarea id="labSeq" rows="2" aria-label="Eğitim dizisi"></textarea>
+  <div class="btns">
+    <button class="btn primary" id="labGen">Yeni dizi üret (20 adım)</button>
+    <button class="btn" id="labStep">Bir adım ekle</button>
+    <button class="btn" id="labReset">Varsayılan diziye dön</button>
+  </div>
+  <div class="seq" id="labOut" aria-live="polite"></div>
+  <div class="log" id="labLog" aria-live="polite"></div>
+  <div class="tablewrap" id="labTable"></div>
+  <div class="result">
+    <div class="stat"><div class="v" id="labSeen"></div><div class="l">görülen geçmiş / olası geçmiş</div></div>
+    <div class="stat"><div class="v" id="labDet"></div><div class="l">tek bir sonuca giden (deterministik) geçmiş</div></div>
+  </div>
+  <p class="small muted">Derece arttıkça daha çok geçmiş tek bir sonuca bağlanır (dizi ezberlenir), ama görülmeyen geçmiş sayısı da artar. Görülmemiş geçmişte simülasyon tüm sembollerden rastgele seçer.</p>
+</section>
+
+<!-- ============ BÖLÜM 2 ============ -->
+<div class="part">Bölüm 2 · Çok boyutlu (2B) Markov zincirleri</div>
+
+<section id="c1">
+  <h2><span class="secnum">4</span>Sol ve üst komşuya birlikte bakmak</h2>
+  <p>Harita satır satır, soldan sağa ve yukarıdan aşağıya üretilir. Bir hücre yerleştirilirken hem solundaki hem de üstündeki hücre zaten bellidir:</p>
+  <div class="math">P(Xᵢ,ⱼ | Xᵢ,ⱼ₋₁ , Xᵢ₋₁,ⱼ)<span class="lbl">sol komşu · üst komşu</span></div>
+  <div class="grid2">
+    <div>
+      <h3>Oyun: 2B platform haritası (0 = Hava, 1 = Zemin)</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Sol</th><th>Üst</th><th>P(Hava)</th><th>P(Zemin)</th></tr></thead>
+        <tbody>
+          <tr><td>Hava</td><td>Hava</td><td>0,90</td><td>0,10</td></tr>
+          <tr class="hl"><td>Zemin</td><td>Hava</td><td>0,30</td><td class="hi">0,70</td></tr>
+          <tr><td>Zemin</td><td>Zemin</td><td>0,05</td><td>0,95</td></tr>
+          <tr><td>Hava</td><td>Zemin</td><td>0,50*</td><td>0,50*</td></tr>
+        </tbody>
+      </table></div>
+      <div class="g2" aria-label="2×2 harita"><div style="background:#cfe8f7;color:#13241c">X₁,₁ Hava</div><div style="background:#cfe8f7;color:#13241c">X₁,₂ Hava</div><div style="background:#8a6a43;color:#fff">X₂,₁ Zemin</div><div class="c-q">X₂,₂ ?</div></div>
+      <p class="small">Üst = X₁,₂ = Hava, Sol = X₂,₁ = Zemin → P(Zemin) = <strong>0,70</strong>. r = 0,45 ≤ 0,70 olduğundan X₂,₂ = <strong>Zemin</strong>; zemin yatayda devam eder.</p>
+    </div>
+    <div>
+      <h3>Animasyon: piksel-art kıyafette çizgi deseni (W = Beyaz, B = Mavi)</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Sol</th><th>Üst</th><th>P(Mavi)</th><th>P(Beyaz)</th></tr></thead>
+        <tbody>
+          <tr><td>W</td><td>B</td><td class="hi">0,80</td><td>0,20</td></tr>
+          <tr><td>B</td><td>B</td><td>0,90</td><td>0,10</td></tr>
+          <tr><td>W</td><td>W</td><td>0,15</td><td>0,85</td></tr>
+          <tr><td>B</td><td>W</td><td>0,20*</td><td>0,80*</td></tr>
+        </tbody>
+      </table></div>
+      <div class="g2" aria-label="2×2 piksel bloğu"><div style="background:#f8fafc;color:#13241c">P₁,₁ W</div><div style="background:#2563eb;color:#fff">P₁,₂ B</div><div style="background:#f8fafc;color:#13241c">P₂,₁ W</div><div class="c-q">P₂,₂ ?</div></div>
+      <p class="small">Üst = Mavi, Sol = Beyaz → P(Mavi) = <strong>0,80</strong>. Piksel %80 olasılıkla mavi olur; dikey mavi çizgi aşağı doğru kesintisiz sürer.</p>
+    </div>
+  </div>
+  <p class="small muted">* Kaynak metinde bu durum verilmemiş. Aşağıdaki üreticinin her durumu işleyebilmesi için eklenmiş bir varsayımdır.</p>
+</section>
+
+<section id="clab">
+  <h2><span class="secnum">5</span>Etkileşimli: 1B ile 2B'yi karşılaştıran üretici</h2>
+  <p class="muted">Aynı tablo ve aynı rastgele sayılarla iki harita üretilir. 1B modda üst komşu yok sayılır (her zaman Hava/Beyaz kabul edilir), yani her satır yalnızca soldan sağa bir zincirdir.</p>
+  <div class="row">
+    <label for="mdEx"><strong>Örnek:</strong></label>
+    <select id="mdEx"><option value="p">Platform (Hava/Zemin)</option><option value="s">Kıyafet deseni (Beyaz/Mavi)</option></select>
+    <button class="btn primary" id="mdGen">Yeniden üret</button>
+    <button class="btn" id="mdAnim">Hücre hücre canlandır</button>
+  </div>
+  <div class="grid2">
+    <div><strong>1B (yalnızca sol)</strong><canvas id="cv1" width="240" height="140" aria-label="Yalnızca sol komşuya bakan 1B zincirle üretilen harita"></canvas></div>
+    <div><strong>2B MdMC (sol + üst)</strong><canvas id="cv2" width="240" height="140" aria-label="Sol ve üst komşuya bakan 2B zincirle üretilen harita"></canvas></div>
+  </div>
+  <div class="result" aria-live="polite">
+    <div class="stat"><div class="v" id="v1"></div><div class="l">1B: hücrenin üstündekiyle aynı olma oranı</div></div>
+    <div class="stat"><div class="v" id="v2"></div><div class="l">2B: hücrenin üstündekiyle aynı olma oranı</div></div>
+    <div class="stat"><div class="v" id="seedOut"></div><div class="l">tohum (seed)</div></div>
+  </div>
+  <p class="small muted">Dikey uyum oranı, 1B'de satırların birbirinden habersiz üretildiğini sayısal olarak gösterir: kaynak metindeki “satırlar arası kopukluk”. Sınırlarda: ilk satırın üstü ve ilk sütunun solu Hava/Beyaz kabul edilir.</p>
+</section>
+
+<!-- ============ BÖLÜM 3 ============ -->
+<div class="part">Bölüm 3 · Markov rastgele alanları (MRF)</div>
+
+<section id="m1">
+  <h2><span class="secnum">6</span>Oyun örneği: su ve çim hücresi</h2>
+  <p>MRF'de üretim sırası yoktur: bir hücre <strong>dört</strong> komşusuna da bakar. Bu komşular hücrenin <strong>Markov battaniyesidir</strong> (Mᵢ); onlar bilindiğinde haritanın geri kalanı hücre hakkında yeni bir bilgi vermez. Eğitim haritasından sayılan kural, çim komşu sayısı k'ye göre:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>k (çim komşu)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th></tr></thead>
+    <tbody><tr><td>P(Çim | k)</td><td>0,05</td><td>0,20</td><td>0,50</td><td id="kHi">0,75</td><td>0,90</td></tr></tbody>
+  </table></div>
+  <div class="two">
+    <div>
+      <p class="muted small">Komşu hücrelere tıklayarak Çim/Su değiştirin. Köşeler battaniyede değildir; değişmeleri sonucu etkilemez.</p>
+      <div class="g3" id="g3"></div>
+    </div>
+    <div>
+      <div class="calc" id="mrfCalc"></div>
+      <div class="result"><div class="stat"><div class="v" id="pG"></div><div class="l">P(X₂,₂ = Çim | M)</div><div class="bar"><span id="pBar"></span></div></div></div>
+      <div class="btns"><button class="btn" id="mrfDraw">Zar at (r)</button></div>
+      <div class="log" id="mrfLog" aria-live="polite"></div>
+    </div>
+  </div>
+  <h3>Bütün haritayı örneklemek: Gibbs örnekleyicisi</h3>
+  <p>Aynı kural her hücreye tek tek, defalarca uygulanır: bir hücre seçilir, komşularına göre P(Çim | k) hesaplanır ve yeni değer bu olasılıkla çekilir. Bu, önceki sayfadaki Metropolis–Hastings'in kabul oranı her zaman 1 olan özel bir durumudur.</p>
+  <div class="two">
+    <canvas id="gcv" width="320" height="200" aria-label="Gibbs örneklemesiyle güncellenen su ve çim haritası"></canvas>
+    <div>
+      <div class="btns"><button class="btn primary" id="gRun">▶ Çalıştır</button><button class="btn" id="gSweep">1 tarama</button><button class="btn" id="gReset">Rastgele haritaya dön</button></div>
+      <div class="result" aria-live="polite">
+        <div class="stat"><div class="v" id="gSw"></div><div class="l">tarama (her hücre bir kez)</div></div>
+        <div class="stat"><div class="v" id="gGrass"></div><div class="l">çim oranı</div></div>
+        <div class="stat"><div class="v" id="gAgree"></div><div class="l">komşusuyla aynı olan çiftler</div></div>
+      </div>
+      <p class="small muted">Rastgele başlangıçta komşu çiftlerin yaklaşık yarısı aynıdır. Birkaç taramadan sonra bu oran yükselir ve göl/çayır bölgeleri belirir. Kenarlar karşı kenara bağlıdır (her hücrenin 4 komşusu olsun diye).</p>
+    </div>
+  </div>
+</section>
+
+<section id="m2">
+  <h2><span class="secnum">7</span>Animasyon örneği: dokuda kayıp pikseli tamamlama</h2>
+  <p>Bir 3B karakterin doku haritasında bir piksel bozulmuş. MRF'de bir yapılandırmanın olasılığı enerjisiyle ters orantılıdır, P(X) ∝ e<sup>−E(X)</sup>. Komşularıyla uyumlu ton düşük enerji verir:</p>
+  <div class="math">E(xᵢ) = Σ<sub>j ∈ komşular</sub> (xᵢ − xⱼ)²</div>
+  <div class="two">
+    <div>
+      <div class="tablewrap"><table style="max-width:260px">
+        <tbody>
+          <tr><td>100</td><td class="hi">120</td><td>110</td></tr>
+          <tr><td class="hi">130</td><td style="border:2px dashed var(--accent)"><strong>?</strong></td><td class="hi">140</td></tr>
+          <tr><td>105</td><td class="hi">125</td><td>115</td></tr>
+        </tbody>
+      </table></div>
+      <div class="calc">E(125) = 5² + 0² + 5² + 15² = 25 + 0 + 25 + 225 = <b>275</b></div>
+      <div class="calc">E(200) = 80² + 75² + 70² + 60² = 6 400 + 5 625 + 4 900 + 3 600 = <b>20 525</b></div>
+      <div class="calc">En iyi değer = komşuların ortalaması = (120 + 125 + 130 + 140) / 4 = <b>128,75</b> → E = <b>218,75</b></div>
+    </div>
+    <div>
+      <div class="ctrl"><label for="px">Aday ton xᵢ</label><output id="pxOut"></output><input type="range" id="px" min="50" max="210" step="1" value="125"></div>
+      <svg class="plot" id="eCurve" viewBox="0 0 400 230" role="img" aria-label="Aday tona göre enerji eğrisi"></svg>
+      <div class="result"><div class="stat"><div class="v" id="pxE"></div><div class="l">E(xᵢ)</div></div><div class="stat"><div class="v" id="pxSw" style="height:30px;border-radius:6px"></div><div class="l">aday tonun görünümü</div></div></div>
+    </div>
+  </div>
+  <div class="note small" style="margin-top:10px"><strong>Neden 200 seçilmez?</strong> E(200) − E(125) = 20 250. Olasılık oranı e<sup>−20 250</sup> pratikte sıfırdır. Gerçek uygulamalarda enerji bir sıcaklıkla ölçeklenir, P ∝ e<sup>−E/T</sup>. Örneğin T = 1 000 ile oran e<sup>−20,25</sup> ≈ 1,6 · 10<sup>−9</sup> olur; sonuç değişmez, ama sayılar yorumlanabilir hâle gelir.</div>
+</section>
+
+<section id="notlar">
+  <h2><span class="secnum">8</span>Kaynak notları ve düzeltmeler</h2>
+  <p class="muted small">Sayfa, verilen üç metne dayanıyor. Tablolar dizilerden yeniden sayıldı ve kod çalıştırılarak doğrulandı. Bulunan farklar:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Metin</th><th class="l">Kaynakta</th><th class="l">Bu sayfada</th></tr></thead>
+    <tbody>
+      <tr><td class="l">1</td><td class="l">“Çok boyutlu” adı, son n zaman adımına bakan zincir için</td><td class="l">“Yüksek dereceli” olarak adlandırıldı (bkz. bölüm 0)</td></tr>
+      <tr><td class="l">1</td><td class="l">Saldırı dizisi “20 hareket”, animasyon dizisi “30 kare”</td><td class="l">İki dizi de 19 eleman; sayılar düzeltildi</td></tr>
+      <tr><td class="l">1</td><td class="l">Sayım tabloları dizilerle uyuşmuyor. Örneğin (H,H) → A 3 kez, (B,H) → H 2/3 ve A 1/3; (İ,İ) → Y 3 kez</td><td class="l">Tablolar dizilerden yeniden sayıldı: (H,H) → A 4 kez, (B,H) → H 3/3, (İ,İ) → Y 2 kez. Kaynakta olmayan (H,B) geçmişi eklendi; (İ,Y) → K yerine dizide görülen (İ,Y) → Y kullanıldı</td></tr>
+      <tr><td class="l">1</td><td class="l">Python kodu: <code>"HHAH…".split()</code> tek bir metin döndürür; <code>random.choices</code> liste döndürür; girintiler hatalı</td><td class="l">Düzeltilmiş kod aşağıda; çıktısı çalıştırılarak alındı</td></tr>
+      <tr><td class="l">1</td><td class="l">“İdil (Idle)”</td><td class="l">“Boşta (idle)”</td></tr>
+      <tr><td class="l">2</td><td class="l">Tabloda (Sol = Hava, Üst = Zemin) ve (Sol = Mavi, Üst = Beyaz) durumları yok</td><td class="l">Üretici için * ile işaretli varsayım değerleri eklendi</td></tr>
+      <tr><td class="l">3</td><td class="l">E(125) = 275, E(200) = 20 525 (doğru)</td><td class="l">Ek: en düşük enerji 128,75'te, E = 218,75; sıcaklık ölçeği notu eklendi</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Düzeltilmiş Python kodu (2. derece saldırı modeli)</h3>
+<pre><span class="k">import</span> random
+<span class="k">from</span> collections <span class="k">import</span> defaultdict, Counter
+
+hareketler = <span class="s">"H H A H A B H H A A H B H H A B H H A"</span>.split()   <span class="c"># 19 hareket</span>
+
+<span class="c"># (önceki iki hareket) -> sonraki hareket sayımı</span>
+sayim = defaultdict(Counter)
+<span class="k">for</span> a, b, c <span class="k">in</span> zip(hareketler, hareketler[<span class="n">1</span>:], hareketler[<span class="n">2</span>:]):
+    sayim[(a, b)][c] += <span class="n">1</span>
+
+olasilik = {g: {h: n / sum(s.values()) <span class="k">for</span> h, n <span class="k">in</span> s.items()} <span class="k">for</span> g, s <span class="k">in</span> sayim.items()}
+
+<span class="k">def</span> uret(baslangic, uzunluk=<span class="n">10</span>, seed=<span class="n">1</span>):
+    rng = random.Random(seed)
+    dizi = list(baslangic)
+    <span class="k">while</span> len(dizi) &lt; uzunluk:
+        g = (dizi[-<span class="n">2</span>], dizi[-<span class="n">1</span>])
+        <span class="k">if</span> g <span class="k">in</span> olasilik:
+            secenek, agirlik = zip(*olasilik[g].items())
+            dizi.append(rng.choices(secenek, weights=agirlik)[<span class="n">0</span>])
+        <span class="k">else</span>:                                   <span class="c"># eğitimde görülmemiş geçmiş</span>
+            dizi.append(rng.choice(<span class="s">"HAB"</span>))
+    <span class="k">return</span> dizi
+
+<span class="k">for</span> g <span class="k">in</span> sorted(olasilik):
+    print(g, {h: round(p, <span class="n">2</span>) <span class="k">for</span> h, p <span class="k">in</span> sorted(olasilik[g].items())})
+print(<span class="s">" → "</span>.join(uret([<span class="s">"H"</span>, <span class="s">"H"</span>])))
+
+<span class="c"># ('A', 'A') {'H': 1.0}</span>
+<span class="c"># ('A', 'B') {'H': 1.0}</span>
+<span class="c"># ('A', 'H') {'A': 0.5, 'B': 0.5}</span>
+<span class="c"># ('B', 'H') {'H': 1.0}</span>
+<span class="c"># ('H', 'A') {'A': 0.25, 'B': 0.5, 'H': 0.25}</span>
+<span class="c"># ('H', 'B') {'H': 1.0}</span>
+<span class="c"># ('H', 'H') {'A': 1.0}</span>
+<span class="c"># H → H → A → A → H → A → B → H → H → A</span></pre>
+</section>
+
+<section id="test" class="quiz">
+  <h2><span class="secnum">9</span>Kendinizi test edin</h2>
+  <div id="quiz"></div>
+</section>
+
+<section id="ozet">
+  <h2><span class="secnum">10</span>Özet</h2>
+  <ul>
+    <li><strong>Yüksek dereceli zincir:</strong> son n duruma bakar; kombo ve animasyon dizilerini yakalar, ama tablo kⁿ geçmişe büyür ve veri seyrekleşir.</li>
+    <li><strong>Çok boyutlu zincir (MdMC):</strong> önceden üretilmiş sol ve üst komşulara bakar; satırlar ve sütunlar birbiriyle uyumlu kalır.</li>
+    <li><strong>MRF:</strong> sıra ve yön yoktur; hücre dört komşusuna (Markov battaniyesi) bakar. Olasılık enerjiyle verilir, P ∝ e<sup>−E</sup>; örnekleme Gibbs ya da Metropolis–Hastings ile yapılır.</li>
+    <li>Üçü de oyunlarda (yapay zekâ, harita üretimi) ve animasyonda (geçişler, desen, doku tamamlama) kullanılır.</li>
+  </ul>
+</section>
+
+<footer>Kaynak: “Çok Boyutlu Markov Zincirleri: Dijital Oyunlar ve Animasyon Uygulamaları”, “Çok Boyutlu Markov Zincirleri üzerine iki adet dijital oyun ve animasyon örneği” ve “Markov Rastgele Alanlarının dijital oyun ya da animasyon örnekleri” metinleri. Senaryolar öğretim amaçlıdır.</footer>
+</div>
+
+<script>
+(function(){
+  const root=document.documentElement;
+  let saved=null; try{saved=localStorage.getItem('mz-theme');}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  document.getElementById('themeBtn').addEventListener('click',()=>{
+    const isDark=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);
+    const next=isDark?'light':'dark'; root.setAttribute('data-theme',next);
+    try{localStorage.setItem('mz-theme',next);}catch(e){}
+  });
+  const f=(x,d=2)=>isFinite(x)?x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function mkRng(seed){let s=(seed*2654435761)>>>0||1;const n=()=>{s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};for(let i=0;i<20;i++)n();return n;}
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const tokCls=t=>['H','A','B','İ','Y','K','Z'].includes(t)?'t-'+t:'';
+  function renderSeq(el,arr,newFrom=Infinity){el.innerHTML=arr.map((t,i)=>`<span class="tok ${tokCls(t)}${i>=newFrom?' new':''}" style="${tokCls(t)?'':'background:var(--muted)'}">${esc(t)}</span>`).join('');}
+
+  const DEF={H:'H H A H A B H H A A H B H H A B H H A', A:'İ İ Y Y K K Z Z İ İ Y Y Y K K K Z Z İ'};
+  renderSeq(document.getElementById('seqH'),DEF.H.split(' '));
+  renderSeq(document.getElementById('seqA'),DEF.A.split(' '));
+  renderSeq(document.getElementById('seqGen'),'İ İ Y Y K K Z Z İ İ Y'.split(' '),2);
+
+  // ======== Zincir laboratuvarı ========
+  const exS=document.getElementById('labEx'), ordS=document.getElementById('labOrd'), ta=document.getElementById('labSeq');
+  let model=null, out=[], rng=mkRng(11), genSeed=11;
+  function build(){
+    const seq=ta.value.trim().split(/\s+/).filter(Boolean), n=+ordS.value;
+    const syms=[...new Set(seq)];
+    const tab=new Map();
+    for(let i=0;i+n<seq.length;i++){const g=seq.slice(i,i+n).join(' '), c=seq[i+n]; if(!tab.has(g))tab.set(g,{}); tab.get(g)[c]=(tab.get(g)[c]||0)+1;}
+    model={seq,syms,n,tab};
+    // tablo
+    const keys=[...tab.keys()].sort((a,b)=>a.localeCompare(b,'tr'));
+    let h=`<table><thead><tr><th class="l">Geçmiş (son ${n})</th>${syms.map(s=>`<th>→ ${esc(s)}</th>`).join('')}<th>Toplam</th></tr></thead><tbody>`;
+    keys.forEach(k=>{const row=tab.get(k), tot=Object.values(row).reduce((a,b)=>a+b,0);
+      h+=`<tr data-g="${esc(k)}"><td class="l">(${esc(k.split(' ').join(', '))})</td>${syms.map(s=>{const c=row[s]||0;return `<td${c===tot?' class="hi"':''}>${c} <span class="muted small">(${f(c/tot)})</span></td>`;}).join('')}<td>${tot}</td></tr>`;});
+    h+='</tbody></table>';
+    document.getElementById('labTable').innerHTML=seq.length>n?h:'<p class="muted">Dizi, seçilen derece için çok kısa.</p>';
+    const possible=Math.pow(syms.length,n);
+    document.getElementById('labSeen').textContent=`${keys.length} / ${possible}`;
+    const det=keys.filter(k=>Object.keys(tab.get(k)).length===1).length;
+    document.getElementById('labDet').textContent=keys.length?`${det} / ${keys.length}`:'—';
+  }
+  function step(){
+    const {tab,n,syms,seq}=model; if(!syms.length)return;
+    if(out.length<n){out=seq.slice(0,n); document.getElementById('labLog').textContent=`Başlangıç: eğitim dizisinin ilk ${n} sembolü (${out.join(', ')}).`; return;}
+    const g=out.slice(-n).join(' '), row=tab.get(g), u=rng();
+    let pick, msg;
+    if(row){const tot=Object.values(row).reduce((a,b)=>a+b,0); let cum=0; const parts=[];
+      for(const s of syms){if(!row[s])continue; cum+=row[s]/tot; parts.push(`${s} ${f(row[s]/tot)}`); if(pick===undefined&&u<cum)pick=s;}
+      if(pick===undefined)pick=Object.keys(row).pop();
+      msg=`Geçmiş (${g.split(' ').join(', ')}) → ${parts.join(' · ')} · u = ${f(u,3)} → ${pick}`;}
+    else {pick=syms[Math.floor(u*syms.length)]; msg=`Geçmiş (${g.split(' ').join(', ')}) eğitimde hiç görülmedi → rastgele seçim: ${pick}`;}
+    out.push(pick); document.getElementById('labLog').textContent=msg;
+    document.querySelectorAll('#labTable tr[data-g]').forEach(tr=>tr.style.outline=tr.dataset.g===g?'2px solid var(--accent)':'');
+  }
+  function gen(){genSeed=(genSeed*48271)%2147483647; rng=mkRng(genSeed); out=[]; step(); while(out.length<20)step(); renderSeq(document.getElementById('labOut'),out,model.n);}
+  function resetLab(){ta.value=DEF[exS.value]; build(); rng=mkRng(11); genSeed=11; out=[]; step(); while(out.length<12)step(); renderSeq(document.getElementById('labOut'),out,model.n);}
+  exS.onchange=resetLab; ordS.onchange=()=>{build();out=[];step();renderSeq(document.getElementById('labOut'),out,model.n);};
+  ta.addEventListener('input',()=>{build();out=[];step();renderSeq(document.getElementById('labOut'),out,model.n);});
+  document.getElementById('labGen').onclick=gen;
+  document.getElementById('labStep').onclick=()=>{step();renderSeq(document.getElementById('labOut'),out,model.n);};
+  document.getElementById('labReset').onclick=resetLab;
+  resetLab();
+  window.__lab={build,get model(){return model;}};
+
+  // ======== 2B MdMC ========
+  const TB={ // P(1 | sol, üst)  — anahtar: sol+''+üst
+    p:{t:{'00':0.10,'10':0.70,'11':0.95,'01':0.50},col:['#cfe8f7','#8a6a43']},
+    s:{t:{'01':0.80,'11':0.90,'00':0.15,'10':0.20},col:['#f8fafc','#2563eb']}
+  };
+  const GW=24,GH=14; let mdSeed=3, animTimer=null;
+  function genGrid(mode,twoD,seed){const r=mkRng(seed), t=TB[mode].t, g=[];
+    for(let i=0;i<GH;i++){g.push([]);for(let j=0;j<GW;j++){const L=j?g[i][j-1]:0, U=(twoD&&i)?g[i-1][j]:0; g[i].push(r()<t[''+L+U]?1:0);}}
+    return g;}
+  function vAgree(g){let s=0,n=0;for(let i=1;i<GH;i++)for(let j=0;j<GW;j++){n++;if(g[i][j]===g[i-1][j])s++;}return s/n;}
+  function drawGrid(id,g,col,upto=Infinity){const c=document.getElementById(id).getContext('2d');c.clearRect(0,0,240,140);
+    for(let i=0;i<GH;i++)for(let j=0;j<GW;j++){const k=i*GW+j; c.fillStyle=k<upto?col[g[i][j]]:'rgba(127,127,127,.15)';c.fillRect(j*10,i*10,10,10);}
+    c.strokeStyle='rgba(0,0,0,.08)';for(let j=0;j<=GW;j++){c.beginPath();c.moveTo(j*10,0);c.lineTo(j*10,140);c.stroke();}for(let i=0;i<=GH;i++){c.beginPath();c.moveTo(0,i*10);c.lineTo(240,i*10);c.stroke();}}
+  function md(anim){
+    if(animTimer){clearInterval(animTimer);animTimer=null;}
+    const mode=document.getElementById('mdEx').value, col=TB[mode].col;
+    const g1=genGrid(mode,false,mdSeed), g2=genGrid(mode,true,mdSeed);
+    document.getElementById('v1').textContent='%'+f(100*vAgree(g1),1);
+    document.getElementById('v2').textContent='%'+f(100*vAgree(g2),1);
+    document.getElementById('seedOut').textContent=mdSeed;
+    if(anim&&!reduce){let k=0;animTimer=setInterval(()=>{k+=4;drawGrid('cv1',g1,col,k);drawGrid('cv2',g2,col,k);if(k>=GW*GH){clearInterval(animTimer);animTimer=null;}},16);}
+    else{drawGrid('cv1',g1,col);drawGrid('cv2',g2,col);}
+  }
+  document.getElementById('mdGen').onclick=()=>{mdSeed=(mdSeed*16807)%2147483647%100000+1;md(false);};
+  document.getElementById('mdAnim').onclick=()=>md(true);
+  document.getElementById('mdEx').onchange=()=>md(false);
+  md(false);
+  window.__md={genGrid,vAgree};
+
+  // ======== MRF 3×3 ========
+  const PK=[0.05,0.20,0.50,0.75,0.90];
+  const cells=[1,1,0,1,null,0,0,1,1]; // kaynak matrisi
+  const NB=[1,3,5,7], NAMES={1:'Kuzey',3:'Batı',5:'Doğu',7:'Güney'};
+  const g3=document.getElementById('g3');
+  function draw3(){
+    g3.innerHTML='';
+    cells.forEach((v,i)=>{
+      if(i===4){const d=document.createElement('div');d.className='c-q';d.textContent='X₂,₂ ?';g3.appendChild(d);return;}
+      const b=document.createElement('button');b.className=v?'c-grass':'c-water';b.textContent=(v?'Çim':'Su')+(NB.includes(i)?'':' ·');
+      b.setAttribute('aria-label',(NAMES[i]||'Köşe')+': '+(v?'Çim':'Su')+'. Değiştirmek için tıklayın');
+      if(!NB.includes(i))b.style.opacity='.55';
+      b.onclick=()=>{cells[i]=1-cells[i];draw3();};g3.appendChild(b);
+    });
+    const k=NB.reduce((a,i)=>a+cells[i],0), p=PK[k];
+    document.getElementById('mrfCalc').innerHTML=`k = ${NB.map(i=>cells[i]).join(' + ')} = <b>${k}</b> &nbsp;→&nbsp; P(Çim) = <b>${f(p)}</b>, P(Su) = 1 − ${f(p)} = <b>${f(1-p)}</b>`;
+    document.getElementById('pG').textContent=f(p);
+    document.getElementById('pBar').style.width=(100*p)+'%';
+    document.querySelectorAll('#m1 table td').forEach(td=>td.classList.remove('hi'));
+    document.querySelectorAll('#m1 table tbody tr td')[k+1].classList.add('hi');
+    document.getElementById('mrfLog').textContent='Örnek: r = 0,42 ise 0,42 ≤ '+f(p)+(0.42<=p?' → Çim':' değil → Su');
+  }
+  let mr=mkRng(5);
+  document.getElementById('mrfDraw').onclick=()=>{const k=NB.reduce((a,i)=>a+cells[i],0),p=PK[k],r=mr();
+    document.getElementById('mrfLog').textContent=`r = ${f(r,3)} ${r<=p?'≤':'>'} ${f(p)} → X₂,₂ = ${r<=p?'Çim':'Su'}`;};
+  draw3();
+
+  // ======== Gibbs ========
+  const W=32,H=20; let G, gs, gr, sweeps, gRunning=false;
+  const gctx=document.getElementById('gcv').getContext('2d');
+  const nbs=k=>{const i=k%W,j=(k/W)|0;return [((i+W-1)%W)+j*W,((i+1)%W)+j*W,i+((j+H-1)%H)*W,i+((j+1)%H)*W];};
+  const NBG=Array.from({length:W*H},(_,k)=>nbs(k));
+  function gReset(){gr=mkRng(9);G=Array.from({length:W*H},()=>gr()<0.5?1:0);sweeps=0;gDraw();}
+  function gSweep(){for(let t=0;t<W*H;t++){const k=Math.floor(gr()*W*H);let c=0;for(const q of NBG[k])c+=G[q];G[k]=gr()<PK[c]?1:0;}sweeps++;}
+  function gStats(){let g=0,a=0;for(let k=0;k<W*H;k++){g+=G[k];if(G[k]===G[NBG[k][1]])a++;if(G[k]===G[NBG[k][3]])a++;}return {grass:g/(W*H),agree:a/(2*W*H)};}
+  function gDraw(){for(let k=0;k<W*H;k++){gctx.fillStyle=G[k]?'#8cc152':'#2f7fb8';gctx.fillRect((k%W)*10,((k/W)|0)*10,10,10);}
+    const s=gStats();document.getElementById('gSw').textContent=sweeps.toLocaleString('tr-TR');
+    document.getElementById('gGrass').textContent='%'+f(100*s.grass,1);document.getElementById('gAgree').textContent='%'+f(100*s.agree,1);}
+  const gBtn=document.getElementById('gRun');
+  let last=0;
+  function gLoop(ts){if(!gRunning)return; if(ts-last>(reduce?400:120)){gSweep();gDraw();last=ts;} requestAnimationFrame(gLoop);}
+  gBtn.onclick=()=>{gRunning=!gRunning;gBtn.textContent=gRunning?'❚❚ Durdur':'▶ Çalıştır';if(gRunning)requestAnimationFrame(gLoop);};
+  document.getElementById('gSweep').onclick=()=>{gSweep();gDraw();};
+  document.getElementById('gReset').onclick=gReset;
+  gReset();
+  window.__gibbs={gReset,gSweep,gStats};
+
+  // ======== Enerji eğrisi ========
+  const NBV=[120,125,130,140], En=x=>NBV.reduce((a,v)=>a+(x-v)**2,0);
+  const px=document.getElementById('px');
+  function eDraw(){
+    const x=+px.value, e=En(x);
+    document.getElementById('pxOut').textContent=x;
+    document.getElementById('pxE').textContent=e.toLocaleString('tr-TR',{maximumFractionDigits:2});
+    document.getElementById('pxSw').style.background=`rgb(${x},${x},${x})`;
+    const PW=400,PH=230,m=52,ymax=30000,X=v=>m+(v-50)/160*(PW-m-12),Y=v=>PH-28-Math.min(v,ymax)/ymax*(PH-48);
+    let s='';
+    for(let v=0;v<=30000;v+=5000)s+=`<line x1="${m}" y1="${Y(v)}" x2="${PW-12}" y2="${Y(v)}" style="stroke:var(--grid)"/><text x="${m-6}" y="${Y(v)+4}" text-anchor="end">${v.toLocaleString('tr-TR')}</text>`;
+    for(let v=50;v<=210;v+=40)s+=`<text x="${X(v)}" y="${PH-10}" text-anchor="middle">${v}</text>`;
+    let p='';for(let v=50;v<=210;v+=1){p+=(v>50?'L':'M')+X(v).toFixed(1)+' '+Y(En(v)).toFixed(1);}
+    s+=`<path d="${p}" style="fill:none;stroke:var(--accent)" stroke-width="2.5"/>`;
+    [[125,'A: 125 (E = 275)'],[200,'B: 200 (E = 20 525)'],[128.75,'']].forEach(([v,l],i)=>{s+=`<circle cx="${X(v)}" cy="${Y(En(v))}" r="4" style="fill:${i===1?'var(--bad)':'var(--ink)'}"/>`+(l?`<text x="${X(v)+(i===0?-8:-10)}" y="${Y(En(v))-(i===0?14:4)}" text-anchor="end">${l}</text>`:'');});s+=`<text x="${m+6}" y="14">en düşük: 128,75 (E = 218,75)</text>`;
+    s+=`<line x1="${X(x)}" y1="${Y(0)}" x2="${X(x)}" y2="${Y(e)}" style="stroke:var(--blue)" stroke-dasharray="4 3"/><circle cx="${X(x)}" cy="${Y(e)}" r="6" style="fill:none;stroke:var(--blue)" stroke-width="2.5"/>`;
+    s+=`<text x="${PW-14}" y="14" text-anchor="end">E(x) = Σ (x − komşu)²</text>`;
+    document.getElementById('eCurve').innerHTML=s;
+  }
+  px.addEventListener('input',eDraw); eDraw();
+
+  // ======== Test ========
+  const Q=[
+    {q:'P(Xₜ | Xₜ₋₁, Xₜ₋₂) hangi modeli tanımlar?',o:['1. derece Markov zinciri','2. derece (yüksek dereceli) Markov zinciri','2B çok boyutlu Markov zinciri','Markov rastgele alanı'],a:1,e:'Koşulda son iki zaman adımı var; uzaysal bir komşuluk yok.'},
+    {q:'Saldırı verisinde (H, A) geçmişinden sonra 1 H, 1 A, 2 B gelmiş. P(B | H, A) nedir?',o:['0,25','0,33','0,50','0,67'],a:2,e:'2 / (1 + 1 + 2) = 0,50.'},
+    {q:'3 hareketli bir oyunda 3. derece bir zincirin kaç olası geçmişi vardır?',o:['3','9','27','81'],a:2,e:'3³ = 27 geçmiş; her biri için 3 sonraki hareketle 81 hücrelik bir tablo.'},
+    {q:'2B platform tablosunda Sol = Zemin, Üst = Hava ise P(Zemin) nedir?',o:['0,10','0,70','0,90','0,95'],a:1,e:'Zemin yatayda devam etme eğiliminde: 0,70.'},
+    {q:'MRF su–çim örneğinde komşular Kuzey Çim, Güney Su, Batı Su, Doğu Çim ise P(Çim) nedir?',o:['0,20','0,50','0,75','0,90'],a:1,e:'k = 2 çim komşu → P(Çim | k = 2) = 0,50.'},
+    {q:'Komşuları 120, 125, 130, 140 olan pikselin enerjisini en aza indiren değer hangisidir?',o:['125','128,75','130','200'],a:1,e:'Kareler toplamı ortalamada en küçüktür: (120+125+130+140)/4 = 128,75, E = 218,75.'},
+  ];
+  const qz=document.getElementById('quiz');
+  Q.forEach((it,qi)=>{
+    const d=document.createElement('div'); d.className='q';
+    d.innerHTML=`<strong>${qi+1}. ${it.q}</strong><div class="opts"></div><div class="fb" aria-live="polite"></div>`;
+    const opts=d.querySelector('.opts'), fb=d.querySelector('.fb');
+    it.o.forEach((t,oi)=>{const b=document.createElement('button'); b.textContent=t;
+      b.onclick=()=>{opts.querySelectorAll('button').forEach(x=>x.classList.remove('ok','no'));
+        if(oi===it.a){b.classList.add('ok');fb.innerHTML='<strong>Doğru.</strong> '+it.e;} else {b.classList.add('no');fb.innerHTML='<strong>Tekrar deneyin.</strong>';}};
+      opts.appendChild(b);});
+    qz.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>

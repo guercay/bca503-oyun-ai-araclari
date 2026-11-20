@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Markov Zincirleri Laboratuvarı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#447099; --blue-d:#2c4f70; --blue-l:#dbe6f0; --blue-xl:#eef3f8;
+  --orange:#FF6F20; --orange-l:#ffe3d3; --pink:#FF3D7F; --pink-l:#ffdbe7;
+  --ink:#1d2733; --ink2:#4a5868; --gray:#8b97a5; --line:#d6dde5; --panel:#f6f8fb; --bg:#ffffff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Open Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:'Roboto Slab',Georgia,serif;margin:0}
+.mono{font-family:'Fira Code',ui-monospace,monospace}
+header{background:var(--blue-d);color:#fff;padding:28px 16px 0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+header .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#b9cde0;font-weight:700}
+header h1{font-size:30px;margin:6px 0 8px}
+header p{margin:0 0 18px;color:#dbe6f0;max-width:860px}
+.formula{display:inline-block;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:10px 16px;border-radius:6px;margin-bottom:18px;font-family:'Open Sans',sans-serif;font-size:18px;font-weight:600}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.15}
+.frac>span:first-child{border-bottom:2px solid currentColor;padding:0 4px 2px}
+.frac>span:last-child{padding:2px 4px 0}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:transparent;border:0;color:#cfdceb;font:600 15px 'Open Sans',sans-serif;padding:12px 16px;cursor:pointer;border-radius:6px 6px 0 0}
+.tab[aria-selected="true"]{background:#fff;color:var(--blue-d)}
+.tab:focus-visible{outline:3px solid var(--orange);outline-offset:-3px}
+main.wrap{padding-top:26px;padding-bottom:48px}
+section.pane{display:none}
+section.pane.active{display:block}
+.lead{color:var(--ink2);max-width:920px;margin:0 0 18px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px}
+@media (max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;min-width:0}
+.card h3{font-size:17px;margin-bottom:10px;color:var(--blue-d)}
+.label{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--gray)}
+.nt{text-transform:none;letter-spacing:0}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;margin-bottom:12px}
+.ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctl select,.ctl input[type=text],.ctl input[type=number]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink);max-width:100%}
+.ctl input[type=range]{accent-color:var(--blue);width:150px}
+.val{font-family:'Fira Code',monospace;font-weight:500;color:var(--blue-d)}
+button.btn{font:600 14px 'Open Sans',sans-serif;border:0;border-radius:5px;padding:8px 14px;cursor:pointer;background:var(--blue);color:#fff}
+button.btn:hover{background:var(--blue-d)}
+button.btn.alt{background:#fff;color:var(--blue-d);border:1px solid var(--blue)}
+button.btn.alt:hover{background:var(--blue-xl)}
+button.btn.or{background:var(--orange)}
+button.btn.or:hover{background:#e25c12}
+button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.mt{margin-top:18px}
+.small{font-size:12.5px;color:var(--gray)}
+.note{font-size:14px;color:var(--ink2)}
+.note b{color:var(--ink)}
+.callout{border-left:4px solid var(--orange);background:#fff7f2;padding:10px 14px;border-radius:0 6px 6px 0;margin-top:12px;font-size:14px}
+.eq{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-family:'Fira Code',monospace;font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.box{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-size:14.5px;line-height:1.6}
+.eq .res{font-family:'Roboto Slab',serif;font-size:26px;font-weight:700;color:var(--blue-d)}
+.kv{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;margin-top:10px}
+.kv b{font-family:'Fira Code',monospace;color:var(--blue-d)}
+.trainbar{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;background:var(--blue-xl);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin-bottom:18px}
+
+/* state machine */
+svg.sm{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:6px;display:block}
+.edge{fill:none;stroke:#7d8ea1;stroke-width:1.8}
+.edge.hot{stroke:var(--orange);stroke-width:3.5}
+.elab rect{fill:#fff;stroke:var(--line)}
+.elab text{font:600 13px 'Fira Code',monospace;fill:var(--blue-d)}
+.elab.hot rect{fill:var(--orange);stroke:var(--orange)}
+.elab.hot text{fill:#fff}
+.node circle{fill:var(--blue-d);stroke:#fff;stroke-width:3;cursor:pointer}
+.node text{font:700 20px 'Fira Code',monospace;fill:#fff;pointer-events:none}
+.node.cur circle{fill:var(--orange)}
+.node:focus-visible circle{stroke:var(--pink);stroke-width:5;outline:none}
+
+.seq{display:flex;flex-wrap:wrap;gap:4px;min-height:44px;align-items:center}
+.tile{width:32px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font:700 16px 'Fira Code',monospace;position:relative;flex:none}
+.tile.copy{box-shadow:0 0 0 3px var(--pink)}
+.tile.new{box-shadow:0 0 0 3px var(--orange)}
+.T-A{background:#2c4f70}.T-B{background:#447099}.T-C{background:#6b93b8}.T-D{background:#FF6F20}.T-E{background:#c2410c}
+.vrow{display:grid;grid-template-columns:28px 1fr 120px;gap:8px;align-items:center;margin:6px 0;font-size:13px}
+.vbar{height:20px;background:#fff;border:1px solid var(--line);border-radius:3px;position:relative;overflow:visible}
+.vbar>i{position:absolute;left:0;top:0;bottom:0;background:var(--blue);border-radius:2px}
+.vbar>b{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--orange);border-radius:2px}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 6px;text-align:left;vertical-align:middle}
+table.t th{font-size:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.08em}
+table.t td.num{font-family:'Fira Code',monospace;text-align:right}
+table.t tr.click{cursor:pointer}
+table.t tr.click:hover{background:var(--blue-xl)}
+table.t tr.sel{background:var(--orange-l)}
+.segbar{display:flex;height:22px;border-radius:3px;overflow:hidden;border:1px solid var(--line);background:#fff;min-width:120px}
+.segbar>div{display:flex;align-items:center;justify-content:center;color:#fff;font:600 11px 'Fira Code',monospace;border-right:1px solid #fff;overflow:hidden;white-space:nowrap}
+.scroll{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;background:var(--pink-l);color:#b0144a}
+
+/* tile levels */
+.lvl{display:grid;gap:1px;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px;width:max-content;max-width:100%}
+.lvlwrap{overflow-x:auto;padding-bottom:4px}
+.lvl>i{display:block;width:16px;height:16px;border-radius:2px}
+.lvl.big>i{width:24px;height:24px}
+.lvl.sm>i{width:13px;height:13px}
+.k-{background:#eef3f8}.kX{background:#2c4f70}.kB{background:#FF6F20}.kP{background:#6b93b8}
+.lvl>i.flt{box-shadow:inset 0 0 0 3px var(--pink)}
+.lvl>i.swp{box-shadow:inset 0 0 0 3px var(--pink)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:13px;color:var(--ink2)}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid var(--line)}
+.dep{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 2px}
+.dep .mini{display:grid;grid-template-columns:repeat(3,22px);gap:2px}
+.dep .mini i{width:22px;height:22px;border-radius:3px;background:#fff;border:1px solid var(--line)}
+.dep .mini i.t{background:var(--blue-d);border-color:var(--blue-d)}
+.dep .mini i.c{background:var(--orange);border-color:var(--orange)}
+canvas{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:6px;display:block}
+footer{border-top:1px solid var(--line);padding:16px 0 28px;color:var(--gray);font-size:13px}
+@media (max-width:480px){header h1{font-size:24px}.lvl.big>i{width:18px;height:18px}.vrow{grid-template-columns:24px 1fr 96px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="kicker">Hafta 06 – 03 · PCGML · Etkileşimli araç</div>
+    <h1>Markov Zincirleri Laboratuvarı</h1>
+    <p>Markov zinciri, mevcut durumdan öncekilere bakmadan bir durumdan diğerine geçme olasılığını modeller. Bu araç aynı fikri dört adımda gösterir: durum makinesi, zincirin derecesi, iki boyutlu (MdMC) seviyeler ve Markov rastgele alanında Metropolis-Hastings örneklemesi.</p>
+    <div class="formula">S = {s<sub>1</sub>, …, s<sub>n</sub>} &nbsp;·&nbsp; P(s<sub>t</sub> | s<sub>t−1</sub>)</div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="p1" id="t1">1 · Durum makinesi</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p2" id="t2">2 · Derece ve bağlam</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p3" id="t3">3 · 2B: MdMC</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p4" id="t4">4 · MRF ve MCMC</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+<div class="trainbar" id="trainbar">
+  <div class="ctl" style="flex:1;min-width:220px"><span class="label">Eğitim dizisi (A–E sütunları)</span>
+    <input type="text" id="train" class="mono" value="ABCADDDBCADDBCCECCDE" aria-label="Eğitim dizisi">
+  </div>
+  <div class="ctl"><span class="label">Döngüsel</span>
+    <label style="display:flex;gap:6px;align-items:center;height:34px"><input type="checkbox" id="cyclic" checked> son → ilk</label>
+  </div>
+  <div class="small" id="trainMsg" style="flex-basis:100%"></div>
+</div>
+
+<!-- ========== 1. STATE MACHINE ========== -->
+<section class="pane active" id="p1" role="tabpanel" aria-labelledby="t1">
+  <p class="lead">Düğümler benzersiz sütunlar, oklar ise mevcut sütunu takip eden sütun ve olasılığıdır (Şekil 6.5). Yeni bir sütun seçmek, grafikte bir kenarı takip etmekle aynıdır. Bir düğüme tıklayarak başlangıç durumunu seçebilirsiniz.</p>
+  <div class="grid2">
+    <div class="card">
+      <svg class="sm" id="sm" viewBox="0 0 600 400" role="img" aria-label="Durum makinesi grafiği"></svg>
+      <div class="btnrow mt" style="margin-top:12px">
+        <button class="btn" id="stepBtn">Bir adım</button>
+        <button class="btn" id="playBtn">Oynat</button>
+        <button class="btn alt" id="walk1k">1000 adım</button>
+        <button class="btn alt" id="rstBtn">Sıfırla</button>
+      </div>
+      <div class="small" id="stepNote" style="margin-top:8px">&nbsp;</div>
+      <div class="seq mt" id="walkSeq" style="margin-top:10px"></div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Ziyaret oranları</h3>
+        <div class="note" style="margin-bottom:6px">Mavi çubuk: yürüyüşte her duruma kaç kez gelindiği. Turuncu çizgi: zincirin uzun vadede beklenen (durağan) dağılımı.</div>
+        <div id="visits"></div>
+        <div class="kv"><span>Toplam adım: <b id="nSteps">0</b></span></div>
+        <div class="callout" id="statNote"></div>
+      </div>
+      <div class="card mt">
+        <h3>Bir dizinin olasılığı</h3>
+        <div class="controls">
+          <div class="ctl"><span class="label">Dizi</span><input type="text" id="path" class="mono" value="ADDB" style="width:140px" aria-label="Dizi"></div>
+        </div>
+        <div class="eq" id="pathEq"></div>
+        <div class="small" style="margin-top:6px">Başlangıç durumu verilmiş kabul edilir; her geçiş olasılığı çarpılır (Hafta 06-03, Ödev 3).</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 2. ORDER ========== -->
+<section class="pane" id="p2" role="tabpanel" aria-labelledby="t2">
+  <p class="lead">Zincirin derecesi n arttıkça bağlam genişler: 2. derecede P(Col<sub>t</sub> | Col<sub>t−1</sub>, Col<sub>t−2</sub>) öğrenilir (trigram). Daha fazla bağlam daha kesin tahmin demektir; bedeli, verinin seyrekleşmesi ve modelin eğitim dizisini ezberlemesidir.</p>
+  <div class="grid2">
+    <div class="card">
+      <div class="controls">
+        <div class="ctl"><span class="label">Derece <span class="nt">n</span></span>
+          <select id="order" aria-label="Derece"><option value="1">1 (bigram)</option><option value="2" selected>2 (trigram)</option><option value="3">3</option></select>
+        </div>
+      </div>
+      <div class="scroll"><table class="t" id="ctxTbl" aria-label="Bağlam tablosu"></table></div>
+      <div class="small" style="margin-top:6px">Bir satıra tıklayınca hesap aşağıda gösterilir. <span class="tag">tek</span> = tek takipçili (deterministik) bağlam.</div>
+      <div class="eq mt" id="ctxEq"></div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>n. dereceden üretim</h3>
+        <div class="btnrow"><button class="btn" id="genN">30 sütunluk seviye üret</button></div>
+        <div class="seq mt" id="genSeq"></div>
+        <div class="kv" id="genStats"></div>
+        <div class="small" style="margin-top:6px">Pembe çerçeve: eğitim dizisinden birebir kopyalanan en uzun parça. İlk n sütun, eğitim dizisinden rastgele bir pencereden alınır.</div>
+      </div>
+      <div class="card mt">
+        <h3>Dereceleri karşılaştır (200 seviye)</h3>
+        <button class="btn or" id="cmpN">Karşılaştır</button>
+        <table class="t mt" id="cmpTbl" style="margin-top:10px"></table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 3. MdMC ========== -->
+<section class="pane" id="p3" role="tabpanel" aria-labelledby="t3">
+  <p class="lead">Karo tabanlı bir seviyede satırlar alttan üste, soldan sağa üretilir. Standart (1. derece) zincirde her karo yalnızca soldakine bağlıdır ve satırlar birbirini etkilemez; havada asılı zemin karoları çıkabilir. Çok Boyutlu Markov Zinciri (MdMC) bağlama alttaki karoyu da ekler (Şekil 6.7).</p>
+  <div class="card">
+    <h3>Eğitim seviyesi</h3>
+    <div class="lvlwrap"><div class="lvl" id="trainLvl"></div></div>
+    <div class="legend">
+      <span><i class="sw k-"></i>- boş</span><span><i class="sw kX"></i>X zemin</span><span><i class="sw kB"></i>B blok</span><span><i class="sw kP"></i>P boru</span>
+      <span><i class="sw" style="box-shadow:inset 0 0 0 3px var(--pink)"></i>desteksiz zemin/boru</span>
+    </div>
+  </div>
+  <div class="grid2 mt">
+    <div class="card">
+      <h3>1. derece: yalnız sol karo</h3>
+      <div class="dep" aria-hidden="true"><div class="mini"><i></i><i></i><i></i><i class="c"></i><i class="t"></i><i></i><i></i><i></i><i></i></div><div class="note">P(s<sub>x,y</sub> | s<sub>x−1,y</sub>)</div></div>
+      <div class="lvlwrap"><div class="lvl sm" id="lvlH"></div></div>
+      <div class="kv" id="statH"></div>
+    </div>
+    <div class="card">
+      <h3>MdMC: sol + alt karo</h3>
+      <div class="dep" aria-hidden="true"><div class="mini"><i></i><i></i><i></i><i class="c"></i><i class="t"></i><i></i><i></i><i class="c"></i><i></i></div><div class="note">P(s<sub>x,y</sub> | s<sub>x−1,y</sub>, s<sub>x,y−1</sub>)</div></div>
+      <div class="lvlwrap"><div class="lvl sm" id="lvlM"></div></div>
+      <div class="kv" id="statM"></div>
+    </div>
+  </div>
+  <div class="card mt">
+    <div class="btnrow"><button class="btn" id="gen2d">İki seviyeyi yeniden üret</button><button class="btn or" id="cmp2d">100 seviye karşılaştır</button></div>
+    <div class="note mt" id="cmp2dOut" style="margin-top:10px">Desteksiz karo: altında zemin olmayan zemin (X) ya da altında boru/zemin olmayan boru (P). Eğitim seviyesinde bu sayı 0.</div>
+  </div>
+</section>
+
+<!-- ========== 4. MRF + MCMC ========== -->
+<section class="pane" id="p4" role="tabpanel" aria-labelledby="t4">
+  <p class="lead">Markov rastgele alanında yön yoktur: her karo, Markov battaniyesindeki dört komşusuna göre değerlendirilir. Tüm dizilimleri denemek imkânsızdır; Metropolis-Hastings rastgele iki karoyu takas eder ve olabilirlik artarsa kabul eder, düşerse düşüşle orantılı bir olasılıkla reddeder.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>Seviye (10 × 16)</h3>
+      <div class="lvlwrap"><div class="lvl big" id="mhLvl"></div></div>
+      <div class="btnrow mt" style="margin-top:12px">
+        <button class="btn" id="mh1">1 öneri</button>
+        <button class="btn" id="mh100">100 öneri</button>
+        <button class="btn or" id="mhRun">Durana kadar çalıştır</button>
+        <button class="btn alt" id="mhNew">Yeni rastgele başlangıç</button>
+      </div>
+      <div class="box mt" id="mhLast" style="margin-top:12px">Başlangıç: etiketler eğitim seviyesindeki karo frekanslarına göre rastgele atandı.</div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Log-olabilirlik</h3>
+        <canvas id="mhChart" width="560" height="240" aria-label="Log-olabilirlik grafiği"></canvas>
+        <div class="legend"><span><i class="sw" style="background:var(--blue)"></i>Mevcut seviye</span><span><i class="sw" style="background:var(--orange)"></i>Eğitim seviyesinin aynı boyuttaki parçası</span></div>
+        <div class="kv" id="mhStats"></div>
+      </div>
+      <div class="card mt">
+        <h3>Neden arama yapıyoruz?</h3>
+        <div class="note" id="mhCount"></div>
+        <div class="callout">Model basitleştirilmiştir: her karo, yatay ve dikey komşusuyla birlikte eğitim seviyesinde ne sıklıkta görüldüğüne göre puanlanır (komşu çiftleri, kenarlar dahil). Takas karo sayılarını korur; durdurma kriteri ya 3000 öneri boyunca iyileşme olmaması ya da en fazla 30.000 öneridir.</div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer><div class="wrap">Kaynak: Hafta 06-03 “Markov Zincirleri” (Şekil 6.5–6.8, MdMC, MRF, MCMC, Metropolis-Hastings) ve Ödev 2–3. Eğitim dizisi döngüsel sayıldığında Tablo 6.5’i verir.</div></footer>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; };
+const red = (n, d) => { const g = gcd(n, d); return [n / g, d / g]; };
+const fr = (n, d) => `<span class="frac"><span>${n}</span><span>${d}</span></span>`;
+const fmt = (x, k = 3) => (Number.isFinite(x) ? x.toFixed(k) : "—");
+const COLS = ["A", "B", "C", "D", "E"];
+const TCOL = { A: "#2c4f70", B: "#447099", C: "#6b93b8", D: "#FF6F20", E: "#c2410c" };
+const pick = (weights) => { let tot = 0; for (const k in weights) tot += weights[k]; let r = Math.random() * tot; let last = null; for (const k in weights) { if (weights[k] <= 0) continue; last = k; r -= weights[k]; if (r < 0) return k; } return last; };
+
+/* ---------- tabs ---------- */
+document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+  document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("active", p.id === t.getAttribute("aria-controls")));
+  $("trainbar").style.display = (t.id === "t1" || t.id === "t2") ? "" : "none";
+  if (t.id === "t4") drawMH();
+}));
+
+/* ---------- training sequence model ---------- */
+let TR = { seq: "ABCADDDBCADDBCCECCDE", cyclic: true };
+let M1; // first-order model
+function bigram(seq, cyclic) {
+  const C = {}, N = {}, U = {};
+  COLS.forEach((a) => { C[a] = {}; COLS.forEach((b) => (C[a][b] = 0)); N[a] = 0; U[a] = 0; });
+  const n = seq.length;
+  for (const ch of seq) U[ch]++;
+  const last = cyclic ? n : n - 1;
+  for (let i = 0; i < last; i++) { const a = seq[i], b = seq[(i + 1) % n]; C[a][b]++; N[a]++; }
+  const P = {}; COLS.forEach((a) => { P[a] = {}; COLS.forEach((b) => (P[a][b] = N[a] ? C[a][b] / N[a] : 0)); });
+  return { C, N, U, P, n };
+}
+function stationary(m) {
+  let pi = {}; COLS.forEach((a) => (pi[a] = 1 / 5));
+  for (let it = 0; it < 500; it++) {
+    const nx = {}; COLS.forEach((b) => (nx[b] = 0));
+    COLS.forEach((a) => { if (m.N[a]) COLS.forEach((b) => (nx[b] += pi[a] * m.P[a][b])); else nx[a] += pi[a]; });
+    pi = nx;
+  }
+  return pi;
+}
+
+/* ================= 1. STATE MACHINE ================= */
+const POS = { A: [100, 75], B: [500, 75], D: [100, 300], E: [300, 300], C: [500, 300] };
+const CEN = [300, 190], RAD = 30;
+const W = { cur: null, last: null, visits: {}, steps: 0, seq: [], timer: null };
+function resetWalk() { W.cur = null; W.last = null; W.steps = 0; W.seq = []; COLS.forEach((a) => (W.visits[a] = 0)); stopPlay(); }
+
+function drawSM() {
+  const svg = $("sm"); let h = '<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7d8ea1"/></marker><marker id="arh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FF6F20"/></marker></defs>';
+  let labels = "";
+  COLS.forEach((a) => COLS.forEach((b) => {
+    if (!M1.C[a][b]) return;
+    const hot = W.last && W.last[0] === a && W.last[1] === b;
+    const [nn, dd] = red(M1.C[a][b], M1.N[a]); const lab = dd === 1 ? String(nn) : `${nn}/${dd}`;
+    let path, lx, ly;
+    const [x0, y0] = POS[a], [x2, y2] = POS[b];
+    if (a === b) {
+      let ox = x0 - CEN[0], oy = y0 - CEN[1]; const L = Math.hypot(ox, oy); ox /= L; oy /= L;
+      const ang = Math.atan2(oy, ox), s1 = ang - 0.55, s2 = ang + 0.55;
+      const p1 = [x0 + RAD * Math.cos(s1), y0 + RAD * Math.sin(s1)], p2 = [x0 + RAD * Math.cos(s2), y0 + RAD * Math.sin(s2)];
+      const c1 = [x0 + 85 * Math.cos(s1 - 0.25), y0 + 85 * Math.sin(s1 - 0.25)], c2 = [x0 + 85 * Math.cos(s2 + 0.25), y0 + 85 * Math.sin(s2 + 0.25)];
+      path = `M${p1[0]},${p1[1]} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p2[0]},${p2[1]}`;
+      lx = x0 + 78 * ox; ly = y0 + 78 * oy;
+    } else {
+      let ux = x2 - x0, uy = y2 - y0; const L = Math.hypot(ux, uy); ux /= L; uy /= L;
+      let nx = -uy, ny = ux, k = M1.C[b][a] ? 22 : 0;
+      const blocked = COLS.some((o) => { if (o === a || o === b) return false; const [px, py] = POS[o]; const t = ((px - x0) * ux + (py - y0) * uy); if (t < 0 || t > L) return false; return Math.abs((px - x0) * nx + (py - y0) * ny) < 40; });
+      if (blocked) { k = 80; const mx = (x0 + x2) / 2 - CEN[0], my = (y0 + y2) / 2 - CEN[1]; if (nx * mx + ny * my < 0) { nx = -nx; ny = -ny; } }
+      const cx = (x0 + x2) / 2 + nx * k, cy = (y0 + y2) / 2 + ny * k;
+      const d0 = Math.hypot(cx - x0, cy - y0), d2 = Math.hypot(cx - x2, cy - y2);
+      const sx = x0 + (cx - x0) / d0 * RAD, sy = y0 + (cy - y0) / d0 * RAD;
+      const ex = x2 + (cx - x2) / d2 * (RAD + 3), ey = y2 + (cy - y2) / d2 * (RAD + 3);
+      path = `M${sx},${sy} Q${cx},${cy} ${ex},${ey}`;
+      const t = blocked ? 0.5 : (M1.C[b][a] ? 0.5 : 0.42);
+      lx = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * cx + t * t * ex; ly = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * cy + t * t * ey;
+    }
+    h += `<path class="edge${hot ? " hot" : ""}" d="${path}" marker-end="url(#${hot ? "arh" : "ar"})"><title>P(${b} | ${a}) = ${lab}</title></path>`;
+    const w = 10 + lab.length * 8.5;
+    labels += `<g class="elab${hot ? " hot" : ""}"><rect x="${lx - w / 2}" y="${ly - 11}" width="${w}" height="22" rx="4"/><text x="${lx}" y="${ly + 4.5}" text-anchor="middle">${lab}</text></g>`;
+  }));
+  h += labels;
+  COLS.forEach((a) => {
+    const [x, y] = POS[a];
+    h += `<g class="node${W.cur === a ? " cur" : ""}" data-n="${a}" tabindex="0" role="button" aria-label="Durum ${a}"><circle cx="${x}" cy="${y}" r="${RAD}"/><text x="${x}" y="${y + 7}" text-anchor="middle">${a}</text></g>`;
+  });
+  svg.innerHTML = h;
+  svg.querySelectorAll(".node").forEach((g) => {
+    const set = () => { if (W.timer) return; W.cur = g.dataset.n; W.last = null; W.seq = [W.cur]; W.visits[W.cur]++; W.steps++; $("stepNote").textContent = `Başlangıç durumu: ${W.cur}`; renderWalk(); };
+    g.addEventListener("click", set);
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); set(); } });
+  });
+}
+
+function stepWalk(silent) {
+  if (W.cur === null) {
+    const s = pick(M1.U); W.cur = s; W.last = null; W.seq.push(s); W.visits[s]++; W.steps++;
+    if (!silent) $("stepNote").textContent = `Başlangıç ${s}: koşulsuz dağılımdan (P(Col)) seçildi.`;
+    return;
+  }
+  const a = W.cur;
+  if (!M1.N[a]) { if (!silent) $("stepNote").textContent = `${a} durumundan çıkan ok yok (eğitimde ${a}’dan sonra sütun gelmemiş).`; stopPlay(); return; }
+  const b = pick(M1.C[a]);
+  W.last = [a, b]; W.cur = b; W.seq.push(b); W.visits[b]++; W.steps++;
+  if (!silent) { const [n, d] = red(M1.C[a][b], M1.N[a]); $("stepNote").textContent = `${a} → ${b} kenarı izlendi (olasılık ${d === 1 ? n : n + "/" + d}).`; }
+}
+function renderWalk() {
+  drawSM();
+  const s = W.seq.slice(-36);
+  $("walkSeq").innerHTML = (W.seq.length > 36 ? '<span class="small">… </span>' : "") + s.map((c, i) => `<div class="tile T-${c}${i === s.length - 1 ? " new" : ""}">${c}</div>`).join("") || '<span class="small">“Bir adım” ile yürüyüşe başlayın ya da bir düğüme tıklayın.</span>';
+  const pi = stationary(M1);
+  $("visits").innerHTML = COLS.map((a) => { const f = W.steps ? W.visits[a] / W.steps : 0; return `<div class="vrow"><b class="mono">${a}</b><div class="vbar"><i style="width:${f * 100}%"></i><b style="left:calc(${pi[a] * 100}% - 1px)"></b></div><span class="mono">${fmt(f)} / ${fmt(pi[a])}</span></div>`; }).join("");
+  $("nSteps").textContent = W.steps;
+  const freq = COLS.map((a) => `${a} ${M1.U[a]}/${M1.n}`).join(", ");
+  $("statNote").innerHTML = TR.cyclic
+    ? `Döngüsel eğitim dizisinde durağan dağılım, sütunların dizideki frekanslarına eşittir (${freq}). Adım sayısı arttıkça mavi çubuklar turuncu çizgilere yaklaşır.`
+    : `Durağan dağılım geçiş olasılıklarından hesaplandı. Adım sayısı arttıkça ziyaret oranları turuncu çizgilere yaklaşır.`;
+}
+function stopPlay() { if (W.timer) { clearInterval(W.timer); W.timer = null; } $("playBtn").textContent = "Oynat"; }
+$("stepBtn").addEventListener("click", () => { stepWalk(false); renderWalk(); });
+$("playBtn").addEventListener("click", () => {
+  if (W.timer) { stopPlay(); return; }
+  $("playBtn").textContent = "Durdur";
+  W.timer = setInterval(() => { stepWalk(false); renderWalk(); }, 450);
+});
+$("walk1k").addEventListener("click", () => { stopPlay(); for (let i = 0; i < 1000; i++) stepWalk(true); $("stepNote").textContent = "1000 adım atıldı."; renderWalk(); });
+$("rstBtn").addEventListener("click", () => { resetWalk(); $("stepNote").innerHTML = "&nbsp;"; renderWalk(); });
+
+function renderPath() {
+  const p = $("path").value.toUpperCase().replace(/[^A-E]/g, "");
+  const box = $("pathEq");
+  if (p.length < 2) { box.textContent = "En az iki durum girin (ör. ADDB)."; return; }
+  let num = 1, den = 1, parts = [], zero = null;
+  for (let i = 1; i < p.length; i++) {
+    const a = p[i - 1], b = p[i], c = M1.C[a][b], n = M1.N[a];
+    parts.push(`P(${b}|${a})`);
+    if (!n || !c) { zero = `${a} → ${b}`; continue; }
+    num *= c; den *= n;
+  }
+  const facs = [];
+  for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i]; facs.push(M1.N[a] ? fr(...red(M1.C[a][b], M1.N[a])) : "0"); }
+  if (zero) { box.innerHTML = `${parts.join(" × ")} = ${facs.join(" × ")} = <span class="res">0</span><span class="small" style="flex-basis:100%">${zero} geçişi eğitimde hiç görülmedi.</span>`; return; }
+  const [n, d] = red(num, den);
+  box.innerHTML = `${parts.join(" × ")} = ${facs.join(" × ")} = ${fr(n, d)} ≈ <span class="res">${fmt(n / d)}</span>`;
+}
+$("path").addEventListener("input", renderPath);
+
+/* ================= 2. ORDER ================= */
+const O = { n: 2, sel: null };
+function ngram(seq, cyclic, n) {
+  const L = seq.length, ctx = {};
+  const ext = cyclic ? seq + seq.slice(0, n) : seq;
+  for (let i = 0; i + n < ext.length && i < (cyclic ? L : L - n); i++) {
+    const c = ext.slice(i, i + n), nx = ext[i + n];
+    (ctx[c] = ctx[c] || {})[nx] = (ctx[c][nx] || 0) + 1;
+  }
+  return ctx;
+}
+const sum = (o) => Object.values(o).reduce((s, v) => s + v, 0);
+function renderCtx() {
+  const ctx = ngram(TR.seq, TR.cyclic, O.n);
+  const keys = Object.keys(ctx).sort((a, b) => sum(ctx[b]) - sum(ctx[a]) || a.localeCompare(b));
+  if (!O.sel || !ctx[O.sel]) O.sel = O.n === 2 && ctx.AD ? "AD" : keys[0];
+  let h = `<tr><th>Bağlam</th><th>Sonraki sütun dağılımı</th><th style="text-align:right">Count</th></tr>`;
+  keys.forEach((k) => {
+    const d = ctx[k], t = sum(d), det = Object.keys(d).length === 1;
+    const seg = COLS.filter((c) => d[c]).map((c) => `<div style="width:${d[c] / t * 100}%;background:${TCOL[c]}" title="${c}: ${d[c]}/${t}">${c} ${d[c]}/${t}</div>`).join("");
+    h += `<tr class="click${k === O.sel ? " sel" : ""}" data-k="${k}" tabindex="0"><td class="mono"><b>(${k.split("").join(", ")})</b> ${det ? '<span class="tag">tek</span>' : ""}</td><td><div class="segbar">${seg}</div></td><td class="num">${t}</td></tr>`;
+  });
+  $("ctxTbl").innerHTML = h;
+  $("ctxTbl").querySelectorAll("tr.click").forEach((tr) => {
+    const go = () => { O.sel = tr.dataset.k; renderCtx(); };
+    tr.addEventListener("click", go);
+    tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+  const d = ctx[O.sel], t = sum(d), best = Object.keys(d).sort((a, b) => d[b] - d[a])[0];
+  const cond = O.sel.split("").join(", ");
+  $("ctxEq").innerHTML = `P(${best} | ${cond}) = ${fr(`Count(${O.sel}${best})`, `Count(${O.sel}·)`)} = ${fr(d[best], t)} = <span class="res">${fmt(d[best] / t)}</span>` +
+    `<span class="small" style="flex-basis:100%">Bağlam, ders metnindeki gibi eğitim sırasıyla (soldan sağa) yazıldı; en sağdaki Col<sub>t−1</sub>.</span>`;
+}
+function genOrder(n, len) {
+  const ctxs = [1, 2, 3].map((k) => ngram(TR.seq, TR.cyclic, k));
+  const L = TR.seq.length, ext = TR.seq + TR.seq;
+  const st = Math.floor(Math.random() * (TR.cyclic ? L : Math.max(1, L - n)));
+  const out = ext.slice(st, st + n).split("");
+  let back = 0;
+  while (out.length < len) {
+    let k = n, d = null;
+    while (k > 0 && !(d = ctxs[k - 1][out.slice(-k).join("")])) { k--; back++; }
+    out.push(d ? pick(d) : pick(M1.U));
+  }
+  return { out, back };
+}
+function longestCopy(out) {
+  const ext = TR.cyclic ? TR.seq + TR.seq : TR.seq;
+  let best = [0, 0];
+  for (let i = 0; i < out.length; i++) for (let j = i + 1; j <= out.length; j++) {
+    if (j - i > TR.seq.length) break;
+    if (ext.includes(out.slice(i, j).join(""))) { if (j - i > best[1] - best[0]) best = [i, j]; } else break;
+  }
+  return best;
+}
+$("genN").addEventListener("click", () => {
+  const { out, back } = genOrder(O.n, 30), [a, b] = longestCopy(out);
+  $("genSeq").innerHTML = out.map((c, i) => `<div class="tile T-${c}${i >= a && i < b ? " copy" : ""}">${c}</div>`).join("");
+  $("genStats").innerHTML = `<span>Derece: <b>${O.n}</b></span><span>En uzun kopya: <b>${b - a}</b> sütun</span>` + (back ? `<span>Geri çekilme (görülmemiş bağlam): <b>${back}</b></span>` : "");
+});
+$("cmpN").addEventListener("click", () => {
+  let h = `<tr><th>n</th><th style="text-align:right">Bağlam sayısı</th><th style="text-align:right">Tek takipçili</th><th style="text-align:right">Ort. takipçi</th><th style="text-align:right">Ort. en uzun kopya</th></tr>`;
+  [1, 2, 3].forEach((n) => {
+    const ctx = ngram(TR.seq, TR.cyclic, n), ks = Object.keys(ctx);
+    const det = ks.filter((k) => Object.keys(ctx[k]).length === 1).length;
+    const avgF = ks.reduce((s, k) => s + Object.keys(ctx[k]).length, 0) / ks.length;
+    let cp = 0; for (let i = 0; i < 200; i++) { const { out } = genOrder(n, 30); const [a, b] = longestCopy(out); cp += b - a; }
+    h += `<tr><td class="mono"><b>${n}</b></td><td class="num">${ks.length}</td><td class="num">${det}/${ks.length} (${Math.round(det / ks.length * 100)}%)</td><td class="num">${avgF.toFixed(2)}</td><td class="num">${(cp / 200).toFixed(1)}</td></tr>`;
+  });
+  h += `<tr><td colspan="5" class="small">Derece arttıkça bağlamlar çoğalır, her bağlamın gözlem sayısı azalır (seyreklik) ve tek takipçili bağlamların payı artar: model eğitim dizisini daha uzun parçalar hâlinde kopyalar (ezber). Eğitim dizisi ${TR.seq.length} sütun.</td></tr>`;
+  $("cmpTbl").innerHTML = h;
+});
+$("order").addEventListener("change", (e) => { O.n = +e.target.value; O.sel = null; renderCtx(); $("genSeq").innerHTML = ""; $("genStats").innerHTML = ""; });
+
+/* ================= 3. MdMC ================= */
+const LVL = [
+  "--------------------------------",
+  "--------------------------------",
+  "--------------------------------",
+  "------BBB------------BBBB-------",
+  "--------------------------------",
+  "--------------------------------",
+  "-------------PP-----------------",
+  "-------------PP---------X-------",
+  "-------------PP--------XX-------",
+  "XXXXXXXXXXXXXXXXXX---XXXXXXXXXXX"];
+const LR = LVL.length, LC = LVL[0].length, TILES = ["-", "X", "B", "P"];
+const TU = {}; TILES.forEach((t) => (TU[t] = 0)); LVL.forEach((r) => { for (const c of r) TU[c]++; });
+const inc2 = (o, k, v) => { o[k] = o[k] || {}; o[k][v] = (o[k][v] || 0) + 1; };
+const H1 = {}, MD = {}, BEL = {};
+for (let r = 0; r < LR; r++) for (let c = 0; c < LC; c++) {
+  const l = c ? LVL[r][c - 1] : "^", b = r < LR - 1 ? LVL[r + 1][c] : "#", t = LVL[r][c];
+  inc2(H1, l, t); inc2(MD, l + b, t); inc2(BEL, b, t);
+}
+function gen2d(mode) {
+  const g = Array.from({ length: LR }, () => Array(LC).fill("-")); let back = 0;
+  for (let r = LR - 1; r >= 0; r--) for (let c = 0; c < LC; c++) {
+    const l = c ? g[r][c - 1] : "^", b = r < LR - 1 ? g[r + 1][c] : "#";
+    let d;
+    if (mode === "h") d = H1[l];
+    else { d = MD[l + b]; if (!d) { back++; d = BEL[b] || TU; } }
+    g[r][c] = pick(d);
+  }
+  return { g, back };
+}
+function floatingSet(g) {
+  const R = g.length, S = new Set();
+  for (let r = 0; r < R - 1; r++) for (let c = 0; c < g[0].length; c++) {
+    const t = g[r][c], b = g[r + 1][c];
+    if ((t === "X" && b !== "X") || (t === "P" && b !== "P" && b !== "X")) S.add(r + "," + c);
+  }
+  return S;
+}
+function renderLvl(el, g, marks, cls = "") {
+  const C = g[0].length; el.style.gridTemplateColumns = `repeat(${C}, auto)`;
+  let h = ""; g.forEach((row, r) => row.forEach((t, c) => { h += `<i class="k${t}${marks && marks.has(r + "," + c) ? " " + (cls || "flt") : ""}" title="${t}"></i>`; }));
+  el.innerHTML = h;
+}
+function regen2d() {
+  const a = gen2d("h"), b = gen2d("m"), fa = floatingSet(a.g), fb = floatingSet(b.g);
+  renderLvl($("lvlH"), a.g, fa); renderLvl($("lvlM"), b.g, fb);
+  $("statH").innerHTML = `<span>Desteksiz karo: <b style="color:${fa.size ? "var(--pink)" : ""}">${fa.size}</b></span>`;
+  $("statM").innerHTML = `<span>Desteksiz karo: <b style="color:${fb.size ? "var(--pink)" : ""}">${fb.size}</b></span>` + (b.back ? `<span>Görülmemiş bağlam (geri çekilme): <b>${b.back}</b></span>` : "");
+}
+$("gen2d").addEventListener("click", regen2d);
+$("cmp2d").addEventListener("click", () => {
+  const N = 100; let fa = 0, fb = 0, la = 0, lb = 0, bk = 0;
+  for (let i = 0; i < N; i++) { const a = gen2d("h"), b = gen2d("m"); const x = floatingSet(a.g).size, y = floatingSet(b.g).size; fa += x; fb += y; if (x) la++; if (y) lb++; bk += b.back; }
+  $("cmp2dOut").innerHTML = `<table class="t"><tr><th>Model</th><th style="text-align:right">Ort. desteksiz karo</th><th style="text-align:right">En az 1 desteksiz karo içeren seviye</th></tr>
+    <tr><td>1. derece (yalnız sol)</td><td class="num">${(fa / N).toFixed(1)}</td><td class="num">${la}/${N}</td></tr>
+    <tr><td>MdMC (sol + alt)</td><td class="num">${(fb / N).toFixed(1)}</td><td class="num">${lb}/${N}</td></tr></table>
+    <div class="small" style="margin-top:6px">MdMC’de görülmemiş (sol, alt) bağlamında yalnız alttaki karoya, o da yoksa genel frekansa geri çekilinir (100 seviyede ortalama ${(bk / N).toFixed(2)} kez).</div>`;
+});
+
+/* ================= 4. MRF + Metropolis-Hastings ================= */
+const GR = 10, GC = 16, ALPHA = 0.1, KK = 36;
+const at = (G, r, c, R, C) => r < 0 ? "^" : r >= R ? "#" : c < 0 ? "<" : c >= C ? ">" : G[r][c];
+const HP = {}, VP = {}; let hT = 0, vT = 0;
+for (let r = 0; r < LR; r++) for (let c = -1; c < LC; c++) { const k = at(LVL, r, c, LR, LC) + at(LVL, r, c + 1, LR, LC); HP[k] = (HP[k] || 0) + 1; hT++; }
+for (let r = -1; r < LR; r++) for (let c = 0; c < LC; c++) { const k = at(LVL, r, c, LR, LC) + at(LVL, r + 1, c, LR, LC); VP[k] = (VP[k] || 0) + 1; vT++; }
+const lpH = (k) => Math.log(((HP[k] || 0) + ALPHA) / (hT + ALPHA * KK));
+const lpV = (k) => Math.log(((VP[k] || 0) + ALPHA) / (vT + ALPHA * KK));
+function score(g) {
+  let s = 0;
+  for (let r = 0; r < GR; r++) for (let c = -1; c < GC; c++) s += lpH(at(g, r, c, GR, GC) + at(g, r, c + 1, GR, GC));
+  for (let r = -1; r < GR; r++) for (let c = 0; c < GC; c++) s += lpV(at(g, r, c, GR, GC) + at(g, r + 1, c, GR, GC));
+  return s;
+}
+const REF = score(LVL.map((r) => r.slice(0, GC).split("")));
+const MH = { g: null, s: 0, it: 0, acc: 0, rej: 0, hist: [], best: -Infinity, sinceBest: 0, running: false, swap: null };
+function mhNew() {
+  MH.g = Array.from({ length: GR }, () => Array.from({ length: GC }, () => pick(TU)));
+  MH.s = score(MH.g); MH.it = 0; MH.acc = 0; MH.rej = 0; MH.hist = [[0, MH.s]]; MH.best = MH.s; MH.sinceBest = 0; MH.swap = null;
+  $("mhLast").textContent = "Başlangıç: etiketler eğitim seviyesindeki karo frekanslarına göre rastgele atandı.";
+}
+function mhStep(verbose) {
+  const g = MH.g; let r1, c1, r2, c2, tries = 0;
+  do { r1 = Math.random() * GR | 0; c1 = Math.random() * GC | 0; r2 = Math.random() * GR | 0; c2 = Math.random() * GC | 0; tries++; } while (g[r1][c1] === g[r2][c2] && tries < 200);
+  if (g[r1][c1] === g[r2][c2]) return;
+  const a = g[r1][c1], b = g[r2][c2];
+  g[r1][c1] = b; g[r2][c2] = a;
+  const s2 = score(g), d = s2 - MH.s, pAcc = Math.min(1, Math.exp(d)), ok = d >= 0 || Math.random() < pAcc;
+  if (ok) { MH.s = s2; MH.acc++; } else { g[r1][c1] = a; g[r2][c2] = b; MH.rej++; }
+  MH.it++; MH.swap = [[r1, c1], [r2, c2]];
+  if (MH.s > MH.best + 1e-9) { MH.best = MH.s; MH.sinceBest = 0; } else MH.sinceBest++;
+  if (MH.it % 5 === 0 || verbose) MH.hist.push([MH.it, MH.s]);
+  if (verbose) $("mhLast").innerHTML = `Öneri: (${r1 + 1},${c1 + 1}) <b>${a}</b> ↔ (${r2 + 1},${c2 + 1}) <b>${b}</b> · Δ log-olabilirlik = <b>${d.toFixed(2)}</b> · kabul olasılığı min(1, e<sup>Δ</sup>) = <b>${fmt(pAcc)}</b> → <b style="color:${ok ? "var(--blue-d)" : "var(--pink)"}">${ok ? "KABUL" : "RET"}</b>`;
+}
+function mhSummary(txt) { $("mhLast").innerHTML = txt; }
+function renderMH() {
+  const marks = new Set(MH.swap ? MH.swap.map(([r, c]) => r + "," + c) : []);
+  renderLvl($("mhLvl"), MH.g, marks, "swp");
+  $("mhStats").innerHTML = `<span>Öneri: <b>${MH.it}</b></span><span>Kabul: <b>${MH.acc}</b></span><span>Ret: <b>${MH.rej}</b></span><span>Log-olabilirlik: <b>${MH.s.toFixed(1)}</b></span><span>Eğitim parçası: <b>${REF.toFixed(1)}</b></span>`;
+  drawMH();
+}
+function drawMH() {
+  const cv = $("mhChart"); if (!cv.offsetParent) return;
+  const ctx = cv.getContext("2d"), Wd = cv.width, Ht = cv.height, L = 52, R = 12, T = 12, B = 28;
+  ctx.clearRect(0, 0, Wd, Ht);
+  const ys = MH.hist.map((p) => p[1]).concat([REF]);
+  let lo = Math.min(...ys), hi = Math.max(...ys); if (hi - lo < 1) { hi += 1; lo -= 1; } const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+  const maxI = Math.max(100, MH.it);
+  const x = (i) => L + i / maxI * (Wd - L - R), y = (v) => T + (hi - v) / (hi - lo) * (Ht - T - B);
+  ctx.font = "12px 'Open Sans', sans-serif"; ctx.fillStyle = "#8b97a5"; ctx.strokeStyle = "#e3e8ee"; ctx.lineWidth = 1;
+  for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(Wd - R, y(v)); ctx.stroke(); ctx.fillText(v.toFixed(0), 4, y(v) + 4); }
+  ctx.fillText("0", L - 3, Ht - 8); ctx.fillText(`${maxI} öneri`, Wd - R - 70, Ht - 8);
+  ctx.strokeStyle = "#FF6F20"; ctx.setLineDash([6, 4]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, y(REF)); ctx.lineTo(Wd - R, y(REF)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = "#447099"; ctx.lineWidth = 2; ctx.beginPath();
+  MH.hist.forEach(([i, v], k) => (k ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)))); ctx.stroke();
+}
+function lgammaInt(n) { let s = 0; for (let i = 2; i <= n; i++) s += Math.log10(i); return s; }
+function renderCount() {
+  const cnt = {}; TILES.forEach((t) => (cnt[t] = 0)); MH.g.forEach((r) => r.forEach((t) => cnt[t]++));
+  const n = GR * GC, lg = lgammaInt(n) - TILES.reduce((s, t) => s + lgammaInt(cnt[t]), 0);
+  const parts = TILES.filter((t) => cnt[t]).map((t) => `${cnt[t]}!`).join(" · ");
+  $("mhCount").innerHTML = `Bu seviyedeki karo sayılarıyla (${TILES.map((t) => `${t}: ${cnt[t]}`).join(", ")}) olası dizilim sayısı ${fr(`${n}!`, parts)} ≈ <b>10<sup>${lg.toFixed(1)}</sup></b>. Ders metnindeki 4×4 örnekte bile 16!/(9!·2!·2!·1!·1!·1!) = 14.414.400 dizilim vardı; hepsini karşılaştırmak imkânsız, bu yüzden MCMC ile yinelemeli iyileştirme yapılır.`;
+}
+$("mh1").addEventListener("click", () => { if (MH.running) return; mhStep(true); renderMH(); });
+$("mh100").addEventListener("click", () => {
+  if (MH.running) return; const a0 = MH.acc;
+  for (let i = 0; i < 100; i++) mhStep(false); MH.hist.push([MH.it, MH.s]);
+  mhSummary(`100 öneri: ${MH.acc - a0} kabul, ${100 - (MH.acc - a0)} ret.`); renderMH();
+});
+$("mhRun").addEventListener("click", () => {
+  if (MH.running) { MH.running = false; return; }
+  MH.running = true; $("mhRun").textContent = "Durdur"; MH.sinceBest = 0;
+  const tick = () => {
+    if (!MH.running) { $("mhRun").textContent = "Durana kadar çalıştır"; renderMH(); return; }
+    for (let i = 0; i < 150; i++) { mhStep(false); if (MH.sinceBest >= 3000 || MH.it >= 30000) break; }
+    MH.hist.push([MH.it, MH.s]); MH.swap = null; renderMH();
+    if (MH.sinceBest >= 3000 || MH.it >= 30000) {
+      MH.running = false; $("mhRun").textContent = "Durana kadar çalıştır";
+      mhSummary(`Durdu: ${MH.it >= 30000 ? "en fazla 30.000 öneriye ulaşıldı" : "3000 öneri boyunca iyileşme olmadı"}. Son log-olabilirlik ${MH.s.toFixed(1)} (eğitim parçası ${REF.toFixed(1)}).`);
+      return;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+});
+$("mhNew").addEventListener("click", () => { MH.running = false; mhNew(); renderMH(); renderCount(); });
+
+/* ---------- training input ---------- */
+function rebuild() {
+  const raw = $("train").value.toUpperCase().replace(/[^A-E]/g, "");
+  if (raw.length < 4) { $("trainMsg").textContent = "En az 4 sütun (A–E) girin."; return; }
+  TR = { seq: raw, cyclic: $("cyclic").checked };
+  M1 = bigram(TR.seq, TR.cyclic);
+  $("trainMsg").textContent = raw === "ABCADDDBCADDBCCECCDE" && TR.cyclic ? "Varsayılan dizi (Hafta 06-03, Ödev 2): döngüsel sayımlar Tablo 6.5 ile aynı." : `${raw.length} sütun okundu.`;
+  resetWalk(); $("stepNote").innerHTML = "&nbsp;"; renderWalk(); renderPath();
+  O.sel = null; renderCtx(); $("genSeq").innerHTML = ""; $("genStats").innerHTML = ""; $("cmpTbl").innerHTML = "";
+}
+$("train").addEventListener("change", rebuild);
+$("cyclic").addEventListener("change", rebuild);
+
+/* ---------- init ---------- */
+rebuild();
+renderLvl($("trainLvl"), LVL.map((r) => r.split("")), null);
+regen2d();
+mhNew(); renderMH(); renderCount();
+</script>
+</body>
+</html>

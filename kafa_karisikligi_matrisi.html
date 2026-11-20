@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kafa Karışıklığı Matrisi</title>
+<style>
+:root{
+  --bg:#f5f8f6; --surface:#ffffff; --surface2:#eef4f0; --ink:#13241c; --muted:#4f6559; --line:#d5e2da;
+  --accent:#0f8a5f; --accent-rgb:15,138,95; --accent-soft:#d8f0e4; --warn:#b45309; --warn-soft:#fdf0dc; --bad:#c2410c; --bad-rgb:194,65,12; --bad-soft:#fde4d8;
+  --good:#15803d; --code:#0d1f17; --codeink:#e2f0ea; --shadow:0 1px 2px rgba(19,36,28,.06),0 4px 16px rgba(19,36,28,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-rgb:52,211,153; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-rgb:251,146,60; --bad-soft:#3d2216;
+  --good:#4ade80; --code:#06110c; --shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-rgb:52,211,153; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-rgb:251,146,60; --bad-soft:#3d2216;
+  --good:#4ade80; --code:#06110c; --shadow:none;}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:32px 16px 64px;position:relative}
+.kicker{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(2rem,5vw,2.8rem);line-height:1.15;margin:.3em 0}
+h2{font-size:1.45rem;margin:0 0 .5em;line-height:1.3}
+h3{font-size:1.08rem;margin:1.2em 0 .4em}
+p{margin:.5em 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:62ch}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;margin:20px 0;box-shadow:var(--shadow)}
+.secnum{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.9rem;margin-right:8px;vertical-align:2px}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.note{border-radius:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--line)}
+.note.warn{background:var(--warn-soft);border-color:transparent}
+.note.bad{background:var(--bad-soft);border-color:transparent}
+.note.good{background:var(--accent-soft);border-color:transparent}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.btn{font:inherit;font-size:.9rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.themebtn{position:absolute;top:12px;right:16px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex-wrap:wrap;margin:6px 0}
+.seg button{font:inherit;font-size:.88rem;border:0;background:var(--surface);color:var(--ink);padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#06110c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#06110c}}
+.tablewrap{overflow-x:auto;margin:10px 0}
+table{border-collapse:separate;border-spacing:3px;font-variant-numeric:tabular-nums}
+table.plain{border-collapse:collapse;width:100%}
+table.plain th,table.plain td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;font-size:.93rem}
+table.plain th{color:var(--muted);font-weight:600;font-size:.85rem}
+.cm th{font-size:.82rem;color:var(--muted);font-weight:600;padding:4px 6px}
+.cm th.rowh{text-align:right;white-space:nowrap}
+.cm td{min-width:70px;height:54px;text-align:center;border-radius:8px;font-weight:700;font-size:1.05rem;cursor:pointer;border:2px solid transparent;transition:background .2s}
+.cm td.tot{background:transparent;color:var(--muted);font-weight:600;cursor:default;font-size:.92rem}
+.cm td.sel{border-color:var(--ink)}
+.cm td:focus{outline:2px solid var(--accent);outline-offset:1px}
+.axis{font-size:.8rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-top:6px}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.explain{min-height:3.2em}
+.result{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{flex:1 1 140px;background:var(--surface2);border-radius:10px;padding:12px 14px}
+.stat .v{font-size:1.55rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .l{font-size:.83rem;color:var(--muted)}
+.bin{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;max-width:520px}
+.bin .h{font-size:.82rem;color:var(--muted);font-weight:600;text-align:center;align-self:end}
+.bin .rh{font-size:.82rem;color:var(--muted);font-weight:600;text-align:right;align-self:center;padding-right:4px}
+.bin .c{border-radius:10px;padding:10px;text-align:center}
+.bin .c b{display:block;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.bin .c span{font-size:.8rem}
+.c.tn,.c.tp{background:var(--accent-soft)} .c.fp,.c.fn{background:var(--bad-soft)}
+.rates{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}
+.rate{background:var(--surface2);border-radius:10px;padding:10px 12px}
+.rate .k{font-weight:700;color:var(--accent)} .rate.err .k{color:var(--bad)}
+.rate .f{font-family:"Cambria Math",Cambria,serif;font-size:.95rem}
+.rate .v{float:right;font-weight:700;font-variant-numeric:tabular-nums}
+.rate .d{font-size:.82rem;color:var(--muted);clear:both}
+.ctrl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;margin:10px 0}
+.ctrl label{font-weight:600}
+.ctrl output{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
+.ctrl input{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+svg text{fill:var(--muted);font-size:11px;font-family:inherit}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px}
+.pc{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.88rem}
+.pc .nm{font-weight:700;font-size:.98rem}
+.pc .row{display:flex;justify-content:space-between}
+.pc .row span:last-child{font-weight:600;font-variant-numeric:tabular-nums}
+.pc .btns{display:flex;gap:6px;margin-top:8px}
+.pc .btns button{flex:1;font:inherit;font-size:.85rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:5px;cursor:pointer}
+.pc .btns button[aria-pressed="true"].cheat{background:var(--bad);border-color:var(--bad);color:#fff}
+.pc .btns button[aria-pressed="true"].fair{background:var(--accent);border-color:var(--accent);color:#fff}
+.pc.revealed.right{border-color:var(--accent)} .pc.revealed.wrong{border-color:var(--bad)}
+.pc .truth{margin-top:6px;font-size:.82rem;font-weight:600}
+pre{background:var(--code);color:var(--codeink);border-radius:10px;padding:14px;overflow-x:auto;font:13px/1.55 ui-monospace,"Cascadia Code",Consolas,"Courier New",monospace;margin:10px 0}
+pre .c{color:#7fa592} pre .s{color:#fbbf24} pre .k{color:#34d399} pre .n{color:#a3e635}
+.quiz .q{margin:16px 0;padding-top:12px;border-top:1px solid var(--line)}
+.quiz .q:first-child{border-top:0;padding-top:0}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opts button{font:inherit;text-align:left;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer}
+.opts button:hover{border-color:var(--accent)}
+.opts button.ok{background:var(--accent-soft);border-color:var(--accent)}
+.opts button.no{background:var(--bad-soft);border-color:var(--bad)}
+.fb{margin-top:8px;font-size:.95rem}
+footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:28px}
+@media (max-width:560px){section{padding:18px}.cm td{min-width:52px;height:46px;font-size:.95rem}.cm th{font-size:.72rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<button class="btn themebtn" id="themeBtn" aria-label="Temayı değiştir">◐ Tema</button>
+
+<header>
+  <div class="kicker">Hatanın Ölçülmesi · Sınıflandırma</div>
+  <h1>Kafa Karışıklığı Matrisi</h1>
+  <p class="lead">Bir sınıflandırıcının performansını özetleyen kare tablo. Modelin ne kadar hata yaptığını değil, <em>hangi sınıfı hangisiyle karıştırdığını</em> gösterir. Örnekler dijital oyunlardan.</p>
+</header>
+
+<section id="nedir">
+  <h2><span class="secnum">1</span>Nedir?</h2>
+  <div class="grid2">
+    <div>
+      <p>Kafa karışıklığı matrisi (confusion matrix), problemdeki <strong>sınıf sayısı kadar satır ve sütun</strong> içeren kare bir matristir.</p>
+      <ul>
+        <li><strong>Satırlar:</strong> gerçek sınıf (y)</li>
+        <li><strong>Sütunlar:</strong> tahmin edilen sınıf (ŷ)</li>
+        <li><strong>Ana köşegen:</strong> doğru sınıflandırılan örnek sayıları</li>
+        <li><strong>Köşegen dışı:</strong> gerçekte bir sınıfa ait olup başka bir sınıfa atanan örnekler, yani hatalar</li>
+      </ul>
+    </div>
+    <div class="note">
+      <strong>Sunum varyasyonları</strong>
+      <ul class="small" style="margin:.4em 0 0;padding-left:1.2em">
+        <li>Her hücreyi toplam örnek sayısına bölerek <strong>normalize</strong> etmek</li>
+        <li>Satır ve sütun <strong>toplamlarını</strong> eklemek</li>
+        <li>Çok sınıflı problemlerde renk kodlamasıyla <strong>ısı haritası</strong> yapmak</li>
+      </ul>
+      <p class="small muted">Dikkat: bazı kütüphaneler ve kaynaklar satır ile sütunu ters kullanır. Bir matrise bakmadan önce eksen başlıklarını okuyun.</p>
+    </div>
+  </div>
+</section>
+
+<section id="cokSinif">
+  <h2><span class="secnum">2</span>Çok sınıflı örnek: oyuncu tipini tahmin etmek</h2>
+  <p>Bir çevrimiçi RPG, ilk 10 saatlik oyun telemetrisinden (keşfedilen alan, tamamlanan görev, sohbet mesajı, PvP öldürme sayısı) oyuncuyu Bartle'ın dört oyuncu tipinden birine atayan bir model kullanıyor. Test kümesinde 220 oyuncu var.</p>
+  <p class="small muted">Sayılar öğretim amaçlı hazırlanmış örnek verilerdir.</p>
+  <div>
+    <span class="small muted">Gösterim:</span>
+    <div class="seg" role="group" aria-label="Matris gösterimi" id="viewSeg">
+      <button data-v="count" aria-pressed="true">Sayılar</button>
+      <button data-v="row" aria-pressed="false">Satıra göre % (duyarlılık)</button>
+      <button data-v="col" aria-pressed="false">Sütuna göre % (kesinlik)</button>
+      <button data-v="all" aria-pressed="false">Toplama göre %</button>
+    </div>
+  </div>
+  <div class="axis" style="margin-top:10px">Tahmin edilen tip (ŷ) →</div>
+  <div class="tablewrap"><table class="cm" id="cm4" aria-label="Oyuncu tipi kafa karışıklığı matrisi"></table></div>
+  <div class="axis">↑ Gerçek tip (y): satırlar</div>
+  <div class="legend"><span><span class="sw" style="background:rgba(var(--accent-rgb),.6)"></span>köşegen: doğru</span><span><span class="sw" style="background:rgba(var(--bad-rgb),.6)"></span>köşegen dışı: hata (koyuluk = sayı)</span></div>
+  <div class="note explain" id="cellExplain" aria-live="polite" style="margin-top:12px">Bir hücreye tıklayın; ne anlama geldiği burada açıklanacak.</div>
+  <div class="result">
+    <div class="stat"><div class="v">154 / 220</div><div class="l">köşegen toplamı (doğru)</div></div>
+    <div class="stat"><div class="v">0,700</div><div class="l">doğruluk</div></div>
+    <div class="stat"><div class="v">0,300</div><div class="l">hata oranı</div></div>
+  </div>
+  <h3>Matris ne söylüyor?</h3>
+  <ul>
+    <li><strong>Başarıcı ↔ Öldürücü</strong> en çok karıştırılan çift (12 + 14 = 26 oyuncu). İki tip de PvP ve sıralama metriklerinde yüksek; ayırt edici bir özellik eksik olabilir.</li>
+    <li><strong>Kâşif → Sosyalleşen</strong> 9 oyuncu: keşif yaparken çok sohbet eden oyuncular.</li>
+    <li><strong>Öldürücü</strong> en zayıf sınıf: gerçek 42 Öldürücü'nün yalnızca 25'i bulunuyor (duyarlılık ≈ 0,595).</li>
+  </ul>
+  <h3>Sınıf bazında ölçüler</h3>
+  <div class="tablewrap"><table class="plain" id="perClass"></table></div>
+  <p class="small muted">Duyarlılık (recall) = köşegen / satır toplamı · Kesinlik (precision) = köşegen / sütun toplamı.</p>
+</section>
+
+<section id="ikili">
+  <h2><span class="secnum">3</span>İkili örnek: hile tespiti (anti-cheat)</h2>
+  <p>Rekabetçi bir FPS oyununda model her maç kaydı için “hileci” (pozitif) ya da “dürüst” (negatif) kararı veriyor. 100 maçlık test kümesinde 22 hileci, 78 dürüst oyuncu var.</p>
+  <div class="bin" role="table" aria-label="Hile tespiti kafa karışıklığı matrisi">
+    <div></div><div class="h">Tahmin: Dürüst</div><div class="h">Tahmin: Hileci</div>
+    <div class="rh">Gerçek: Dürüst</div>
+    <div class="c tn"><b>75</b><span>TN · doğru negatif</span></div>
+    <div class="c fp"><b>3</b><span>FP · dürüst oyuncu banlandı</span></div>
+    <div class="rh">Gerçek: Hileci</div>
+    <div class="c fn"><b>7</b><span>FN · hileci kaçtı</span></div>
+    <div class="c tp"><b>15</b><span>TP · hileci yakalandı</span></div>
+  </div>
+  <p style="margin-top:12px">100 tahminde 10 hata var: hata oranı 0,10, doğruluk %90. Ama veri dengesiz (22'ye 78). Matrisi satır ve sütun bazında okumak gerekir:</p>
+  <h3>Gerçek değerler açısından (satırlar)</h3>
+  <div class="rates">
+    <div class="rate"><span class="k">TPR</span> <span class="v">0,682</span><div class="f">TP / (TP + FN) = 15 / 22</div><div class="d">Hilecilerin yakalanan oranı (duyarlılık)</div></div>
+    <div class="rate err"><span class="k">FNR</span> <span class="v">0,318</span><div class="f">FN / (TP + FN) = 7 / 22</div><div class="d">Kaçan hilecilerin oranı = 1 − TPR</div></div>
+    <div class="rate"><span class="k">TNR</span> <span class="v">0,962</span><div class="f">TN / (TN + FP) = 75 / 78</div><div class="d">Dürüst oyuncuların doğru bırakılan oranı</div></div>
+    <div class="rate err"><span class="k">FPR</span> <span class="v">0,038</span><div class="f">FP / (TN + FP) = 3 / 78</div><div class="d">Haksız banlanan dürüst oyuncu oranı = 1 − TNR</div></div>
+  </div>
+  <h3>Tahminler açısından (sütunlar)</h3>
+  <div class="rates">
+    <div class="rate"><span class="k">PPV</span> <span class="v">0,833</span><div class="f">TP / (TP + FP) = 15 / 18</div><div class="d">“Hileci” kararlarının doğru olan oranı (kesinlik)</div></div>
+    <div class="rate err"><span class="k">FDR</span> <span class="v">0,167</span><div class="f">FP / (TP + FP) = 3 / 18</div><div class="d">Yanlış keşif oranı = 1 − PPV</div></div>
+    <div class="rate"><span class="k">NPV</span> <span class="v">0,915</span><div class="f">TN / (TN + FN) = 75 / 82</div><div class="d">“Dürüst” kararlarının doğru olan oranı</div></div>
+    <div class="rate err"><span class="k">FOR</span> <span class="v">0,085</span><div class="f">FN / (TN + FN) = 7 / 82</div><div class="d">Yanlış atlama oranı = 1 − NPV</div></div>
+  </div>
+  <div class="note warn" style="margin-top:14px"><strong>%90 doğruluk yanıltıcı:</strong> Dürüst oyuncularda başarı %96,2 iken hilecilerde yalnızca %68,2. Her 3 hileciden 1'i kaçıyor. Her zaman hem TPR'ye hem TNR'ye bakın.</div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="note bad"><strong>FP'nin bedeli:</strong> Haksız ban; oyuncu kaybı, destek talepleri, topluluk tepkisi.</div>
+    <div class="note bad"><strong>FN'nin bedeli:</strong> Hileci oyunda kalır; dürüst oyuncuların maç deneyimi bozulur.</div>
+  </div>
+</section>
+
+<section id="esik">
+  <h2><span class="secnum">4</span>Eşik değeri matrisi nasıl değiştirir?</h2>
+  <p>Model aslında her oyuncuya 0 ile 1 arasında bir <strong>hile skoru</strong> veriyor. Skor eşiğin üzerindeyse “hileci” deniyor. Eşiği değiştirerek dört hücrenin nasıl yer değiştirdiğini izleyin. Örnekte 200 dürüst ve 50 hileci oyuncu var.</p>
+  <svg id="hist" viewBox="0 0 640 210" width="100%" role="img" aria-label="Dürüst ve hileci oyuncuların skor dağılımı ve eşik çizgisi"></svg>
+  <div class="legend"><span><span class="sw" style="background:rgba(var(--accent-rgb),.7)"></span>dürüst oyuncular</span><span><span class="sw" style="background:rgba(var(--bad-rgb),.7)"></span>hileciler</span></div>
+  <div class="ctrl"><label for="thr">Eşik değeri</label><output id="thrOut"></output><input type="range" id="thr" min="0.05" max="0.95" step="0.01" value="0.50"></div>
+  <div class="grid2">
+    <div class="bin" aria-live="polite">
+      <div></div><div class="h">Tahmin: Dürüst</div><div class="h">Tahmin: Hileci</div>
+      <div class="rh">Dürüst</div><div class="c tn"><b id="sTN"></b><span>TN</span></div><div class="c fp"><b id="sFP"></b><span>FP</span></div>
+      <div class="rh">Hileci</div><div class="c fn"><b id="sFN"></b><span>FN</span></div><div class="c tp"><b id="sTP"></b><span>TP</span></div>
+    </div>
+    <div class="result" style="margin-top:0">
+      <div class="stat"><div class="v" id="sTPR"></div><div class="l">TPR (yakalanan hileci)</div></div>
+      <div class="stat"><div class="v" id="sFPR"></div><div class="l">FPR (haksız ban)</div></div>
+      <div class="stat"><div class="v" id="sPPV"></div><div class="l">PPV (ban kararlarının doğruluğu)</div></div>
+      <div class="stat"><div class="v" id="sACC"></div><div class="l">doğruluk</div></div>
+    </div>
+  </div>
+  <div class="note" id="thrNote" style="margin-top:12px" aria-live="polite"></div>
+  <p class="small muted">Tüm eşikler için (FPR, TPR) çiftleri çizildiğinde ROC eğrisi elde edilir.</p>
+</section>
+
+<section id="sen">
+  <h2><span class="secnum">5</span>Sıra sizde: hakem siz olun</h2>
+  <p>Aşağıda 10 oyuncunun maç istatistikleri var. Her biri için karar verin, sonra “Sonuçları göster”e basın. Sizin kararlarınızdan bir kafa karışıklığı matrisi oluşturulacak.</p>
+  <div class="cards" id="cards"></div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="reveal">Sonuçları göster</button>
+    <button class="btn" id="resetCards">Sıfırla</button>
+  </div>
+  <div id="myResult" aria-live="polite"></div>
+</section>
+
+<section id="kod">
+  <h2><span class="secnum">6</span>Python ile</h2>
+  <p>scikit-learn'de <code>confusion_matrix(y_gercek, y_tahmin)</code> satırlara gerçek, sütunlara tahmin değerlerini koyar. İkili problemde sıralama <strong>[[TN, FP], [FN, TP]]</strong> şeklindedir.</p>
+<pre><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.metrics <span class="k">import</span> confusion_matrix
+
+<span class="c"># 0 = dürüst, 1 = hileci</span>
+y_gercek = np.array([<span class="n">0</span>]*<span class="n">78</span> + [<span class="n">1</span>]*<span class="n">22</span>)
+y_tahmin = np.array([<span class="n">0</span>]*<span class="n">75</span> + [<span class="n">1</span>]*<span class="n">3</span> + [<span class="n">0</span>]*<span class="n">7</span> + [<span class="n">1</span>]*<span class="n">15</span>)
+
+cm = confusion_matrix(y_gercek, y_tahmin)
+print(cm)
+<span class="c"># [[75  3]</span>
+<span class="c">#  [ 7 15]]</span>
+
+tn, fp, fn, tp = cm.ravel()
+print(<span class="s">"TPR ="</span>, round(tp / (tp + fn), <span class="n">3</span>))   <span class="c"># 0.682</span>
+print(<span class="s">"TNR ="</span>, round(tn / (tn + fp), <span class="n">3</span>))   <span class="c"># 0.962</span></pre>
+  <p class="small muted">Isı haritası için: <code>ConfusionMatrixDisplay(cm).plot()</code>; satır bazında normalize etmek için <code>confusion_matrix(..., normalize="true")</code>.</p>
+</section>
+
+<section id="test" class="quiz">
+  <h2><span class="secnum">7</span>Kendinizi test edin</h2>
+  <div id="quiz"></div>
+</section>
+
+<section id="ozet">
+  <h2><span class="secnum">8</span>Özet</h2>
+  <ul>
+    <li>Kafa karışıklığı matrisi K sınıflı bir problemde K × K boyutludur; satırlar gerçek, sütunlar tahmin edilen sınıflardır.</li>
+    <li>Köşegen doğruları, köşegen dışı hücreler hangi sınıfın hangisiyle karıştırıldığını gösterir.</li>
+    <li>Hata oranı tek bir sayıdır; matris ise hatanın <em>türünü</em> gösterir.</li>
+    <li>İkili problemde satırlardan TPR/FNR ve TNR/FPR, sütunlardan PPV/FDR ve NPV/FOR elde edilir.</li>
+    <li>Eşik değeri değiştikçe FP ile FN arasında takas olur; doğru eşik, hatanın bedeline bağlıdır.</li>
+  </ul>
+</section>
+
+<footer>Kaynak: “Hatanın Ölçülmesi: Öğrenme Modellerinin Doğrulanması” bölümü · Kafa Karışıklığı Matrisi, Tablo 3.1 ve 3.2. Oyun örnekleri öğretim amaçlıdır.</footer>
+</div>
+
+<script>
+(function(){
+  const root=document.documentElement;
+  let saved=null; try{saved=localStorage.getItem('kkm-theme');}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  document.getElementById('themeBtn').addEventListener('click',()=>{
+    const isDark=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);
+    const next=isDark?'light':'dark'; root.setAttribute('data-theme',next);
+    try{localStorage.setItem('kkm-theme',next);}catch(e){}
+  });
+  const f=(x,d=3)=>x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const pc=(x,d=1)=>'%'+(100*x).toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+  // ---------- 2: 4x4 ----------
+  const C=['Kâşif','Başarıcı','Sosyalleşen','Öldürücü'];
+  const M=[[42,6,9,3],[5,51,2,12],[8,3,36,1],[1,14,2,25]];
+  const R=M.map(r=>r.reduce((a,b)=>a+b,0));
+  const K=C.map((_,j)=>M.reduce((a,r)=>a+r[j],0));
+  const T=R.reduce((a,b)=>a+b,0);
+  let view='count', sel=null;
+  const tbl=document.getElementById('cm4');
+  const maxOff=Math.max(...M.flatMap((r,i)=>r.filter((_,j)=>j!==i)));
+  function cellVal(i,j){
+    const v=M[i][j];
+    if(view==='row') return pc(v/R[i],0);
+    if(view==='col') return pc(v/K[j],0);
+    if(view==='all') return pc(v/T,1);
+    return String(v);
+  }
+  function renderCM(){
+    let h='<thead><tr><th></th>'+C.map(c=>`<th scope="col">${c}</th>`).join('')+'<th scope="col">Toplam</th></tr></thead><tbody>';
+    M.forEach((r,i)=>{
+      h+=`<tr><th class="rowh" scope="row">${C[i]}</th>`;
+      r.forEach((v,j)=>{
+        const diag=i===j;
+        const a=diag?0.25+0.5*(v/60):0.08+0.62*(v/maxOff);
+        const bg=diag?`rgba(var(--accent-rgb),${a.toFixed(2)})`:`rgba(var(--bad-rgb),${a.toFixed(2)})`;
+        const isSel=sel&&sel[0]===i&&sel[1]===j;
+        h+=`<td tabindex="0" data-i="${i}" data-j="${j}" class="${isSel?'sel':''}" style="background:${bg}" aria-label="Gerçek ${C[i]}, tahmin ${C[j]}: ${v}">${cellVal(i,j)}</td>`;
+      });
+      h+=`<td class="tot">${R[i]}</td></tr>`;
+    });
+    h+='<tr><th class="rowh" scope="row">Toplam</th>'+K.map(k=>`<td class="tot">${k}</td>`).join('')+`<td class="tot"><strong>${T}</strong></td></tr></tbody>`;
+    tbl.innerHTML=h;
+  }
+  function explain(i,j){
+    sel=[i,j]; renderCM();
+    const v=M[i][j], e=document.getElementById('cellExplain');
+    if(i===j){
+      e.className='note good explain';
+      e.innerHTML=`<strong>Köşegen hücresi:</strong> Gerçekte <strong>${C[i]}</strong> olan ${R[i]} oyuncunun <strong>${v}</strong> tanesi doğru tahmin edildi. Duyarlılık = ${v}/${R[i]} = ${f(v/R[i])}. Model “${C[j]}” dediği ${K[j]} oyuncunun ${v} tanesinde haklı: kesinlik = ${v}/${K[j]} = ${f(v/K[j])}.`;
+    }else{
+      e.className='note bad explain';
+      e.innerHTML=`<strong>Hata hücresi:</strong> Gerçekte <strong>${C[i]}</strong> olan <strong>${v}</strong> oyuncu yanlışlıkla <strong>${C[j]}</strong> olarak sınıflandırıldı. Bu sayı, ${C[i]} satırında ${pc(v/R[i])}, “${C[j]}” tahminleri içinde ${pc(v/K[j])} paya sahip.`;
+    }
+  }
+  tbl.addEventListener('click',e=>{const td=e.target.closest('td[data-i]'); if(td) explain(+td.dataset.i,+td.dataset.j);});
+  tbl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const td=e.target.closest('td[data-i]'); if(td){e.preventDefault();explain(+td.dataset.i,+td.dataset.j);}}});
+  document.querySelectorAll('#viewSeg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#viewSeg button').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true'); view=b.dataset.v; renderCM();
+  }));
+  renderCM();
+  let pcH='<thead><tr><th>Sınıf</th><th>Gerçek (satır)</th><th>Tahmin (sütun)</th><th>Doğru</th><th>Duyarlılık</th><th>Kesinlik</th></tr></thead><tbody>';
+  C.forEach((c,i)=>{pcH+=`<tr><td><strong>${c}</strong></td><td>${R[i]}</td><td>${K[i]}</td><td>${M[i][i]}</td><td>${f(M[i][i]/R[i])}</td><td>${f(M[i][i]/K[i])}</td></tr>`;});
+  document.getElementById('perClass').innerHTML=pcH+'</tbody>';
+
+  // ---------- 4: eşik ----------
+  let seed=7; const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
+  const gauss=(m,s)=>{let u=0,v=0;while(u===0)u=rnd();v=rnd();return m+s*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+  const clamp=x=>Math.min(0.995,Math.max(0.005,x));
+  const fair=Array.from({length:200},()=>clamp(gauss(0.30,0.13)));
+  const cheat=Array.from({length:50},()=>clamp(gauss(0.68,0.14)));
+  const svg=document.getElementById('hist'), W=640,H=210,pad=28,bins=20;
+  const hf=Array(bins).fill(0), hc=Array(bins).fill(0);
+  fair.forEach(s=>hf[Math.min(bins-1,Math.floor(s*bins))]++); cheat.forEach(s=>hc[Math.min(bins-1,Math.floor(s*bins))]++);
+  const ymax=Math.max(...hf,...hc);
+  const bw=(W-2*pad)/bins, sy=(H-2*pad)/ymax;
+  let sv='';
+  for(let b=0;b<bins;b++){
+    const x=pad+b*bw;
+    sv+=`<rect x="${x+1}" y="${H-pad-hf[b]*sy}" width="${bw/2-1}" height="${hf[b]*sy}" rx="2" style="fill:rgba(var(--accent-rgb),.7)"/>`;
+    sv+=`<rect x="${x+bw/2}" y="${H-pad-hc[b]*sy}" width="${bw/2-1}" height="${hc[b]*sy}" rx="2" style="fill:rgba(var(--bad-rgb),.7)"/>`;
+  }
+  sv+=`<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="currentColor" opacity=".3"/>`;
+  for(let t=0;t<=10;t+=2){const x=pad+t/10*(W-2*pad); sv+=`<text x="${x}" y="${H-pad+16}" text-anchor="middle">${(t/10).toLocaleString('tr-TR')}</text>`;}
+  sv+=`<text x="${W/2}" y="${H-2}" text-anchor="middle">hile skoru</text>`;
+  sv+=`<line id="thrLine" y1="${pad-10}" y2="${H-pad}" style="stroke:var(--ink)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  sv+=`<text id="thrLbl" y="${pad-14}" text-anchor="middle" style="fill:var(--ink);font-weight:700">eşik</text>`;
+  svg.innerHTML=sv; svg.style.color='var(--ink)';
+  const thr=document.getElementById('thr');
+  function upd(){
+    const t=+thr.value;
+    document.getElementById('thrOut').textContent=t.toLocaleString('tr-TR',{minimumFractionDigits:2});
+    const x=pad+t*(W-2*pad);
+    ['thrLine'].forEach(id=>{const l=document.getElementById(id);l.setAttribute('x1',x);l.setAttribute('x2',x);});
+    document.getElementById('thrLbl').setAttribute('x',x);
+    const TN=fair.filter(s=>s<t).length, FP=200-TN, TP=cheat.filter(s=>s>=t).length, FN=50-TP;
+    const s=(id,v)=>document.getElementById(id).textContent=v;
+    s('sTN',TN);s('sFP',FP);s('sFN',FN);s('sTP',TP);
+    s('sTPR',f(TP/50));s('sFPR',f(FP/200));s('sPPV',TP+FP?f(TP/(TP+FP)):'—');s('sACC',f((TP+TN)/250));
+    const n=document.getElementById('thrNote');
+    if(t<0.4){n.className='note bad';n.innerHTML=`<strong>Düşük eşik:</strong> Hilecilerin ${TP}/50'si yakalanıyor ama ${FP} dürüst oyuncu haksız yere banlanıyor. Topluluk bunu affetmeyebilir.`;}
+    else if(t>0.62){n.className='note warn';n.innerHTML=`<strong>Yüksek eşik:</strong> Yalnızca ${FP} haksız ban var ama ${FN} hileci oyunda kalıyor. Dürüst oyuncuların maç deneyimi bozulur.`;}
+    else{n.className='note good';n.innerHTML=`<strong>Orta bölge:</strong> ${FP} haksız ban ve ${FN} kaçan hileci. Hangi eşiğin “doğru” olduğu FP ile FN'nin oyununuzdaki bedeline bağlıdır.`;}
+  }
+  thr.addEventListener('input',upd); upd();
+
+  // ---------- 5: hakem ----------
+  const P=[
+    {n:'NightOwl',acc:31,hs:22,rt:245,wall:0,t:0},
+    {n:'xX_Sn1per_Xx',acc:68,hs:81,rt:95,wall:7,t:1},
+    {n:'ProGamerTR',acc:49,hs:44,rt:178,wall:1,t:0},
+    {n:'SilentFox',acc:36,hs:29,rt:212,wall:5,t:1},
+    {n:'Kalkan42',acc:27,hs:18,rt:260,wall:0,t:0},
+    {n:'AimBotti',acc:72,hs:88,rt:88,wall:9,t:1},
+    {n:'TurnuvaŞampiyonu',acc:55,hs:52,rt:150,wall:1,t:0},
+    {n:'GhostWalker',acc:41,hs:35,rt:195,wall:6,t:1},
+    {n:'Mavi_Ejder',acc:33,hs:25,rt:230,wall:2,t:0},
+    {n:'ZeroRecoil',acc:61,hs:70,rt:120,wall:3,t:1},
+  ];
+  const choice=Array(P.length).fill(null); let revealed=false;
+  const cards=document.getElementById('cards');
+  function renderCards(){
+    cards.innerHTML='';
+    P.forEach((p,i)=>{
+      const d=document.createElement('div');
+      const right=choice[i]===p.t;
+      d.className='pc'+(revealed?(' revealed '+(right?'right':'wrong')):'');
+      d.innerHTML=`<div class="nm">${p.n}</div>
+        <div class="row"><span>İsabet oranı</span><span>%${p.acc}</span></div>
+        <div class="row"><span>Kafa vuruşu oranı</span><span>%${p.hs}</span></div>
+        <div class="row"><span>Ort. tepki süresi</span><span>${p.rt} ms</span></div>
+        <div class="row"><span>Duvar arkası takip</span><span>${p.wall}</span></div>
+        <div class="btns"><button class="fair" aria-pressed="${choice[i]===0}" data-i="${i}" data-v="0">Dürüst</button><button class="cheat" aria-pressed="${choice[i]===1}" data-i="${i}" data-v="1">Hileci</button></div>
+        ${revealed?`<div class="truth" style="color:${right?'var(--accent)':'var(--bad)'}">Gerçek: ${p.t?'Hileci':'Dürüst'}${choice[i]===null?' (karar verilmedi)':''}</div>`:''}`;
+      cards.appendChild(d);
+    });
+  }
+  cards.addEventListener('click',e=>{const b=e.target.closest('button[data-i]'); if(!b||revealed) return; choice[+b.dataset.i]=+b.dataset.v; renderCards();});
+  document.getElementById('reveal').onclick=()=>{
+    const missing=choice.filter(c=>c===null).length;
+    const out=document.getElementById('myResult');
+    if(missing){out.innerHTML=`<div class="note warn" style="margin-top:12px">${missing} oyuncu için henüz karar vermediniz.</div>`;return;}
+    revealed=true; renderCards();
+    let TN=0,FP=0,FN=0,TP=0;
+    P.forEach((p,i)=>{const c=choice[i]; if(p.t===0&&c===0)TN++; else if(p.t===0)FP++; else if(c===1)TP++; else FN++;});
+    const acc=(TN+TP)/10;
+    out.innerHTML=`<h3>Sizin kafa karışıklığı matrisiniz</h3>
+      <div class="bin"><div></div><div class="h">Kararınız: Dürüst</div><div class="h">Kararınız: Hileci</div>
+      <div class="rh">Gerçek: Dürüst</div><div class="c tn"><b>${TN}</b><span>TN</span></div><div class="c fp"><b>${FP}</b><span>FP</span></div>
+      <div class="rh">Gerçek: Hileci</div><div class="c fn"><b>${FN}</b><span>FN</span></div><div class="c tp"><b>${TP}</b><span>TP</span></div></div>
+      <div class="result"><div class="stat"><div class="v">${f(acc,1)}</div><div class="l">doğruluk</div></div>
+      <div class="stat"><div class="v">${TP}/5</div><div class="l">TPR: yakaladığınız hileci</div></div>
+      <div class="stat"><div class="v">${TN}/5</div><div class="l">TNR: doğru bıraktığınız dürüst oyuncu</div></div></div>
+      <div class="note" style="margin-top:12px">İpucu: Yüksek isabet tek başına hile kanıtı değildir (ProGamerTR, TurnuvaŞampiyonu). Sıradan istatistiklere sahip ama duvar arkasından sık takip eden oyuncular (SilentFox, GhostWalker) ise duvar hilesi kullanıyor olabilir. Tek bir özelliğe bakan bir model hem FP hem FN üretir.</div>`;
+  };
+  document.getElementById('resetCards').onclick=()=>{choice.fill(null);revealed=false;document.getElementById('myResult').innerHTML='';renderCards();};
+  renderCards();
+
+  // ---------- 7: test ----------
+  const Q=[
+    {q:'5 sınıflı bir silah tanıma modeli için kafa karışıklığı matrisi kaç hücreden oluşur (toplamlar hariç)?',o:['5','10','25','32'],a:2,e:'K × K = 5 × 5 = 25 hücre.'},
+    {q:'Oyuncu tipi matrisinde “Öldürücü” satırındaki 14 neyi ifade eder?',o:['14 Başarıcı oyuncu Öldürücü olarak tahmin edildi','Gerçekte Öldürücü olan 14 oyuncu Başarıcı olarak tahmin edildi','14 Öldürücü doğru tahmin edildi','Model 14 kez Öldürücü dedi'],a:1,e:'Satır gerçek sınıfı, sütun tahmini gösterir: gerçek Öldürücü, tahmin Başarıcı.'},
+    {q:'Hile tespitinde FP (yanlış pozitif) neye karşılık gelir?',o:['Kaçan hileci','Yakalanan hileci','Haksız yere banlanan dürüst oyuncu','Doğru bırakılan dürüst oyuncu'],a:2,e:'Pozitif = hileci kararı. Yanlış pozitif: model hileci dedi ama oyuncu dürüst.'},
+    {q:'TN=75, FP=3, FN=7, TP=15 için PPV (kesinlik) kaçtır?',o:['15/22 ≈ 0,682','15/18 ≈ 0,833','75/78 ≈ 0,962','75/82 ≈ 0,915'],a:1,e:'PPV = TP / (TP + FP) = 15 / 18 ≈ 0,833. Sütun bazında bir ölçüdür.'},
+    {q:'Eşik değerini yükseltirseniz genellikle ne olur?',o:['FP azalır, FN artar','FP ve FN birlikte azalır','FP artar, FN azalır','Matris değişmez'],a:0,e:'Daha az oyuncu “hileci” olarak işaretlenir: haksız ban azalır, kaçan hileci artar.'},
+  ];
+  const qz=document.getElementById('quiz');
+  Q.forEach((it,qi)=>{
+    const d=document.createElement('div'); d.className='q';
+    d.innerHTML=`<strong>${qi+1}. ${it.q}</strong><div class="opts"></div><div class="fb" aria-live="polite"></div>`;
+    const opts=d.querySelector('.opts'), fb=d.querySelector('.fb');
+    it.o.forEach((t,oi)=>{const b=document.createElement('button'); b.textContent=t;
+      b.onclick=()=>{opts.querySelectorAll('button').forEach(x=>x.classList.remove('ok','no'));
+        if(oi===it.a){b.classList.add('ok');fb.innerHTML='<strong>Doğru.</strong> '+it.e;} else {b.classList.add('no');fb.innerHTML='<strong>Tekrar deneyin.</strong>';}};
+      opts.appendChild(b);});
+    qz.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>

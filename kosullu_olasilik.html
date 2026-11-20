@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koşullu Olasılık Laboratuvarı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#447099; --blue-d:#2c4f70; --blue-l:#dbe6f0; --blue-xl:#eef3f8;
+  --orange:#FF6F20; --orange-l:#ffe3d3; --pink:#FF3D7F; --pink-l:#ffdbe7;
+  --ink:#1d2733; --ink2:#4a5868; --gray:#8b97a5; --line:#d6dde5; --panel:#f6f8fb; --bg:#ffffff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Open Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:'Roboto Slab',Georgia,serif;margin:0}
+code,.mono{font-family:'Fira Code',ui-monospace,monospace}
+header{background:var(--blue-d);color:#fff;padding:28px 16px 0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+header .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#b9cde0;font-weight:700}
+header h1{font-size:30px;margin:6px 0 8px}
+header p{margin:0 0 18px;color:#dbe6f0;max-width:820px}
+.formula{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:10px 16px;border-radius:6px;margin-bottom:18px;font-family:'Fira Code',monospace;font-size:17px}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.15}
+.frac>span:first-child{border-bottom:2px solid currentColor;padding:0 4px 2px}
+.frac>span:last-child{padding:2px 4px 0}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:transparent;border:0;color:#cfdceb;font:600 15px 'Open Sans',sans-serif;padding:12px 18px;cursor:pointer;border-radius:6px 6px 0 0}
+.tab[aria-selected="true"]{background:#fff;color:var(--blue-d)}
+.tab:focus-visible{outline:3px solid var(--orange);outline-offset:-3px}
+main.wrap{padding-top:26px;padding-bottom:48px}
+section.pane{display:none}
+section.pane.active{display:block}
+.lead{color:var(--ink2);max-width:900px;margin:0 0 20px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px}
+@media (max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:480px){table.mx{font-size:12px;border-spacing:2px}table.mx td,table.mx th{padding:6px 1px}.dice .c{height:44px;font-size:15px}.stat .n{font-size:22px}header h1{font-size:24px}}
+.ctl select,.ctl input{max-width:100%}
+.nt{text-transform:none;letter-spacing:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px}
+.card h3{font-size:17px;margin-bottom:10px;color:var(--blue-d)}
+.label{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--gray)}
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;margin-bottom:14px}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.ctl select,.ctl input[type=text],.ctl input[type=number]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink)}
+.ctl input[type=range]{accent-color:var(--blue);width:160px}
+.ctl .val{font-family:'Fira Code',monospace;font-weight:500;color:var(--blue-d)}
+button.btn{font:600 14px 'Open Sans',sans-serif;border:0;border-radius:5px;padding:8px 14px;cursor:pointer;background:var(--blue);color:#fff}
+button.btn:hover{background:var(--blue-d)}
+button.btn.alt{background:#fff;color:var(--blue-d);border:1px solid var(--blue)}
+button.btn.alt:hover{background:var(--blue-xl)}
+button.btn.or{background:var(--orange)}
+button.btn.or:hover{background:#e25c12}
+button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+
+/* dice grid */
+.dice{display:grid;grid-template-columns:44px repeat(6,minmax(0,1fr));gap:3px;max-width:520px}
+.dice .h{background:var(--blue-d);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;height:44px;border-radius:3px;font-size:14px}
+.dice .c{height:52px;display:flex;align-items:center;justify-content:center;border-radius:3px;font-family:'Fira Code',monospace;font-size:17px;background:#fff;border:1px solid var(--line);color:var(--gray);transition:background .15s}
+.dice .c.A{background:var(--orange-l);border-color:var(--orange);color:var(--ink)}
+.dice .c.B{background:var(--blue-l);border-color:var(--blue);color:var(--ink);font-style:italic}
+.dice .c.AB{background:var(--blue);border-color:var(--blue-d);color:#fff;font-weight:700;font-style:italic}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:13px;color:var(--ink2)}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.stat .n{font-family:'Roboto Slab',serif;font-size:26px;font-weight:700;color:var(--ink)}
+.stat.hl{background:var(--blue);border-color:var(--blue)}
+.stat.hl .n,.stat.hl .label{color:#fff}
+.eq{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px;font-family:'Fira Code',monospace;font-size:16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.eq .res{font-family:'Roboto Slab',serif;font-size:28px;font-weight:700;color:var(--blue-d)}
+.note{font-size:14px;color:var(--ink2);margin-top:10px}
+.note b{color:var(--ink)}
+.callout{border-left:4px solid var(--orange);background:#fff7f2;padding:10px 14px;border-radius:0 6px 6px 0;margin-top:12px;font-size:14px}
+.rows .r{display:grid;grid-template-columns:70px 1fr 64px;gap:8px;align-items:center;margin:5px 0;cursor:pointer;border-radius:4px;padding:2px}
+.rows .r:hover{background:var(--blue-xl)}
+.rows .r.sel{outline:2px solid var(--blue)}
+.bar{height:24px;background:#fff;border:1px solid var(--line);border-radius:3px;position:relative;overflow:hidden}
+.bar>i{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
+.rows .p{font-family:'Fira Code',monospace;font-size:13px;text-align:right}
+canvas{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:6px;display:block}
+
+/* level tab */
+table.mx{border-collapse:separate;border-spacing:3px;font-family:'Fira Code',monospace;font-size:14px;width:100%}
+table.mx th{background:var(--blue-d);color:#fff;font-family:'Open Sans',sans-serif;font-weight:700;padding:6px 4px;border-radius:3px}
+table.mx td{text-align:center;padding:7px 4px;border-radius:3px;background:#fff;border:1px solid var(--line)}
+table.mx td.rowh{font-weight:700;background:var(--blue-xl);cursor:pointer}
+table.mx tr.sel td.rowh{background:var(--orange);color:#fff}
+table.mx td.zero{color:var(--pink);font-weight:500}
+.seq{display:flex;flex-wrap:wrap;gap:4px;min-height:48px;align-items:flex-end}
+.tile{width:36px;height:44px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font:700 18px 'Fira Code',monospace;position:relative}
+.tile.bad::after{content:"";position:absolute;left:-4px;right:-4px;bottom:-7px;height:3px;background:var(--pink);border-radius:2px}
+.tile.new{box-shadow:0 0 0 3px var(--orange)}
+.T-A{background:#2c4f70}.T-B{background:#447099}.T-C{background:#6b93b8}.T-D{background:#FF6F20}.T-E{background:#c2410c}
+.segbar{display:flex;height:46px;border-radius:4px;overflow:hidden;border:1px solid var(--line);position:relative;background:#fff}
+.segbar>div{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:600 13px 'Fira Code',monospace;border-right:2px solid #fff;min-width:0;overflow:hidden;white-space:nowrap}
+.segbar>div:last-child{border-right:0}
+.marker{position:absolute;top:-8px;bottom:-8px;width:3px;background:var(--pink);border-radius:2px;transition:left .25s}
+.kv{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;margin-top:10px}
+.kv b{font-family:'Fira Code',monospace;color:var(--blue-d)}
+.cmp{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+.cmp th,.cmp td{border-bottom:1px solid var(--line);padding:7px 6px;text-align:left}
+.cmp td.num{font-family:'Fira Code',monospace;text-align:right}
+.mt{margin-top:18px}
+.small{font-size:12.5px;color:var(--gray)}
+footer{border-top:1px solid var(--line);padding:16px 0 28px;color:var(--gray);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="kicker">Hafta 06 · PCGML · Etkileşimli araç</div>
+    <h1>Koşullu Olasılık Laboratuvarı</h1>
+    <p>Bir olayın olasılığı, başka bir olayın gerçekleştiği bilindiğinde değişir. Bu araç aynı fikri iki yerde gösterir: iki zarla kombo saldırı kararı ve bir platform oyunu seviyesinin sütun sütun üretilmesi.</p>
+    <div class="formula" aria-label="P(A|B) eşittir P(A kesişim B) bölü P(B)">P(A | B) = <span class="frac"><span>P(A ∩ B)</span><span>P(B)</span></span></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="pane-dice" id="tab-dice">1 · Zar tablosu</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="pane-level" id="tab-level">2 · Seviye üretimi</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+<!-- ======================= DICE ======================= -->
+<section class="pane active" id="pane-dice" role="tabpanel" aria-labelledby="tab-dice">
+  <p class="lead">Ortağınız ilk zarı attı. Kombo saldırının başarılı olması için toplamın bir eşiği geçmesi gerekiyor. Koşul <b>B</b> (ilk zarın değeri) evreni daraltır; yalnızca <b>B</b>’nin içindeki hücreler sayılır.</p>
+  <div class="grid2">
+    <div class="card">
+      <div class="controls">
+        <div class="ctl"><span class="label">Olay A</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono">D<sub>1</sub>+D<sub>2</sub></span>
+            <select id="opA" aria-label="Karşılaştırma"><option value="ge">≥</option><option value="eq">=</option><option value="le">≤</option></select>
+            <input type="number" id="tA" min="2" max="12" value="8" style="width:64px" aria-label="Eşik">
+          </div>
+        </div>
+        <div class="ctl"><span class="label">Koşul B</span>
+          <select id="typeB" aria-label="Koşul türü">
+            <option value="d1eq">D₁ = k</option>
+            <option value="d1ge">D₁ ≥ k</option>
+            <option value="d2eq">D₂ = k</option>
+            <option value="none">Koşul yok</option>
+          </select>
+        </div>
+        <div class="ctl" id="kWrap"><span class="label"><span class="nt">k</span> = <span class="val" id="kVal">4</span></span>
+          <input type="range" id="k" min="1" max="6" value="4" aria-label="k değeri">
+        </div>
+      </div>
+      <div class="dice" id="dice" aria-label="36 zar kombinasyonu"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--orange-l);border-color:var(--orange)"></i>Yalnız A</span>
+        <span><i class="sw" style="background:var(--blue-l);border-color:var(--blue)"></i>Yalnız B</span>
+        <span><i class="sw" style="background:var(--blue);border-color:var(--blue-d)"></i>A ∩ B</span>
+        <span class="small">Satır: D<sub>1</sub> · Sütun: D<sub>2</sub> · Hücre: toplam</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="stats">
+        <div class="stat"><div class="label">|B|</div><div class="n" id="nB">6</div></div>
+        <div class="stat"><div class="label">|A ∩ B|</div><div class="n" id="nAB">3</div></div>
+        <div class="stat"><div class="label">|A| (36’da)</div><div class="n" id="nA">15</div></div>
+      </div>
+      <div class="eq" id="eq"></div>
+      <div class="note" id="cmpNote"></div>
+      <div class="card mt">
+        <h3>Koşullu dağılım: her D<sub>1</sub> değeri için P(A | D<sub>1</sub>)</h3>
+        <div class="rows" id="rows"></div>
+        <div class="small">Bir satıra tıklayınca koşul D₁ = k olarak ayarlanır. Tablo 6.4’ün genelleştirilmiş hâli.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2 mt">
+    <div class="card">
+      <h3>Sayarak tahmin: zarları gerçekten at</h3>
+      <p class="note" style="margin-top:0">Koşullu olasılık, sayımlarla tahmin edilir: B’nin gerçekleştiği atışlardan kaçında A da gerçekleşti? Atış sayısı arttıkça tahmin gerçek değere yaklaşır.</p>
+      <div class="btnrow">
+        <button class="btn" data-roll="10">10 atış</button>
+        <button class="btn" data-roll="100">100 atış</button>
+        <button class="btn" data-roll="1000">1000 atış</button>
+        <button class="btn alt" id="simReset">Sıfırla</button>
+      </div>
+      <div class="kv">
+        <span>Toplam atış: <b id="sN">0</b></span>
+        <span>B gerçekleşti: <b id="sB">0</b></span>
+        <span>A ∩ B: <b id="sAB">0</b></span>
+        <span>Tahmin: <b id="sEst">—</b></span>
+        <span>Gerçek: <b id="sTrue">—</b></span>
+      </div>
+      <div class="small" id="lastRoll" style="margin-top:6px">&nbsp;</div>
+    </div>
+    <div class="card">
+      <h3>Tahminin yakınsaması</h3>
+      <canvas id="simChart" width="560" height="260" aria-label="Tahmin edilen koşullu olasılığın atış sayısına göre grafiği"></canvas>
+      <div class="legend"><span><i class="sw" style="background:var(--blue);border-color:var(--blue)"></i>Sayımdan tahmin</span><span><i class="sw" style="background:var(--orange);border-color:var(--orange)"></i>Gerçek P(A | B)</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= LEVEL ======================= -->
+<section class="pane" id="pane-level" role="tabpanel" aria-labelledby="tab-level">
+  <p class="lead">Seviye, A–E sütunlarından oluşan bir dizi. Eğitim dizisinde her sütunu hangi sütunun takip ettiği sayılır; satırı koşul (önceki sütun) olan tablo <b>P(Col<sub>t</sub> | Col<sub>t−1</sub>)</b> elde edilir. Varsayılan dizi, döngüsel sayıldığında Tablo 6.5’i birebir verir.</p>
+  <div class="grid2">
+    <div class="card">
+      <div class="controls">
+        <div class="ctl" style="flex:1;min-width:220px"><span class="label">Eğitim dizisi (A–E)</span>
+          <input type="text" id="train" value="ABCADDDBCADDBCCECCDE" class="mono" aria-label="Eğitim dizisi">
+        </div>
+        <div class="ctl"><span class="label">Döngüsel</span>
+          <label style="display:flex;gap:6px;align-items:center;height:34px"><input type="checkbox" id="cyclic" checked> son → ilk</label>
+        </div>
+        <div class="ctl"><span class="label">Laplace <span class="nt">α</span> = <span class="val" id="aVal">0</span></span>
+          <input type="range" id="alpha" min="0" max="4" step="1" value="0" aria-label="Alfa">
+        </div>
+      </div>
+      <div class="small" id="trainMsg" style="margin:-6px 0 8px"></div>
+      <table class="mx" id="mx" aria-label="Koşullu olasılık tablosu"></table>
+      <div class="small" style="margin-top:6px">Satır = önceki sütun (koşul) · Count = o koşulun gözlem sayısı · Pembe 0 = eğitimde hiç görülmemiş geçiş. Bir satıra tıklayın.</div>
+      <div class="eq mt" id="rowEq"></div>
+    </div>
+
+    <div class="card">
+      <h3>Sütun sütun üret</h3>
+      <div class="controls">
+        <div class="ctl"><span class="label">Model</span>
+          <select id="mode" aria-label="Model">
+            <option value="cond">Koşullu: P(Col_t | Col_t−1)</option>
+            <option value="uncond">Koşulsuz: P(Col)</option>
+          </select>
+        </div>
+        <div class="ctl"><span class="label">Uzunluk</span>
+          <input type="number" id="len" min="5" max="40" value="20" style="width:70px" aria-label="Seviye uzunluğu">
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="stepBtn">Bir sütun ekle</button>
+        <button class="btn" id="genBtn">Seviyeyi üret</button>
+        <button class="btn alt" id="clrBtn">Temizle</button>
+      </div>
+      <div class="mt">
+        <div class="label" id="segTitle">Örneklenen dağılım</div>
+        <div class="segbar mt" id="segbar" style="margin-top:8px"></div>
+        <div class="small" id="segNote" style="margin-top:8px">&nbsp;</div>
+      </div>
+      <div class="mt">
+        <div class="label">Üretilen seviye</div>
+        <div class="seq mt" id="seq" style="margin-top:8px"></div>
+        <div class="kv" id="seqStats"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2 mt">
+    <div class="card">
+      <h3>Toplu karşılaştırma: 200 seviye</h3>
+      <p class="note" style="margin-top:0">Her model ile 200 seviye üretilir. <b>Görülmemiş ikili</b>: çıktıda yan yana gelen ama eğitim dizisinde hiç yan yana gelmemiş sütun çifti (tuhaf düzen).</p>
+      <button class="btn or" id="batchBtn">200 seviye üret ve karşılaştır</button>
+      <table class="cmp" id="cmpTbl" aria-live="polite"></table>
+    </div>
+    <div class="card">
+      <h3>Ne gözlemlemeli?</h3>
+      <div class="note" id="obs" style="margin-top:0"></div>
+      <div class="callout" id="detNote"></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">Kaynak: Hafta 06-02 “Koşullu Olasılık” (Tablo 6.3–6.5, Denklem 6.1–6.4) ve Hafta 06-03 Ödev 2 eğitim dizisi.</div></footer>
+
+<script>
+"use strict";
+/* ---------------- utilities ---------------- */
+const $ = (id) => document.getElementById(id);
+const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; };
+const red = (n, d) => { const g = gcd(n, d); return [n / g, d / g]; };
+const fr = (n, d) => `<span class="frac"><span>${n}</span><span>${d}</span></span>`;
+const fmt = (x, k = 3) => (Number.isFinite(x) ? x.toFixed(k) : "—");
+
+/* ---------------- tabs ---------------- */
+document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+  document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("active", p.id === t.getAttribute("aria-controls")));
+  if (t.id === "tab-dice") drawChart();
+}));
+
+/* ================= DICE ================= */
+const D = { op: "ge", t: 8, typeB: "d1eq", k: 4 };
+const inA = (a, b) => { const s = a + b; return D.op === "ge" ? s >= D.t : D.op === "le" ? s <= D.t : s === D.t; };
+const inB = (a, b) => D.typeB === "none" ? true : D.typeB === "d1eq" ? a === D.k : D.typeB === "d1ge" ? a >= D.k : b === D.k;
+const opSym = () => ({ ge: "≥", le: "≤", eq: "=" })[D.op];
+const nameA = () => `D₁+D₂ ${opSym()} ${D.t}`;
+const nameB = () => ({ d1eq: `D₁ = ${D.k}`, d1ge: `D₁ ≥ ${D.k}`, d2eq: `D₂ = ${D.k}`, none: "koşul yok" })[D.typeB];
+
+function counts() {
+  let nA = 0, nB = 0, nAB = 0;
+  for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) {
+    const A = inA(a, b), B = inB(a, b);
+    if (A) nA++; if (B) nB++; if (A && B) nAB++;
+  }
+  return { nA, nB, nAB };
+}
+function trueP() { const c = counts(); return c.nB ? c.nAB / c.nB : NaN; }
+
+function renderDice() {
+  const g = $("dice"); g.innerHTML = "";
+  const head = (t) => { const e = document.createElement("div"); e.className = "h"; e.innerHTML = t; g.appendChild(e); };
+  head("D<sub>1</sub>\\D<sub>2</sub>");
+  for (let b = 1; b <= 6; b++) head(b);
+  for (let a = 1; a <= 6; a++) {
+    head(a);
+    for (let b = 1; b <= 6; b++) {
+      const e = document.createElement("div");
+      const A = inA(a, b), B = inB(a, b) && D.typeB !== "none";
+      e.className = "c" + (A && B ? " AB" : A ? " A" : B ? " B" : "");
+      if (D.typeB === "none" && A) e.className = "c AB";
+      e.textContent = a + b;
+      e.title = `D1=${a}, D2=${b}, toplam=${a + b}`;
+      g.appendChild(e);
+    }
+  }
+  const c = counts();
+  $("nB").textContent = c.nB; $("nAB").textContent = c.nAB; $("nA").textContent = c.nA;
+  const eq = $("eq");
+  if (D.typeB === "none") {
+    const [p, q] = red(c.nA, 36);
+    eq.innerHTML = `P(${nameA()}) = ${fr(c.nA, 36)} = ${fr(p, q)} = <span class="res">${fmt(c.nA / 36)}</span>`;
+    $("cmpNote").innerHTML = "Koşul yokken evren 36 kombinasyonun tamamıdır: bu, ham (koşulsuz) olasılıktır.";
+  } else if (c.nB === 0) {
+    eq.innerHTML = "P(B) = 0: koşul hiç gerçekleşmiyor, P(A | B) tanımsız.";
+    $("cmpNote").textContent = "";
+  } else {
+    const [p, q] = red(c.nAB, c.nB);
+    eq.innerHTML = `P(${nameA()} | ${nameB()}) = ${fr(fr(c.nAB, 36), fr(c.nB, 36))} = ${fr(c.nAB, c.nB)} = ${fr(p, q)} = <span class="res">${fmt(c.nAB / c.nB)}</span>`;
+    const pA = c.nA / 36, pAB = c.nAB / c.nB;
+    const dir = Math.abs(pAB - pA) < 1e-9 ? "değiştirmedi (A ve B bu durumda bağımsız)" : pAB > pA ? "artırdı" : "azalttı";
+    $("cmpNote").innerHTML = `Koşulsuz P(A) = ${fr(c.nA, 36)} = <b>${fmt(pA)}</b>. B bilgisi olasılığı <b>${fmt(pA)} → ${fmt(pAB)}</b> ${dir}.`;
+  }
+  renderRows();
+  $("sTrue").textContent = fmt(trueP());
+  drawChart();
+}
+
+function renderRows() {
+  const box = $("rows"); box.innerHTML = "";
+  for (let d = 1; d <= 6; d++) {
+    let n = 0; for (let b = 1; b <= 6; b++) if (inA(d, b)) n++;
+    const r = document.createElement("div");
+    r.className = "r" + (D.typeB === "d1eq" && D.k === d ? " sel" : "");
+    r.setAttribute("role", "button"); r.tabIndex = 0;
+    r.innerHTML = `<span class="mono">D₁ = ${d}</span><div class="bar"><i style="width:${(n / 6) * 100}%"></i></div><span class="p">${n}/6</span>`;
+    const pick = () => { D.typeB = "d1eq"; D.k = d; $("typeB").value = "d1eq"; $("k").value = d; $("kVal").textContent = d; resetSim(); renderDice(); };
+    r.addEventListener("click", pick);
+    r.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    box.appendChild(r);
+  }
+}
+
+$("opA").addEventListener("change", (e) => { D.op = e.target.value; resetSim(); renderDice(); });
+$("tA").addEventListener("input", (e) => { const v = Math.max(2, Math.min(12, parseInt(e.target.value, 10) || 2)); D.t = v; resetSim(); renderDice(); });
+$("typeB").addEventListener("change", (e) => { D.typeB = e.target.value; $("kWrap").style.visibility = D.typeB === "none" ? "hidden" : "visible"; resetSim(); renderDice(); });
+$("k").addEventListener("input", (e) => { D.k = +e.target.value; $("kVal").textContent = D.k; resetSim(); renderDice(); });
+
+/* simulation */
+const SIM = { n: 0, b: 0, ab: 0, hist: [] };
+function resetSim() { SIM.n = 0; SIM.b = 0; SIM.ab = 0; SIM.hist = []; $("lastRoll").innerHTML = "&nbsp;"; updSim(); }
+function roll(k) {
+  let last = null;
+  for (let i = 0; i < k; i++) {
+    const a = 1 + Math.floor(Math.random() * 6), b = 1 + Math.floor(Math.random() * 6);
+    SIM.n++;
+    if (inB(a, b)) { SIM.b++; if (inA(a, b)) SIM.ab++; }
+    if (SIM.b) SIM.hist.push([SIM.n, SIM.ab / SIM.b]);
+    last = [a, b];
+  }
+  if (SIM.hist.length > 4000) { const s = Math.ceil(SIM.hist.length / 2000); SIM.hist = SIM.hist.filter((_, i) => i % s === 0 || i === SIM.hist.length - 1); }
+  if (last) $("lastRoll").textContent = `Son atış: D₁ = ${last[0]}, D₂ = ${last[1]} (toplam ${last[0] + last[1]})` + (inB(last[0], last[1]) ? " · B gerçekleşti" + (inA(last[0], last[1]) ? ", A da gerçekleşti" : ", A gerçekleşmedi") : " · B gerçekleşmedi, sayılmaz");
+  updSim();
+}
+function updSim() {
+  $("sN").textContent = SIM.n; $("sB").textContent = SIM.b; $("sAB").textContent = SIM.ab;
+  $("sEst").textContent = SIM.b ? `${SIM.ab}/${SIM.b} = ${fmt(SIM.ab / SIM.b)}` : "—";
+  $("sTrue").textContent = fmt(trueP());
+  drawChart();
+}
+document.querySelectorAll("[data-roll]").forEach((b) => b.addEventListener("click", () => roll(+b.dataset.roll)));
+$("simReset").addEventListener("click", resetSim);
+
+function drawChart() {
+  const cv = $("simChart"); if (!cv || !cv.offsetParent) return;
+  const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, L = 44, R = 12, T = 12, B = 30;
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = "12px 'Open Sans', sans-serif"; ctx.fillStyle = "#8b97a5"; ctx.strokeStyle = "#e3e8ee"; ctx.lineWidth = 1;
+  const y = (p) => T + (1 - p) * (H - T - B);
+  [0, 0.25, 0.5, 0.75, 1].forEach((p) => { ctx.beginPath(); ctx.moveTo(L, y(p)); ctx.lineTo(W - R, y(p)); ctx.stroke(); ctx.fillText(p.toFixed(2), 6, y(p) + 4); });
+  const maxN = Math.max(10, SIM.n);
+  const x = (n) => L + (n / maxN) * (W - L - R);
+  ctx.fillText("0", L - 3, H - 10); ctx.fillText(`${maxN} atış`, W - R - 60, H - 10);
+  const tp = trueP();
+  if (Number.isFinite(tp)) { ctx.strokeStyle = "#FF6F20"; ctx.setLineDash([6, 4]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, y(tp)); ctx.lineTo(W - R, y(tp)); ctx.stroke(); ctx.setLineDash([]); }
+  if (SIM.hist.length) {
+    ctx.strokeStyle = "#447099"; ctx.lineWidth = 2; ctx.beginPath();
+    SIM.hist.forEach(([n, p], i) => (i ? ctx.lineTo(x(n), y(p)) : ctx.moveTo(x(n), y(p))));
+    ctx.stroke();
+  } else { ctx.fillStyle = "#8b97a5"; ctx.fillText("Atış yapmak için bir düğmeye basın", L + 20, H / 2); }
+}
+
+/* ================= LEVEL ================= */
+const COLS = ["A", "B", "C", "D", "E"];
+const LV = { train: "ABCADDDBCADDBCCECCDE", cyclic: true, alpha: 0, sel: "D", seq: [], mode: "cond", lastDist: null, lastR: null, lastPrev: null };
+
+function model(train, cyclic, alpha) {
+  const n = train.length;
+  const C = {}; COLS.forEach((a) => { C[a] = {}; COLS.forEach((b) => (C[a][b] = 0)); });
+  const U = {}; COLS.forEach((a) => (U[a] = 0));
+  for (let i = 0; i < n; i++) U[train[i]]++;
+  const last = cyclic ? n : n - 1;
+  for (let i = 0; i < last; i++) C[train[i]][train[(i + 1) % n]]++;
+  const K = COLS.length, P = {}, N = {};
+  COLS.forEach((a) => {
+    N[a] = COLS.reduce((s, b) => s + C[a][b], 0);
+    const den = N[a] + alpha * K;
+    P[a] = {}; COLS.forEach((b) => (P[a][b] = den > 0 ? (C[a][b] + alpha) / den : NaN));
+  });
+  const PU = {}; COLS.forEach((a) => (PU[a] = n ? U[a] / n : 0));
+  return { C, N, P, PU, U, n };
+}
+let M = model(LV.train, LV.cyclic, LV.alpha);
+
+// inverse-transform sampling
+function sample(dist, r) {
+  let acc = 0, lastValid = null;
+  for (const c of COLS) { const p = dist[c]; if (!(p > 0)) continue; lastValid = c; acc += p; if (r < acc) return c; }
+  return lastValid;
+}
+function rowValid(a) { return M.N[a] + LV.alpha * COLS.length > 0; }
+function nextDist(prev, mode) {
+  if (mode === "uncond" || prev === null || !rowValid(prev)) return { dist: M.PU, kind: prev === null || mode === "uncond" ? "u" : "dead" };
+  return { dist: M.P[prev], kind: "c" };
+}
+
+function renderMatrix() {
+  const t = $("mx");
+  let h = "<tr><th>Önceki</th>" + COLS.map((c) => `<th>${c}</th>`).join("") + "<th>Count</th></tr>";
+  COLS.forEach((a) => {
+    h += `<tr class="${a === LV.sel ? "sel" : ""}" data-row="${a}"><td class="rowh" tabindex="0" role="button" aria-label="${a} satırını seç">${a}</td>`;
+    COLS.forEach((b) => {
+      const p = M.P[a][b], raw = M.C[a][b];
+      const bg = Number.isFinite(p) ? `rgba(68,112,153,${(0.08 + 0.85 * p).toFixed(3)})` : "#fff";
+      const col = p > 0.5 ? "#fff" : "#1d2733";
+      const txt = !Number.isFinite(p) ? "—" : LV.alpha ? `${fmtNum(raw + LV.alpha)}/${fmtNum(M.N[a] + LV.alpha * 5)}` : `${raw}/${M.N[a]}`;
+      h += `<td class="${raw === 0 ? "zero" : ""}" style="background:${bg};color:${raw === 0 && !(p > 0.5) ? "" : col}" title="P(${b}|${a}) = ${fmt(p)}">${txt}</td>`;
+    });
+    h += `<td><b>${M.N[a]}</b></td></tr>`;
+  });
+  h += `<tr><td class="rowh" style="cursor:default;background:#fff7f2">P(Col)</td>` + COLS.map((c) => `<td>${M.U[c]}/${M.n}</td>`).join("") + `<td>${M.n}</td></tr>`;
+  t.innerHTML = h;
+  t.querySelectorAll("tr[data-row] td.rowh").forEach((td) => {
+    const pick = () => { LV.sel = td.parentElement.dataset.row; renderMatrix(); };
+    td.addEventListener("click", pick);
+    td.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+  });
+  renderRowEq();
+}
+const fmtNum = (x) => (Number.isInteger(x) ? String(x) : x.toFixed(1));
+function renderRowEq() {
+  const a = LV.sel, al = LV.alpha, N = M.N[a];
+  // pick most informative column: first zero-count column if α>0, else the most likely
+  let b = COLS.reduce((m, c) => (M.C[a][c] > M.C[a][m] ? c : m), COLS[0]);
+  if (al > 0) { const z = COLS.find((c) => M.C[a][c] === 0); if (z) b = z; }
+  const num = M.C[a][b], den = N;
+  let html;
+  if (N + al * 5 === 0) html = `Satır ${a}: eğitimde ${a} hiç koşul olarak görülmedi (Count = 0). α = 0 iken dağılım tanımsız.`;
+  else if (!al) html = `P(${b} | ${a}) = ${fr(`Count(${b} after ${a})`, `Count(${a})`)} = ${fr(num, den)} = <span class="res">${fmt(num / den)}</span>`;
+  else html = `P(${b} | ${a}) = ${fr(`${num} + ${al}`, `${N} + ${al}×5`)} = ${fr(fmtNum(num + al), fmtNum(N + al * 5))} = <span class="res">${fmt((num + al) / (N + al * 5))}</span>`;
+  $("rowEq").innerHTML = html;
+}
+
+function tileHTML(c, bad, isNew) { return `<div class="tile T-${c}${bad ? " bad" : ""}${isNew ? " new" : ""}" title="${c}">${c}</div>`; }
+function isUnseen(a, b) { return M.C[a][b] === 0; }
+function renderSeq() {
+  const s = LV.seq, box = $("seq");
+  box.innerHTML = s.length ? s.map((c, i) => tileHTML(c, i > 0 && isUnseen(s[i - 1], c), i === s.length - 1)).join("") : '<span class="small">Henüz sütun yok. “Bir sütun ekle” ile adım adım ilerleyin.</span>';
+  let pairs = 0, unseen = 0, rep = 0;
+  for (let i = 1; i < s.length; i++) { pairs++; if (isUnseen(s[i - 1], s[i])) unseen++; if (s[i] === s[i - 1]) rep++; }
+  $("seqStats").innerHTML = s.length ? `<span>Sütun: <b>${s.length}</b></span><span>İkili: <b>${pairs}</b></span><span>Görülmemiş ikili: <b style="color:${unseen ? "var(--pink)" : "var(--blue-d)"}">${unseen}</b></span><span class="small">Pembe çizgi: önceki sütunla eğitimde hiç görülmemiş ikili</span>` : "";
+}
+function renderSeg() {
+  const bar = $("segbar"), note = $("segNote");
+  if (!LV.lastDist) {
+    const prev = LV.seq.length ? LV.seq[LV.seq.length - 1] : null;
+    const { dist, kind } = nextDist(prev, LV.mode);
+    $("segTitle").textContent = kind === "c" ? `Sıradaki: P(· | ${prev})` : "Sıradaki: P(Col) (koşulsuz)";
+    bar.innerHTML = segsHTML(dist);
+    note.innerHTML = LV.seq.length === 0 ? "İlk sütun her zaman koşulsuz dağılımdan seçilir (tek eğitim seviyesi olduğu için)." : "&nbsp;";
+    return;
+  }
+  const { dist, kind } = LV.lastDist;
+  $("segTitle").textContent = kind === "c" ? `Örneklenen: P(· | ${LV.lastPrev})` : "Örneklenen: P(Col) (koşulsuz)";
+  bar.innerHTML = segsHTML(dist) + `<div class="marker" style="left:calc(${(LV.lastR * 100).toFixed(2)}% - 1px)"></div>`;
+  const chosen = LV.seq[LV.seq.length - 1];
+  note.innerHTML = `r = <b class="mono">${LV.lastR.toFixed(3)}</b> → kümülatif dilim <b>${chosen}</b> (P = ${fmt(dist[chosen])})` + (kind === "dead" ? " · Bu koşul eğitimde yoktu, koşulsuz dağılıma dönüldü." : "");
+}
+function segsHTML(dist) {
+  return COLS.filter((c) => dist[c] > 0).map((c) => `<div class="T-${c}" style="width:${(dist[c] * 100).toFixed(3)}%" title="${c}: ${fmt(dist[c])}"><span>${c}</span><span style="font-weight:400;font-size:11px">${dist[c] >= 0.08 ? fmt(dist[c], 2) : ""}</span></div>`).join("");
+}
+function addColumn() {
+  const prev = LV.seq.length ? LV.seq[LV.seq.length - 1] : null;
+  const { dist, kind } = nextDist(prev, LV.mode);
+  const r = Math.random();
+  const c = sample(dist, r);
+  if (!c) return;
+  LV.seq.push(c); LV.lastDist = { dist, kind }; LV.lastR = r; LV.lastPrev = prev;
+}
+function genLevel(len, mode) {
+  const s = []; for (let i = 0; i < len; i++) {
+    const prev = s.length ? s[s.length - 1] : null;
+    const { dist } = nextDist(prev, mode);
+    const c = sample(dist, Math.random()); if (!c) break; s.push(c);
+  } return s;
+}
+$("stepBtn").addEventListener("click", () => { const L = clampLen(); if (LV.seq.length >= L) LV.seq = []; addColumn(); renderSeq(); renderSeg(); });
+$("genBtn").addEventListener("click", () => { const L = clampLen(); LV.seq = []; for (let i = 0; i < L; i++) addColumn(); renderSeq(); renderSeg(); });
+$("clrBtn").addEventListener("click", () => { LV.seq = []; LV.lastDist = null; renderSeq(); renderSeg(); });
+$("mode").addEventListener("change", (e) => { LV.mode = e.target.value; LV.seq = []; LV.lastDist = null; renderSeq(); renderSeg(); });
+function clampLen() { const v = Math.max(5, Math.min(40, parseInt($("len").value, 10) || 20)); $("len").value = v; return v; }
+
+function batch() {
+  const L = clampLen(), R = 200, res = {};
+  ["cond", "uncond"].forEach((mode) => {
+    let pairs = 0, unseen = 0, lvBad = 0; const seenPairs = new Set();
+    for (let k = 0; k < R; k++) {
+      const s = genLevel(L, mode); let bad = false;
+      for (let i = 1; i < s.length; i++) { pairs++; seenPairs.add(s[i - 1] + s[i]); if (isUnseen(s[i - 1], s[i])) { unseen++; bad = true; } }
+      if (bad) lvBad++;
+    }
+    res[mode] = { rate: pairs ? unseen / pairs : 0, lvBad, distinct: seenPairs.size };
+  });
+  const row = (lbl, m) => `<tr><td>${lbl}</td><td class="num">${(res[m].rate * 100).toFixed(1)}%</td><td class="num">${res[m].lvBad}/${R}</td><td class="num">${res[m].distinct}</td></tr>`;
+  $("cmpTbl").innerHTML = `<tr><th>Model</th><th style="text-align:right">Görülmemiş ikili oranı</th><th style="text-align:right">En az 1 tuhaf ikili içeren seviye</th><th style="text-align:right">Farklı ikili çeşidi</th></tr>` +
+    row("Koşullu P(Col<sub>t</sub> | Col<sub>t−1</sub>)", "cond") + row("Koşulsuz P(Col)", "uncond") +
+    `<tr><td colspan="4" class="small">Uzunluk ${L}, α = ${LV.alpha}. α arttıkça koşullu model de görülmemiş ikililer üretmeye başlar ve ikili çeşitliliği artar.</td></tr>`;
+}
+$("batchBtn").addEventListener("click", batch);
+
+function renderObs() {
+  const det = COLS.filter((a) => M.N[a] > 0 && COLS.filter((b) => M.C[a][b] > 0).length === 1);
+  const never = []; COLS.forEach((a) => { if (M.N[a] > 0) COLS.forEach((b) => { if (M.C[a][b] === 0) never.push(a + "→" + b); }); });
+  $("obs").innerHTML =
+    `<p style="margin-top:0"><b>Koşullu model</b> α = 0 iken yalnızca eğitimde görülmüş ikilileri üretir: kopuk dizilim yok. <b>Koşulsuz model</b> sütunları birbirinden bağımsız seçtiği için tuhaf ikililer kaçınılmazdır.</p>` +
+    `<p>Bedel çeşitliliktir: eğitimde hiç görülmeyen <b>${never.length}</b> geçiş (ör. ${never.slice(0, 4).join(", ") || "—"}) α = 0 iken asla üretilmez. Laplace α bu geçişlere sıfır olmayan bir şans verir; payda Count + α × 5 olur.</p>`;
+  $("detNote").innerHTML = det.length
+    ? `<b>Deterministik durum:</b> ${det.map((a) => `${a} → ${COLS.find((b) => M.C[a][b] > 0)}`).join(", ")} (tek takipçi, olasılık ${LV.alpha ? fmt(M.P[det[0]][COLS.find((b) => M.C[det[0]][b] > 0)]) : "1"}). ${LV.alpha ? "α > 0 ile artık kesin değil." : "Bu ikili üretimde sürekli tekrarlanır."}`
+    : "Şu anki ayarlarda tek takipçili (deterministik) bir durum yok.";
+}
+
+function rebuild() {
+  const raw = $("train").value.toUpperCase().replace(/[^A-E]/g, "");
+  const msg = $("trainMsg");
+  if (raw.length < 2) { msg.textContent = "En az 2 sütun (A–E) girin."; return; }
+  msg.textContent = raw === "ABCADDDBCADDBCCECCDE" && $("cyclic").checked ? "Varsayılan dizi: döngüsel sayımlar Tablo 6.5 ile aynı." : `${raw.length} sütun okundu.`;
+  LV.train = raw; LV.cyclic = $("cyclic").checked;
+  M = model(LV.train, LV.cyclic, LV.alpha);
+  LV.seq = []; LV.lastDist = null;
+  renderMatrix(); renderSeq(); renderSeg(); renderObs(); $("cmpTbl").innerHTML = "";
+}
+$("train").addEventListener("change", rebuild);
+$("cyclic").addEventListener("change", rebuild);
+$("alpha").addEventListener("input", (e) => { LV.alpha = +e.target.value; $("aVal").textContent = LV.alpha; rebuild(); });
+
+/* init */
+renderDice();
+rebuild();
+window.addEventListener("resize", drawChart);
+</script>
+</body>
+</html>

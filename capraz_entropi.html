@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BYZ502 · Çapraz Entropi (Cross-Entropy)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mavi: #447099;
+    --mavi-koyu: #2d4d6b;
+    --turuncu: #FF6F20;
+    --pembe: #FF3D7F;
+    --zemin: #f7f9fb;
+    --kart: #ffffff;
+    --metin: #2b3440;
+    --soluk: #6b7a8c;
+    --cizgi: #dde5ec;
+    --yesil: #2e9e5b;
+    --kirmizi: #d64545;
+    --radius: 12px;
+    --font-baslik: 'Roboto Slab', 'Georgia', serif;
+    --font-metin: 'Open Sans', 'Helvetica Neue', sans-serif;
+    --font-kod: 'Fira Code', 'Menlo', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-metin); background: var(--zemin); color: var(--metin); line-height: 1.65; }
+  .sarici { max-width: 1000px; margin: 0 auto; padding: 0 1.2rem 4rem; }
+
+  header {
+    background: linear-gradient(135deg, var(--mavi-koyu), var(--mavi));
+    color: #fff; padding: 2.6rem 1.2rem 2.2rem; margin-bottom: 2rem;
+  }
+  .header-ic { max-width: 1000px; margin: 0 auto; }
+  .ders-kodu {
+    display: inline-block; font-family: var(--font-kod); font-size: 0.78rem;
+    letter-spacing: 2px; background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.3); padding: 4px 12px;
+    border-radius: 999px; margin-bottom: 0.9rem;
+  }
+  header h1 { font-family: var(--font-baslik); font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 700; margin-bottom: 0.4rem; }
+  header p { opacity: 0.9; max-width: 680px; font-size: 0.98rem; }
+
+  section { margin-bottom: 2.4rem; }
+  .bolum-no {
+    font-family: var(--font-kod); font-size: 0.75rem; color: var(--turuncu);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.3rem;
+  }
+  section h2 { font-family: var(--font-baslik); font-size: 1.45rem; color: var(--mavi-koyu); margin-bottom: 0.8rem; }
+  .kart {
+    background: var(--kart); border: 1px solid var(--cizgi); border-radius: var(--radius);
+    padding: 1.4rem 1.6rem; box-shadow: 0 2px 8px rgba(45,77,107,0.06);
+  }
+  .kart p + p { margin-top: 0.7rem; }
+  code {
+    font-family: var(--font-kod); font-size: 0.88em; background: #eef3f7;
+    border: 1px solid var(--cizgi); border-radius: 5px; padding: 1px 6px; color: var(--mavi-koyu);
+  }
+  .vurgu { color: var(--pembe); font-weight: 700; }
+  .formul {
+    font-family: var(--font-kod); font-size: 1.02rem; text-align: center;
+    background: #eef3f7; border: 1px solid var(--cizgi); border-radius: 10px;
+    padding: 0.9rem 1rem; margin: 1rem 0;
+  }
+
+  .adim-kutu {
+    font-family: var(--font-kod); font-size: 0.93rem; line-height: 2.05;
+    background: #2d4d6b; color: #dce8f3; border-radius: 10px;
+    padding: 1.1rem 1.3rem; margin-top: 1rem; overflow-x: auto;
+  }
+  .adim-kutu .yorum { color: #8fb3d1; }
+  .adim-kutu .sonuc { color: #ffb380; font-weight: 600; }
+
+  /* ---------- Demo: sınıf düğmeleri, kaydırıcı, tuvaller ---------- */
+  .sinif-satir { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.8rem 0 1rem; align-items: center; }
+  .sinif-satir .baslik-mini { font-size: 0.88rem; font-weight: 600; color: var(--soluk); margin-right: 0.3rem; }
+  .sinif-btn {
+    font-family: var(--font-metin); font-size: 0.95rem; font-weight: 600;
+    padding: 0.5rem 1.05rem; border-radius: 999px; border: 2px solid var(--cizgi);
+    background: #fff; color: var(--metin); cursor: pointer; transition: all 0.2s ease;
+  }
+  .sinif-btn:hover { border-color: var(--mavi); }
+  .sinif-btn.secili {
+    background: var(--turuncu); border-color: var(--turuncu); color: #fff;
+    transform: translateY(-2px); box-shadow: 0 4px 10px rgba(255,111,32,0.35);
+  }
+  .kaydirici-satir { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; margin: 0.6rem 0 1rem; }
+  .kaydirici-satir label { font-size: 0.9rem; font-weight: 600; color: var(--soluk); }
+  input[type=range] { width: 240px; accent-color: var(--mavi); }
+  .deger-rozet {
+    font-family: var(--font-kod); font-size: 0.95rem; background: #eef3f7;
+    border: 1px solid var(--cizgi); border-radius: 999px; padding: 3px 12px;
+  }
+
+  .grafik-izgara { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 820px) { .grafik-izgara { grid-template-columns: 1fr; } }
+  .grafik-kutu { border: 1px solid var(--cizgi); border-radius: 10px; padding: 0.7rem; background: #fff; }
+  .grafik-baslik {
+    font-family: var(--font-baslik); font-size: 0.9rem; color: var(--mavi-koyu);
+    margin-bottom: 0.4rem; text-align: center;
+  }
+  canvas { width: 100%; height: auto; display: block; }
+  .ce-cikti {
+    margin-top: 1rem; text-align: center; font-family: var(--font-kod); font-size: 1.05rem;
+  }
+  .ce-cikti .buyuk { font-size: 1.5rem; font-weight: 600; }
+  .ce-cikti.iyi .buyuk { color: var(--yesil); }
+  .ce-cikti.orta .buyuk { color: var(--turuncu); }
+  .ce-cikti.kotu .buyuk { color: var(--kirmizi); }
+
+  /* ---------- Softmax demo ---------- */
+  .logit-izgara { display: grid; grid-template-columns: auto 1fr auto auto; gap: 0.5rem 0.9rem; align-items: center; margin: 0.8rem 0; }
+  .logit-izgara .ad { font-weight: 600; font-size: 0.92rem; }
+  .logit-izgara .oran { font-family: var(--font-kod); font-size: 0.9rem; }
+  .olasilik-cubuk {
+    height: 16px; border-radius: 8px; background: #eef3f7; overflow: hidden; min-width: 90px;
+  }
+  .olasilik-cubuk .dolgu { height: 100%; border-radius: 8px; transition: width 0.2s ease; }
+
+  /* ---------- Batch tablosu ---------- */
+  .tablo-kaydir { overflow-x: auto; margin-top: 1rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td { border: 1px solid var(--cizgi); padding: 0.5rem 0.7rem; text-align: center; white-space: nowrap; }
+  th { background: var(--mavi); color: #fff; font-family: var(--font-baslik); font-weight: 600; font-size: 0.84rem; }
+  td.sayi { font-family: var(--font-kod); }
+  td.dogru-q { color: var(--turuncu); font-weight: 700; }
+  tr.kotu-satir td { background: rgba(214,69,69,0.06); }
+  .ort-satir td { font-weight: 700; background: #eef3f7; }
+
+  /* ---------- Quiz ---------- */
+  .soru { margin-bottom: 1.4rem; }
+  .soru-metin { font-weight: 600; margin-bottom: 0.6rem; }
+  .secenekler { display: grid; gap: 0.5rem; }
+  .secenek {
+    text-align: left; font-family: var(--font-metin); font-size: 0.93rem;
+    padding: 0.6rem 0.9rem; border-radius: 8px; border: 2px solid var(--cizgi);
+    background: #fff; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  }
+  .secenek:hover:not(:disabled) { border-color: var(--mavi); }
+  .secenek:disabled { cursor: default; }
+  .secenek.dogru  { border-color: var(--yesil);  background: rgba(46,158,91,0.1); }
+  .secenek.yanlis { border-color: var(--kirmizi); background: rgba(214,69,69,0.08); }
+  .aciklama {
+    display: none; margin-top: 0.6rem; font-size: 0.88rem; padding: 0.7rem 0.9rem;
+    background: #eef3f7; border-radius: 8px; border-left: 4px solid var(--mavi);
+  }
+  .aciklama.goster { display: block; }
+  .skor { font-family: var(--font-baslik); font-size: 1.05rem; color: var(--mavi-koyu); margin-top: 0.4rem; }
+
+  footer {
+    text-align: center; font-size: 0.82rem; color: var(--soluk);
+    padding: 1.4rem 0 0; border-top: 1px solid var(--cizgi); margin-top: 1rem;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-ic">
+    <div class="ders-kodu">BYZ502 · MAKİNE ÖĞRENMESİ TEMELLERİ</div>
+    <h1>Çapraz Entropi (Cross-Entropy)</h1>
+    <p>Sınıflandırma modellerinin kayıp fonksiyonu: yanlışa ne kadar "emin" olursan cezan o kadar büyür. NPC eylem tahmini senaryosuyla etkileşimli anlatım.</p>
+  </div>
+</header>
+
+<div class="sarici">
+
+  <!-- ============ 1. KAVRAM ============ -->
+  <section>
+    <div class="bolum-no">01 · Kavram</div>
+    <h2>Olasılık tahminini nasıl notlandırırız?</h2>
+    <div class="kart">
+      <p>Senaryo: Bir NPC, oyuncunun bir sonraki eylemini tahmin eden bir sınıflandırıcı kullanıyor. Üç sınıf var: <code>Saldır</code>, <code>Kaç</code>, <code>Savun</code>. Model her kare bir olasılık dağılımı üretir, örneğin <code>q = [0.7, 0.2, 0.1]</code>. Gerçek eylem ise one-hot vektörle verilir: oyuncu saldırdıysa <code>p = [1, 0, 0]</code>.</p>
+      <p>Çapraz entropi, gerçek dağılım <code>p</code> ile tahmin <code>q</code> arasındaki uyumsuzluğu ölçer:</p>
+      <div class="formul">H(p, q) = − Σ<sub>k</sub> p<sub>k</sub> · ln(q<sub>k</sub>)</div>
+      <p><code>p</code> one-hot olduğunda toplamda tek terim hayatta kalır ve formül basitleşir: <span class="vurgu">CE = − ln(q<sub>doğru sınıf</sub>)</span>. Yani kayıp, yalnızca modelin <em>doğru sınıfa verdiği olasılığa</em> bakar. O olasılık 1'e yaklaştıkça kayıp 0'a iner; 0'a yaklaştıkça kayıp <strong>sınırsız</strong> büyür — emin ama yanlış olmak en pahalı hatadır.</p>
+      <p>Not: <code>ln</code> (doğal logaritma) kullanılırsa birim <em>nat</em>, <code>log₂</code> kullanılırsa <em>bit</em> olur. Derin öğrenme kütüphaneleri (PyTorch, TensorFlow) nat kullanır; buradaki tüm hesaplar da <code>ln</code> iledir.</p>
+    </div>
+  </section>
+
+  <!-- ============ 2. ELLE HESAP ============ -->
+  <section>
+    <div class="bolum-no">02 · Somut Örnek</div>
+    <h2>İki tahmini elle notlandıralım</h2>
+    <div class="kart">
+      <p>Gerçek eylem: <code>Saldır</code>, yani <code>p = [1, 0, 0]</code>. İki farklı modelin tahminlerini karşılaştıralım:</p>
+      <div class="adim-kutu">
+        <span class="yorum">// Model A — makul tahmin</span><br>
+        q = [0.7, 0.2, 0.1]<br>
+        CE = −(1·ln 0.7 + 0·ln 0.2 + 0·ln 0.1) = −ln(0.7) = <span class="sonuc">0.357</span><br>
+        <br>
+        <span class="yorum">// Model B — emin ama yanlış: "kesin kaçacak" diyor</span><br>
+        q = [0.1, 0.8, 0.1]<br>
+        CE = −ln(0.1) = <span class="sonuc">2.303</span><br>
+        <br>
+        <span class="yorum">// Fark: 2.303 / 0.357 ≈ 6.5 kat ceza!</span>
+      </div>
+      <p style="margin-top:0.9rem;">İki model de "yanlış sınıfa 0.1 verdi" gibi görünebilir; ama çapraz entropi yalnızca <strong>doğru sınıfın olasılığına</strong> bakar: A doğruya 0.7, B doğruya 0.1 vermiş. Aşırı uçta, doğruya 0.01 veren bir model −ln(0.01) = <code>4.605</code> öder; doğruya 0.99 veren ise yalnızca <code>0.010</code>.</p>
+    </div>
+  </section>
+
+  <!-- ============ 3. DEMO: −ln EĞRİSİ ============ -->
+  <section>
+    <div class="bolum-no">03 · Etkileşimli Demo</div>
+    <h2>Kaydır ve cezayı izle</h2>
+    <div class="kart">
+      <div class="sinif-satir">
+        <span class="baslik-mini">Gerçek eylem:</span>
+        <button class="sinif-btn secili" data-sinif="0">Saldır</button>
+        <button class="sinif-btn" data-sinif="1">Kaç</button>
+        <button class="sinif-btn" data-sinif="2">Savun</button>
+      </div>
+      <div class="kaydirici-satir">
+        <label for="qKaydirici">Modelin doğru sınıfa verdiği olasılık q:</label>
+        <input type="range" id="qKaydirici" min="0.01" max="0.99" step="0.01" value="0.70">
+        <span class="deger-rozet" id="qRozet">q = 0.70</span>
+      </div>
+      <div class="grafik-izgara">
+        <div class="grafik-kutu">
+          <div class="grafik-baslik">Tahmin dağılımı q (kalan olasılık diğer iki sınıfa eşit bölünür)</div>
+          <canvas id="dagilimTuval" width="460" height="300"></canvas>
+        </div>
+        <div class="grafik-kutu">
+          <div class="grafik-baslik">Ceza eğrisi: CE = −ln(q)</div>
+          <canvas id="egriTuval" width="460" height="300"></canvas>
+        </div>
+      </div>
+      <div class="ce-cikti" id="ceCikti"></div>
+    </div>
+  </section>
+
+  <!-- ============ 4. DEMO: SOFTMAX → CE ============ -->
+  <section>
+    <div class="bolum-no">04 · Boru Hattı</div>
+    <h2>Logit → Softmax → Çapraz Entropi</h2>
+    <div class="kart">
+      <p>Sinir ağı doğrudan olasılık üretmez; her sınıf için ham bir skor (<em>logit</em>) üretir. <code>softmax</code> bu skorları olasılığa çevirir: <code>qₖ = e^{zₖ} / Σ e^{zⱼ}</code>. Kaydırıcılarla logitleri değiştirin; softmax çıktısını ve kaybı izleyin. Gerçek sınıf: <span class="vurgu">Saldır</span>.</p>
+      <div class="logit-izgara" id="logitIzgara"></div>
+      <div class="ce-cikti" id="softmaxCikti"></div>
+      <p style="margin-top:0.8rem; font-size:0.9rem; color:var(--soluk);">Deneyin: Tüm logitlere aynı sabiti ekleyin (örn. hepsini +2 kaydırın) — softmax çıktısı <strong>değişmez</strong> (kaydırma değişmezliği). Saldır logitini büyütüp kaybın 0'a inişini izleyin.</p>
+    </div>
+  </section>
+
+  <!-- ============ 5. BATCH ÖRNEĞİ ============ -->
+  <section>
+    <div class="bolum-no">05 · Eğitimde Kullanım</div>
+    <h2>Mini-batch üzerinde ortalama kayıp</h2>
+    <div class="kart">
+      <p>Eğitim sırasında kayıp, batch'teki örneklerin CE değerlerinin ortalamasıdır. 4 örneklik bir batch: her satırda doğru sınıfın aldığı olasılık turuncu.</p>
+      <div class="tablo-kaydir"><table id="batchTablo"></table></div>
+      <p style="margin-top:0.9rem;">3. örnek tek başına toplam kaybın yarısından fazlasını üretiyor: <span class="vurgu">emin-yanlış tek bir tahmin, üç makul tahminin toplamından pahalı</span>. Gradyan da en çok bu örnekten akar — model önceliği en kötü hatasını düzeltmeye verir.</p>
+    </div>
+  </section>
+
+  <!-- ============ 6. QUIZ ============ -->
+  <section>
+    <div class="bolum-no">06 · Kendini Sına</div>
+    <h2>Mini quiz</h2>
+    <div class="kart" id="quizKart"></div>
+  </section>
+
+  <footer>
+    BYZ502 — Oyun Motorunda Yapay Zekâ Uygulamaları · Çapraz Entropi Etkileşimli Aracı
+  </footer>
+</div>
+
+<script>
+  const SINIFLAR = ['Saldır', 'Kaç', 'Savun'];
+  const RENKLER = ['#FF6F20', '#447099', '#FF3D7F'];
+
+  // ================= Demo 3: −ln eğrisi =================
+  let gercekSinif = 0;
+  let q = 0.70;
+  const qKaydirici = document.getElementById('qKaydirici');
+  const qRozet = document.getElementById('qRozet');
+  const dagilimTuval = document.getElementById('dagilimTuval');
+  const egriTuval = document.getElementById('egriTuval');
+  const ceCikti = document.getElementById('ceCikti');
+
+  document.querySelectorAll('.sinif-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      gercekSinif = Number(btn.dataset.sinif);
+      document.querySelectorAll('.sinif-btn').forEach(b => b.classList.toggle('secili', b === btn));
+      cizDemo3();
+    });
+  });
+  qKaydirici.addEventListener('input', () => { q = Number(qKaydirici.value); cizDemo3(); });
+
+  function tuvalHazirla(cnv, oranHW) {
+    const ctx = cnv.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = cnv.clientWidth || cnv.width, h = w * oranHW;
+    cnv.width = w * dpr; cnv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return [ctx, w, h];
+  }
+
+  function cizDagilim() {
+    const [ctx, W, H] = tuvalHazirla(dagilimTuval, 300/460);
+    ctx.clearRect(0, 0, W, H);
+    const diger = (1 - q) / 2;
+    const olasiliklar = SINIFLAR.map((_, i) => (i === gercekSinif ? q : diger));
+    const pad = 34, taban = H - 40;
+    const cubukGen = (W - pad - 20) / 3 * 0.6;
+    ctx.font = '12px Open Sans, sans-serif';
+    olasiliklar.forEach((p, i) => {
+      const x = pad + (i + 0.2) * (W - pad - 20) / 3;
+      const yuk = p * (taban - 24);
+      ctx.fillStyle = RENKLER[i] + (i === gercekSinif ? '' : '99');
+      ctx.fillRect(x, taban - yuk, cubukGen, yuk);
+      ctx.fillStyle = '#2b3440';
+      ctx.fillText(SINIFLAR[i] + (i === gercekSinif ? ' ★' : ''), x, taban + 16);
+      ctx.fillStyle = '#6b7a8c';
+      ctx.font = '12px Fira Code, monospace';
+      ctx.fillText(p.toFixed(2), x, taban - yuk - 6);
+      ctx.font = '12px Open Sans, sans-serif';
+    });
+    ctx.fillStyle = '#6b7a8c';
+    ctx.fillText('★ gerçek eylem', W - 110, 16);
+  }
+
+  function cizEgri() {
+    const [ctx, W, H] = tuvalHazirla(egriTuval, 300/460);
+    ctx.clearRect(0, 0, W, H);
+    const pad = 40, sag = 14, ust = 12, alt = 34;
+    const xMin = 0.01, xMax = 1, yMax = 5;
+    const px = v => pad + (v - xMin) / (xMax - xMin) * (W - pad - sag);
+    const py = v => ust + (1 - v / yMax) * (H - ust - alt);
+
+    // Eksenler
+    ctx.strokeStyle = '#c5d2dd'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, ust); ctx.lineTo(pad, H - alt); ctx.lineTo(W - sag, H - alt); ctx.stroke();
+    ctx.fillStyle = '#6b7a8c'; ctx.font = '11px Open Sans, sans-serif';
+    for (let v = 0; v <= 1.001; v += 0.25) ctx.fillText(v.toFixed(2), px(v) - 10, H - alt + 15);
+    for (let v = 0; v <= yMax; v += 1) ctx.fillText(String(v), pad - 18, py(v) + 4);
+    ctx.fillText('q (doğru sınıfın olasılığı)', W/2 - 60, H - 6);
+
+    // Eğri
+    ctx.strokeStyle = '#2d4d6b'; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    let ilk = true;
+    for (let v = xMin; v <= xMax; v += 0.005) {
+      const ce = Math.min(-Math.log(v), yMax);
+      if (ilk) { ctx.moveTo(px(v), py(ce)); ilk = false; }
+      else ctx.lineTo(px(v), py(ce));
+    }
+    ctx.stroke();
+
+    // Mevcut nokta + kılavuz çizgiler
+    const ce = -Math.log(q);
+    const ceGoster = Math.min(ce, yMax);
+    ctx.strokeStyle = '#FF6F20'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(px(q), H - alt); ctx.lineTo(px(q), py(ceGoster)); ctx.lineTo(pad, py(ceGoster)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#FF6F20';
+    ctx.beginPath(); ctx.arc(px(q), py(ceGoster), 6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  function cizDemo3() {
+    qRozet.textContent = 'q = ' + q.toFixed(2);
+    cizDagilim();
+    cizEgri();
+    const ce = -Math.log(q);
+    const durum = ce < 0.5 ? 'iyi' : (ce < 1.5 ? 'orta' : 'kotu');
+    const etiket = ce < 0.5 ? 'düşük kayıp — iyi tahmin' : (ce < 1.5 ? 'orta kayıp' : 'yüksek kayıp — emin ve yanlış!');
+    ceCikti.className = 'ce-cikti ' + durum;
+    ceCikti.innerHTML = 'CE = −ln(' + q.toFixed(2) + ') = <span class="buyuk">' + ce.toFixed(3) + '</span> nat &nbsp;·&nbsp; ' + etiket;
+  }
+
+  // ================= Demo 4: Softmax =================
+  const logitler = [2.0, 0.5, -1.0];
+  const logitIzgara = document.getElementById('logitIzgara');
+  const softmaxCikti = document.getElementById('softmaxCikti');
+
+  SINIFLAR.forEach((ad, i) => {
+    const adEl = document.createElement('div');
+    adEl.className = 'ad';
+    adEl.textContent = ad + (i === 0 ? ' ★' : '');
+    const kay = document.createElement('input');
+    kay.type = 'range'; kay.min = '-5'; kay.max = '5'; kay.step = '0.1'; kay.value = logitler[i];
+    kay.addEventListener('input', () => { logitler[i] = Number(kay.value); cizSoftmax(); });
+    const rozet = document.createElement('span');
+    rozet.className = 'deger-rozet'; rozet.id = 'logitRozet' + i;
+    const cubuk = document.createElement('div');
+    cubuk.className = 'olasilik-cubuk';
+    cubuk.innerHTML = '<div class="dolgu" id="dolgu' + i + '" style="background:' + RENKLER[i] + '"></div>';
+    const oran = document.createElement('span');
+    oran.className = 'oran'; oran.id = 'oran' + i;
+    logitIzgara.appendChild(adEl);
+    logitIzgara.appendChild(kay);
+    logitIzgara.appendChild(rozet);
+    // olasılık çubuğu + değeri ayrı satır hücrelerine değil aynı ızgaraya:
+    logitIzgara.appendChild(cubukSarici(cubuk, oran));
+  });
+  function cubukSarici(cubuk, oran) {
+    const d = document.createElement('div');
+    d.style.display = 'flex'; d.style.alignItems = 'center'; d.style.gap = '0.5rem';
+    d.appendChild(cubuk); d.appendChild(oran);
+    return d;
+  }
+
+  function softmax(z) {
+    const m = Math.max(...z);                    // sayısal kararlılık
+    const e = z.map(v => Math.exp(v - m));
+    const s = e.reduce((a, b) => a + b, 0);
+    return e.map(v => v / s);
+  }
+
+  function cizSoftmax() {
+    const p = softmax(logitler);
+    SINIFLAR.forEach((_, i) => {
+      document.getElementById('logitRozet' + i).textContent = 'z = ' + logitler[i].toFixed(1);
+      document.getElementById('dolgu' + i).style.width = (p[i] * 100).toFixed(1) + '%';
+      document.getElementById('oran' + i).textContent = 'q = ' + p[i].toFixed(3);
+    });
+    const ce = -Math.log(p[0]);
+    const durum = ce < 0.5 ? 'iyi' : (ce < 1.5 ? 'orta' : 'kotu');
+    softmaxCikti.className = 'ce-cikti ' + durum;
+    softmaxCikti.innerHTML = 'CE = −ln(q<sub>Saldır</sub>) = −ln(' + p[0].toFixed(3) + ') = <span class="buyuk">' + ce.toFixed(3) + '</span> nat';
+  }
+
+  // ================= Demo 5: Batch tablosu =================
+  const BATCH = [
+    { gercek: 0, q: [0.70, 0.20, 0.10] },
+    { gercek: 1, q: [0.10, 0.80, 0.10] },
+    { gercek: 0, q: [0.05, 0.90, 0.05] },
+    { gercek: 2, q: [0.30, 0.30, 0.40] }
+  ];
+  const batchTablo = document.getElementById('batchTablo');
+  (function cizBatch() {
+    let toplam = 0;
+    const satirlar = BATCH.map((o, i) => {
+      const ce = -Math.log(o.q[o.gercek]);
+      toplam += ce;
+      const kotu = ce > 1.5 ? ' class="kotu-satir"' : '';
+      const hucre = o.q.map((v, k) =>
+        '<td class="sayi' + (k === o.gercek ? ' dogru-q' : '') + '">' + v.toFixed(2) + '</td>').join('');
+      return '<tr' + kotu + '><td>' + (i + 1) + '</td><td>' + SINIFLAR[o.gercek] + '</td>' + hucre +
+             '<td class="sayi">−ln(' + o.q[o.gercek].toFixed(2) + ') = ' + ce.toFixed(3) + '</td></tr>';
+    }).join('');
+    batchTablo.innerHTML =
+      '<thead><tr><th>#</th><th>Gerçek eylem</th><th>q(Saldır)</th><th>q(Kaç)</th><th>q(Savun)</th><th>CE (nat)</th></tr></thead>' +
+      '<tbody>' + satirlar +
+      '<tr class="ort-satir"><td colspan="5">Batch kaybı (ortalama)</td><td class="sayi">' +
+      (toplam / BATCH.length).toFixed(3) + '</td></tr></tbody>';
+  })();
+
+  // ================= Quiz =================
+  const SORULAR = [
+    {
+      soru: '1) Gerçek sınıf 2. sınıf (Kaç) ve model q = [0.25, 0.50, 0.25] tahmin etti. Çapraz entropi kaybı nedir?',
+      secenekler: ['−ln(0.25) ≈ 1.386', '−ln(0.50) ≈ 0.693', '−(ln 0.25 + ln 0.5 + ln 0.25)', '0.50'],
+      dogru: 1,
+      aciklama: 'p = [0,1,0] one-hot olduğundan yalnızca doğru sınıfın terimi kalır: CE = −ln(q₂) = −ln(0.5) ≈ 0.693 nat.'
+    },
+    {
+      soru: '2) Formüldeki Σ pₖ·ln(qₖ) toplamı, one-hot etiketlerde neden tek terime iner?',
+      secenekler: [
+        'Logaritma toplamı çarpıma çevirdiği için',
+        'pₖ yalnızca doğru sınıfta 1, diğerlerinde 0 olduğundan diğer terimler sıfırlanır',
+        'Softmax diğer sınıfları zaten sıfırladığı için',
+        'Kayıp fonksiyonu yalnızca en büyük qₖ değerini kullandığı için'
+      ],
+      dogru: 1,
+      aciklama: 'One-hot p vektöründe doğru sınıf dışındaki tüm pₖ = 0; çarpımları toplamdan düşer. Yumuşatılmış etiketlerde (label smoothing) ise tüm terimler katkı verir.'
+    },
+    {
+      soru: '3) Model doğru sınıfa q = 0.01 verdi (emin ve yanlış). Kayıp yaklaşık kaçtır ve q → 0 iken ne olur?',
+      secenekler: [
+        '≈ 0.99; kayıp 1 ile sınırlıdır',
+        '≈ 2.0; kayıp en fazla sınıf sayısı kadar olur',
+        '≈ 4.605; q → 0 iken kayıp sınırsız büyür',
+        '≈ 0.01; kayıp olasılıkla aynıdır'
+      ],
+      dogru: 2,
+      aciklama: '−ln(0.01) ≈ 4.605. ln(q) → −∞ olduğundan ceza sınırsızdır; bu yüzden kütüphaneler log(0) hatasına karşı olasılıkları küçük bir ε ile kırpar.'
+    },
+    {
+      soru: '4) Sınıflandırmada MSE yerine çapraz entropinin tercih edilmesinin temel nedenlerinden biri hangisidir?',
+      secenekler: [
+        'CE hesaplamak MSE\'den her zaman daha ucuzdur',
+        'Softmax/sigmoid ile birlikte CE, emin-yanlış tahminlerde bile güçlü gradyan üretir; MSE\'de gradyan doygunlaşıp kaybolabilir',
+        'MSE yalnızca regresyon kütüphanelerinde bulunur',
+        'CE her zaman daha küçük sayısal değerler üretir'
+      ],
+      dogru: 1,
+      aciklama: 'Sigmoid/softmax çıktısı uçlara doygunlaştığında MSE\'nin gradyanı sıfıra yaklaşır ve öğrenme durur. Softmax + CE bileşiminde gradyan (q − p) biçimindedir: hata büyükse gradyan da büyüktür. Ayrıca CE, maksimum olabilirlik (maximum likelihood) ilkesinin doğrudan sonucudur.'
+    }
+  ];
+
+  const quizKart = document.getElementById('quizKart');
+  let dogruSayisi = 0, cevaplanan = 0;
+  const skorDiv = document.createElement('div');
+  skorDiv.className = 'skor';
+
+  SORULAR.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'soru';
+    div.innerHTML = '<div class="soru-metin">' + s.soru + '</div>';
+    const secDiv = document.createElement('div');
+    secDiv.className = 'secenekler';
+    s.secenekler.forEach((metin, oi) => {
+      const b = document.createElement('button');
+      b.className = 'secenek';
+      b.textContent = metin;
+      b.addEventListener('click', () => {
+        [...secDiv.children].forEach(x => x.disabled = true);
+        if (oi === s.dogru) { b.classList.add('dogru'); dogruSayisi++; }
+        else { b.classList.add('yanlis'); secDiv.children[s.dogru].classList.add('dogru'); }
+        cevaplanan++;
+        div.querySelector('.aciklama').classList.add('goster');
+        if (cevaplanan === SORULAR.length) {
+          skorDiv.textContent = 'Skor: ' + dogruSayisi + ' / ' + SORULAR.length +
+            (dogruSayisi === SORULAR.length ? ' — Mükemmel!' : ' — Açıklamaları okuyup sayfayı yenileyerek tekrar deneyebilirsiniz.');
+        }
+      });
+      secDiv.appendChild(b);
+    });
+    div.appendChild(secDiv);
+    const ack = document.createElement('div');
+    ack.className = 'aciklama';
+    ack.textContent = s.aciklama;
+    div.appendChild(ack);
+    quizKart.appendChild(div);
+  });
+  quizKart.appendChild(skorDiv);
+
+  // İlk çizimler
+  cizDemo3();
+  cizSoftmax();
+  window.addEventListener('resize', () => { cizDemo3(); });
+</script>
+</body>
+</html>

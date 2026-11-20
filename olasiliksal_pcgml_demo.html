@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Olasılıksal PCGML — Ters Dönüşüm Örneklemesi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Open+Sans:wght@400;600;700&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#447099; --orange:#FF6F20; --pink:#FF3D7F; --gold:#FFB02E; --green:#5aa17f;
+    --ink:#1f2430; --muted:#5b6470; --bg:#eef1f4; --panel:#fff; --line:#dde3ea; --sky:#5b4b8a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Open Sans",system-ui,sans-serif;line-height:1.5;padding:26px 18px 46px}
+  .wrap{max-width:1120px;margin:0 auto}
+  .eyebrow{font-family:"Fira Code",monospace;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);font-weight:600;margin:0 0 6px}
+  h1{font-family:"Roboto Slab",serif;font-weight:700;font-size:clamp(1.5rem,4vw,2.2rem);margin:0;line-height:1.1}
+  h1 .em{color:var(--orange)}
+  .lede{color:var(--muted);margin:8px 0 0;max-width:66ch;font-size:.96rem}
+  .layout{display:grid;grid-template-columns:270px 1fr;gap:20px;align-items:start;margin-top:18px}
+  @media (max-width:900px){.layout{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .panel + .panel{margin-top:14px}
+  .panel h2{font-family:"Roboto Slab",serif;font-size:1rem;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .panel h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--orange)}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .stage + .stage{margin-top:14px}
+  .stage h2{font-family:"Roboto Slab",serif;font-size:1rem;margin:0 0 8px}
+  .hint{font-size:.82rem;color:var(--muted);margin:0 0 12px}
+
+  .freq{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .freq .dot{width:16px;height:16px;border-radius:4px;flex:0 0 auto}
+  .freq .nm{font-weight:700;width:14px}
+  .freq input[type=range]{flex:1;accent-color:var(--blue)}
+  .freq .val{font-family:"Fira Code",monospace;font-size:.78rem;color:var(--muted);width:74px;text-align:right}
+  .btn{border:0;border-radius:10px;padding:10px;cursor:pointer;font-weight:700;font-size:.86rem;font-family:"Open Sans";transition:.15s filter;width:100%}
+  .btn-primary{background:var(--orange);color:#fff}.btn-primary:hover{filter:brightness(1.06)}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}.btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:8px}
+
+  svg{width:100%;height:auto;display:block}
+  .status{font-family:"Fira Code",monospace;font-size:.84rem;background:#f5f8fa;border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:0 10px 10px 0;padding:10px 12px;margin-top:10px}
+  .status b{color:var(--orange)}
+  .field{margin:6px 0 12px}
+  .field .r{display:flex;align-items:center;gap:10px}
+  .field output{font-family:"Fira Code",monospace;font-weight:600;color:var(--blue);min-width:2.6em;text-align:right}
+  input[type=range]{accent-color:var(--blue)}
+  .lvl-letters{font-family:"Fira Code",monospace;font-size:.72rem;letter-spacing:2px;color:var(--muted);word-break:break-all;margin-top:8px}
+  .cmp{display:flex;gap:14px;align-items:flex-end;height:150px;margin-top:6px;padding-top:8px}
+  .cmp .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+  .cmp .pair{display:flex;gap:3px;align-items:flex-end;height:100%;width:100%;justify-content:center}
+  .cmp .bar{width:16px;border-radius:3px 3px 0 0;transition:height .3s}
+  .cmp .bar.train{background:#c7d2db}
+  .cmp .lbl{font-weight:700;font-size:.8rem}
+  .cmp .pct{font-family:"Fira Code",monospace;font-size:.6rem;color:var(--muted)}
+  .legend{display:flex;gap:16px;font-size:.78rem;color:var(--muted);margin-top:8px}
+  .legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+  .dev{font-family:"Fira Code",monospace;font-size:.86rem;margin-top:10px}
+  .dev b{color:var(--orange)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">BYZ502 · Oyun Yapay Zekâsı · Olasılıksal PCGML</p>
+  <h1>Ters Dönüşüm <span class="em">Örneklemesi</span></h1>
+  <p class="lede">Örnek seviyedeki sütun frekanslarından bir olasılık dağılımı öğrenilir. CDF üzerinde <b>r çizgisini sürükleyin</b> (ya da d20 atın): rastgele r değerinin hangi sütunu seçtiğini görün. Sonra seviye üretip, örnek sayısı arttıkça üretilen dağılımın eğitime nasıl <b>yakınsadığını</b> izleyin.</p>
+
+  <div class="layout">
+    <div>
+      <div class="panel">
+        <h2>Sütun Frekansları</h2>
+        <p class="hint">Şekil 6.1'deki eğitim seviyesi (varsayılan). Kaydırıp değiştirin.</p>
+        <div id="freqs"></div>
+        <button class="btn btn-ghost" id="reset" style="margin-top:6px">Şekil 6.1'e sıfırla</button>
+      </div>
+      <div class="panel">
+        <h2>Seviye Üretimi</h2>
+        <div class="field">
+          <label class="hint">Üretilecek sütun sayısı (N)</label>
+          <div class="r"><input type="range" id="N" min="10" max="300" value="20" step="10"><output id="Nout">20</output></div>
+        </div>
+        <button class="btn btn-primary" id="gen">▶ Seviye üret</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="stage">
+        <h2>CDF ve Örnekleme (Şekil 6.2)</h2>
+        <p class="hint">Yatay çizgiyi (r) sürükleyin veya d20 atın. r, CDF'de hangi aralığa düşerse o sütun örneklenir.</p>
+        <svg id="cdf" viewBox="0 0 560 340" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="row2">
+          <button class="btn btn-ghost" id="d20">🎲 Rastgele r (d20)</button>
+          <button class="btn btn-ghost" id="samplemany">10 kez örnekle</button>
+        </div>
+        <div class="status" id="sstat">r'yi sürükleyin…</div>
+      </div>
+
+      <div class="stage">
+        <h2>Üretilen Seviye (Şekil 6.3)</h2>
+        <svg id="terrain" viewBox="0 0 560 120" preserveAspectRatio="none" style="border-radius:8px"></svg>
+        <div class="lvl-letters" id="letters"></div>
+      </div>
+
+      <div class="stage">
+        <h2>Dağılım Karşılaştırması (yakınsama)</h2>
+        <div class="cmp" id="cmp"></div>
+        <div class="legend">
+          <span><span class="sw" style="background:#c7d2db"></span>Eğitim olasılığı</span>
+          <span><span class="sw" style="background:var(--blue)"></span>Üretilen frekans</span>
+        </div>
+        <div class="dev" id="dev">N arttıkça toplam sapma küçülür (büyük sayılar yasası).</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const COLS=["A","B","C","D","E"];
+  const COLOR={A:"#447099",B:"#FF6F20",C:"#FF3D7F",D:"#FFB02E",E:"#5aa17f"};
+  const GROUND={A:0.34,B:0.20,C:0.14,D:0.46,E:0.09};  // görsel için zemin yüksekliği
+  const DEFAULT={A:3,B:3,C:6,D:6,E:2};
+  let counts={...DEFAULT}, r=0.5, gen=[];
+
+  // ---- saf mantık ----
+  const total=c=>COLS.reduce((s,k)=>s+c[k],0);
+  function probs(c){ const t=total(c); return COLS.map(k=> t? c[k]/t : 0); }
+  function cdf(c){ const p=probs(c); const out=[]; let a=0; for(const x of p){a+=x; out.push(a);} return out; }
+  function sampleIndex(cd,rv){ for(let i=0;i<cd.length;i++){ if(rv<=cd[i]+1e-12) return i; } return cd.length-1; }
+
+  if(typeof document==="undefined") return;
+  const $=id=>document.getElementById(id);
+
+  // ---- frekans kontrolleri ----
+  const fc=$("freqs");
+  COLS.forEach(k=>{
+    const el=document.createElement("div"); el.className="freq";
+    el.innerHTML=`<span class="dot" style="background:${COLOR[k]}"></span><span class="nm">${k}</span>
+      <input type="range" min="0" max="10" value="${counts[k]}" data-k="${k}">
+      <span class="val" id="fv-${k}"></span>`;
+    el.querySelector("input").addEventListener("input",e=>{ counts[k]=+e.target.value; drawAll(); });
+    fc.appendChild(el);
+  });
+
+  function drawFreqVals(){ const t=total(counts); COLS.forEach(k=>{
+    $("fv-"+k).textContent=`${counts[k]} · ${t?(counts[k]/t).toFixed(2):"0.00"}`; }); }
+
+  // ---- CDF grafiği ----
+  const W=560,H=340,m={l:52,r:20,t:20,b:52};
+  const px=i=>m.l+(COLS.length>1? i/(COLS.length-1):0)*(W-m.l-m.r);
+  const py=v=>H-m.b-v*(H-m.t-m.b);
+  const yToR=y=>Math.max(0,Math.min(1,(H-m.b-y)/(H-m.t-m.b)));
+
+  function drawCDF(){
+    const cd=cdf(counts);
+    const idx=sampleIndex(cd,r);
+    let pts=COLS.map((k,i)=>`${px(i).toFixed(1)},${py(cd[i]).toFixed(1)}`).join(" ");
+    let dots=COLS.map((k,i)=>`<circle cx="${px(i).toFixed(1)}" cy="${py(cd[i]).toFixed(1)}" r="5" fill="#1f2430"/>`).join("");
+    // eksenler
+    let axis=`<line x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${H-m.b}" stroke="#c9d2da"/>
+              <line x1="${m.l}" y1="${H-m.b}" x2="${W-m.r}" y2="${H-m.b}" stroke="#c9d2da"/>`;
+    for(let g=0;g<=1.0001;g+=0.2){ axis+=`<line x1="${m.l-4}" y1="${py(g)}" x2="${m.l}" y2="${py(g)}" stroke="#c9d2da"/>
+      <text x="${m.l-8}" y="${py(g)+4}" font-size="11" fill="#5b6470" text-anchor="end" font-family="Fira Code">${g.toFixed(1)}</text>`; }
+    // renkli sütun ekseni
+    let xband=COLS.map((k,i)=>{ const w=(W-m.l-m.r)/COLS.length;
+      const x=m.l+i*w;
+      return `<rect x="${x}" y="${H-m.b+6}" width="${w-2}" height="10" rx="3" fill="${COLOR[k]}" opacity="0.5"/>
+              <text x="${x+w/2}" y="${H-m.b+32}" font-size="12" fill="#1f2430" text-anchor="middle" font-weight="700" font-family="Open Sans">${k}</text>`; }).join("");
+    // r yatay çizgisi + seçilen sütuna dikey iniş
+    const ry=py(r);
+    const rline=`<line x1="${m.l}" y1="${ry}" x2="${W-m.r}" y2="${ry}" stroke="#FF6F20" stroke-width="2" stroke-dasharray="6 4"/>
+      <rect x="${W-m.r-64}" y="${ry-22}" width="60" height="18" rx="9" fill="#FF6F20"/>
+      <text x="${W-m.r-34}" y="${ry-9}" font-size="11" fill="#fff" text-anchor="middle" font-family="Fira Code">r=${r.toFixed(2)}</text>`;
+    const drop=`<line x1="${px(idx)}" y1="${py(cd[idx])}" x2="${px(idx)}" y2="${H-m.b}" stroke="#447099" stroke-width="2" stroke-dasharray="5 4"/>
+      <circle cx="${px(idx)}" cy="${py(cd[idx])}" r="7" fill="none" stroke="#447099" stroke-width="3"/>`;
+    $("cdf").innerHTML=`${axis}${xband}
+      <text x="16" y="${(m.t+H-m.b)/2}" font-size="12" fill="#5b6470" text-anchor="middle" transform="rotate(-90 16 ${(m.t+H-m.b)/2})" font-family="Open Sans">Kümülatif Olasılık</text>
+      <polyline points="${pts}" fill="none" stroke="#1f2430" stroke-width="2.5"/>${dots}${drop}${rline}`;
+    // durum
+    const lo = idx>0? cd[idx-1]:0;
+    $("sstat").innerHTML=`P(X≤${COLS[idx-1]||"–"})=${lo.toFixed(2)} &lt; <b>r=${r.toFixed(2)}</b> ≤ P(X≤${COLS[idx]})=${cd[idx].toFixed(2)} &nbsp;→&nbsp; <b>${COLS[idx]}</b> sütunu`;
+  }
+
+  // r sürükleme
+  const svg=$("cdf");
+  let dragging=false;
+  function setRFromEvent(e){
+    const rect=svg.getBoundingClientRect();
+    const y=( (e.clientY-rect.top)/rect.height )*H;
+    r=yToR(y); drawCDF();
+  }
+  svg.addEventListener("pointerdown",e=>{dragging=true;setRFromEvent(e);});
+  window.addEventListener("pointermove",e=>{if(dragging)setRFromEvent(e);});
+  window.addEventListener("pointerup",()=>{dragging=false;});
+
+  $("d20").addEventListener("click",()=>{ r=(Math.floor(Math.random()*20)+1)/20; drawCDF(); });
+  $("samplemany").addEventListener("click",()=>{
+    const cd=cdf(counts); const seq=[];
+    for(let i=0;i<10;i++){ seq.push(COLS[sampleIndex(cd,Math.random())]); }
+    $("sstat").innerHTML=`10 örnek: <b>${seq.join(" ")}</b>`;
+  });
+
+  // ---- seviye üretimi ----
+  function generate(){
+    const N=+$("N").value, cd=cdf(counts);
+    gen=[]; for(let i=0;i<N;i++) gen.push(COLS[sampleIndex(cd,Math.random())]);
+    drawTerrain(); drawCompare();
+  }
+  function drawTerrain(){
+    const N=gen.length, cw=560/N, base=120;
+    let rects="";
+    gen.forEach((k,i)=>{
+      const x=i*cw, gh=GROUND[k]*base;
+      rects+=`<rect x="${x.toFixed(2)}" y="0" width="${cw+0.5}" height="${base}" fill="#5b4b8a"/>`;      // gökyüzü
+      rects+=`<rect x="${x.toFixed(2)}" y="${(base-gh).toFixed(1)}" width="${cw+0.5}" height="4" fill="#e05b53"/>`; // lav çizgisi
+      rects+=`<rect x="${x.toFixed(2)}" y="${(base-gh+4).toFixed(1)}" width="${cw+0.5}" height="${gh}" fill="#3a2a2a"/>`; // zemin
+    });
+    $("terrain").innerHTML=rects;
+    $("letters").textContent = N<=60 ? gen.join(" ") : "(N büyük — harfler gizlendi)";
+  }
+  function drawCompare(){
+    const p=probs(counts), gc={}; COLS.forEach(k=>gc[k]=0); gen.forEach(k=>gc[k]++);
+    const N=gen.length||1;
+    const box=$("cmp"); box.innerHTML="";
+    let dev=0;
+    COLS.forEach((k,i)=>{
+      const gf=gc[k]/N; dev+=Math.abs(gf-p[i]);
+      const el=document.createElement("div"); el.className="col";
+      el.innerHTML=`<div class="pair">
+          <div class="bar train" style="height:${(p[i]*100).toFixed(0)}%"></div>
+          <div class="bar" style="height:${(gf*100).toFixed(0)}%;background:${COLOR[k]}"></div>
+        </div>
+        <span class="pct">${p[i].toFixed(2)} · ${gf.toFixed(2)}</span>
+        <span class="lbl">${k}</span>`;
+      box.appendChild(el);
+    });
+    $("dev").innerHTML=`Toplam mutlak sapma (N=${N}): <b>${dev.toFixed(3)}</b> — N büyüdükçe 0'a yaklaşır (yakınsama).`;
+  }
+
+  $("gen").addEventListener("click",generate);
+  $("N").addEventListener("input",e=>$("Nout").textContent=e.target.value);
+  $("reset").addEventListener("click",()=>{ counts={...DEFAULT};
+    COLS.forEach(k=>{ document.querySelector(`input[data-k="${k}"]`).value=counts[k]; }); drawAll(); });
+
+  function drawAll(){ drawFreqVals(); drawCDF(); if(gen.length) drawCompare(); }
+  drawAll(); generate();
+})();
+</script>
+</body>
+</html>

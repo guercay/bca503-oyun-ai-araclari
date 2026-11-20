@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hata Oranı</title>
+<style>
+:root{
+  --bg:#f5f8f6; --surface:#ffffff; --surface2:#eef4f0; --ink:#13241c; --muted:#4f6559; --line:#d5e2da;
+  --accent:#0f8a5f; --accent-soft:#d8f0e4; --warn:#b45309; --warn-soft:#fdf0dc; --bad:#c2410c; --bad-soft:#fde4d8;
+  --good:#15803d; --code:#0d1f17; --shadow:0 1px 2px rgba(19,36,28,.06),0 4px 16px rgba(19,36,28,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-soft:#3d2216;
+  --good:#4ade80; --code:#06110c; --shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-soft:#3d2216;
+  --good:#4ade80; --code:#06110c; --shadow:none;}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:32px 16px 64px}
+header.hero{padding:24px 0 8px}
+.kicker{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(2rem,5vw,2.8rem);line-height:1.15;margin:.3em 0 .3em}
+h2{font-size:1.45rem;margin:0 0 .5em;line-height:1.3}
+h3{font-size:1.08rem;margin:1.2em 0 .4em}
+p{margin:.5em 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;margin:20px 0;box-shadow:var(--shadow)}
+.secnum{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.9rem;margin-right:8px;vertical-align:2px}
+.muted{color:var(--muted)}
+.math{font-family:"Cambria Math",Cambria,"STIX Two Math","Times New Roman",serif;font-size:1.25rem;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center;overflow-x:auto;margin:12px 0}
+.math .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .2em}
+.math .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 .3em}
+.math .sum{font-size:1.7em;vertical-align:-.15em;position:relative}
+.math .lim{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.math .lim small{font-size:.55em}
+.cases{display:inline-flex;align-items:center;gap:6px}
+.cases .brace{font-size:2.6em;line-height:1;font-weight:200}
+.cases .rows{text-align:left;font-size:.95em;line-height:1.7}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.note{border-radius:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--line)}
+.note.warn{background:var(--warn-soft);border-color:transparent}
+.note.bad{background:var(--bad-soft);border-color:transparent}
+.note.good{background:var(--accent-soft);border-color:transparent}
+dl.notation{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:8px 0}
+dl.notation dt{font-family:"Cambria Math",Cambria,serif;font-weight:700;color:var(--accent);white-space:nowrap}
+dl.notation dd{margin:0;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;margin:10px 0}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;font-size:.95rem}
+th{color:var(--muted);font-weight:600;font-size:.85rem}
+td.cntcell{font-weight:700}
+td.cnt1{color:var(--bad)} td.cnt0{color:var(--good)}
+button.pred{font:inherit;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:3px 10px;cursor:pointer;min-width:84px}
+button.pred:hover{border-color:var(--accent)}
+button.pred.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.btn{font:inherit;font-size:.9rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.result{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{flex:1 1 150px;background:var(--surface2);border-radius:10px;padding:12px 14px}
+.stat .v{font-size:1.7rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .l{font-size:.85rem;color:var(--muted)}
+.dots{display:flex;flex-wrap:wrap;gap:3px;margin:10px 0}
+.dot{width:16px;height:16px;border-radius:3px;background:var(--accent)}
+.dot.e{background:var(--bad)}
+.ctrl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;margin:10px 0}
+.ctrl label{font-weight:600;font-size:.95rem}
+.ctrl output{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
+.ctrl input{grid-column:1 / -1;width:100%;accent-color:var(--accent)}
+.bars{margin:14px 0}
+.barrow{display:grid;grid-template-columns:110px 1fr 70px;gap:10px;align-items:center;margin:8px 0}
+.track{height:22px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.fill{height:100%;border-radius:6px;transition:width .25s}
+.fill.h{background:var(--accent)} .fill.d{background:var(--bad)}
+.barrow .num{font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+.calc{font-family:"Cambria Math",Cambria,serif;font-size:1.02rem;background:var(--surface2);border-radius:10px;padding:10px 14px;overflow-x:auto;white-space:nowrap}
+.calc b{color:var(--accent)}
+.verdict{font-weight:700;margin-top:10px;padding:10px 14px;border-radius:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:inherit;font-size:.9rem;border:0;background:var(--surface);color:var(--ink);padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#06110c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#06110c}}
+.quiz .q{margin:16px 0;padding-top:12px;border-top:1px solid var(--line)}
+.quiz .q:first-of-type{border-top:0;padding-top:0}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opts button{font:inherit;text-align:left;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer}
+.opts button:hover{border-color:var(--accent)}
+.opts button.ok{background:var(--accent-soft);border-color:var(--accent)}
+.opts button.no{background:var(--bad-soft);border-color:var(--bad)}
+.fb{margin-top:8px;font-size:.95rem}
+.themebtn{position:absolute;top:12px;right:12px;z-index:5}
+footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:28px}
+@media (max-width:560px){section{padding:18px}.barrow{grid-template-columns:84px 1fr 60px}.math{font-size:1.05rem}}
+</style>
+</head>
+<body>
+<button class="btn themebtn" id="themeBtn" aria-label="Temayı değiştir">◐ Tema</button>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">Hatanın Ölçülmesi · Sınıflandırma</div>
+  <h1>Hata Oranı (Error Rate)</h1>
+  <p class="lead">Sınıflandırma problemleri için en basit metrik: toplam tahmin sayısı içindeki yanlış tahmin sayısı. Sezgiseldir, ama nadir sınıfların önemli olduğu problemlerde ciddi biçimde yanıltır.</p>
+</header>
+
+<section id="gosterim">
+  <h2><span class="secnum">1</span>Gösterim</h2>
+  <dl class="notation">
+    <dt>X</dt><dd>Giriş değişken(ler)i: tahmin için kullanılan veri (bir hastanın CT taraması, bir bitkinin genetik profili, bir kuşun çiftleşme çağrısı kaydı, bir ekonomik gösterge…).</dd>
+    <dt>y ∈ {a, b, c, …}</dt><dd>Çıktı değişkeni: örneği mevcut sınıflardan birine atar. Sınıf sayısının sınırı yoktur ama sonlu olmalıdır.</dd>
+    <dt>ŷ = f(X)</dt><dd>Gerçek tahmin: yeni veri verildiğinde f() fonksiyonunun ürettiği çıktı.</dd>
+    <dt>yᵢ, ŷᵢ</dt><dd>Tek bir veri noktasıyla güvenilir istatistik elde edilemez; bu yüzden semboller i = 1, …, n alt indeksini alır.</dd>
+  </dl>
+  <div class="note"><strong>Önemli:</strong> Bir modelin performansını ölçmenin tek yolu, doğru cevabını bildiğimiz veriler üzerinde tahmin yapmaktır; ancak o zaman ŷ ile y karşılaştırılabilir.</div>
+</section>
+
+<section id="formul">
+  <h2><span class="secnum">2</span>Tanım</h2>
+  <div class="math" role="math" aria-label="Hata oranı eşittir n bölü bir çarpı i eşit 1'den n'ye cnt y i, y şapka i toplamı">
+    HATA ORANI =
+    <span class="frac"><span>1</span><span>n</span></span>
+    <span class="lim"><small>n</small><span class="sum">Σ</span><small>i = 1</small></span>
+    cnt(y<sub>i</sub>, ŷ<sub>i</sub>)
+  </div>
+  <p>Buradaki sayma fonksiyonu cnt():</p>
+  <div class="math" role="math" aria-label="cnt eşittir 1 eğer y şapka i y i'ye eşit değilse, 0 eğer eşitse">
+    <span class="cases">cnt(y<sub>i</sub>, ŷ<sub>i</sub>) =
+      <span class="brace">{</span>
+      <span class="rows">1&nbsp;&nbsp;eğer ŷ<sub>i</sub> ≠ y<sub>i</sub> &nbsp;(yanlış tahmin)<br>0&nbsp;&nbsp;eğer ŷ<sub>i</sub> = y<sub>i</sub> &nbsp;(doğru tahmin)</span>
+    </span>
+  </div>
+  <div class="grid2">
+    <div class="note good"><strong>Yorum:</strong> Hata oranı 0,25 ise modelin tahminlerinin dörtte üçü doğru, dörtte biri yanlıştır.</div>
+    <div class="note"><strong>Aralık:</strong> Tanım gereği [0, 1]. 0 → hiç sınıflandırma hatası yok; 1 → hiçbir şey doğru sınıflandırılmadı.</div>
+  </div>
+</section>
+
+<section id="ornek">
+  <h2><span class="secnum">3</span>Etkileşimli örnek: 12 köpek fotoğrafı</h2>
+  <p class="muted">Model her fotoğraf için bir ırk tahmin ediyor. Tahmin hücresine tıklayarak ŷ değerini değiştirin; cnt sütunu ve hata oranı anında güncellenir.</p>
+  <div class="tablewrap">
+    <table id="dogTable">
+      <thead><tr><th>i</th><th>Gerçek yᵢ</th><th>Tahmin ŷᵢ</th><th>cnt(yᵢ, ŷᵢ)</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="resetDogs">Başlangıç örneğine dön</button>
+    <button class="btn" id="allRight">Tümünü doğru yap</button>
+    <button class="btn" id="allWrong">Tümünü yanlış yap</button>
+  </div>
+  <div class="result">
+    <div class="stat"><div class="v" id="dogErr">—</div><div class="l">yanlış tahmin sayısı Σ cnt</div></div>
+    <div class="stat"><div class="v" id="dogRate">—</div><div class="l">hata oranı</div></div>
+    <div class="stat"><div class="v" id="dogAcc">—</div><div class="l">doğruluk = 1 − hata oranı</div></div>
+  </div>
+  <div class="calc" id="dogCalc" style="margin-top:12px"></div>
+</section>
+
+<section id="sinirlama">
+  <h2><span class="secnum">4</span>Sınırlama: nadir görülen hastalık</h2>
+  <p>Bir sistem, hastanın DNA profiline bakarak nadir bir hastalığı tespit ediyor. Nüfusun <strong>%99'u</strong> sağlıklı. İki tahmin mekanizmasını karşılaştıralım:</p>
+  <div class="grid2">
+    <div class="note"><strong>Dürüst sınıflandırıcı</strong><br>Hastalığı tespit etmeye çalışır. Hastaların <strong>dörtte üçünü</strong> bulur; ama her on sağlıklı kişiden <strong>ikisini</strong> yanlışlıkla hasta olarak sınıflandırır.</div>
+    <div class="note bad"><strong>“Aptal” sınıflandırıcı</strong><br>Hiçbir şey tahmin etmeye çalışmaz: insanların çoğu sağlıklı olduğu için herkese <strong>“sağlıklı”</strong> der.</div>
+  </div>
+
+  <h3>Parametreleri değiştirin</h3>
+  <div class="ctrl"><label for="prev">Hastalık sıklığı (prevalans)</label><output id="prevOut"></output><input type="range" id="prev" min="0.1" max="50" step="0.1" value="1"></div>
+  <div class="ctrl"><label for="sens">Dürüst model: hastaların bulunan oranı</label><output id="sensOut"></output><input type="range" id="sens" min="0" max="100" step="1" value="75"></div>
+  <div class="ctrl"><label for="fpr">Dürüst model: sağlıklıların yanlışlıkla “hasta” denen oranı</label><output id="fprOut"></output><input type="range" id="fpr" min="0" max="50" step="1" value="20"></div>
+  <button class="btn" id="resetSim">Kitaptaki değerlere dön (%1 · %75 · %20)</button>
+
+  <div class="bars" aria-live="polite">
+    <div class="barrow"><span>Dürüst</span><div class="track"><div class="fill h" id="barH"></div></div><span class="num" id="numH"></span></div>
+    <div class="barrow"><span>Aptal</span><div class="track"><div class="fill d" id="barD"></div></div><span class="num" id="numD"></span></div>
+  </div>
+  <div class="calc" id="calcH"></div>
+  <div class="calc" id="calcD" style="margin-top:6px"></div>
+
+  <h3>10.000 kişilik bir nüfusta</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>Hasta</th><th>Sağlıklı</th><th>Toplam hata</th><th>Hata oranı</th></tr></thead>
+      <tbody>
+        <tr><th>Kişi sayısı</th><td id="nSick"></td><td id="nHealthy"></td><td>—</td><td>—</td></tr>
+        <tr><th>Dürüst: hatalar</th><td id="hMiss"></td><td id="hFP"></td><td id="hTot"></td><td id="hRate"></td></tr>
+        <tr><th>Aptal: hatalar</th><td id="dMiss"></td><td>0</td><td id="dTot"></td><td id="dRate"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="verdict" id="verdict"></div>
+  <div class="note warn" style="margin-top:12px" id="threshold"></div>
+</section>
+
+<section id="neden">
+  <h2><span class="secnum">5</span>Neden yanıltıyor?</h2>
+  <p>Hata oranı, her yanlış tahmini <em>aynı ağırlıkla</em> sayar ve hangi sınıfta yapıldığına bakmaz. Bir sınıf örneklerin büyük çoğunluğunu oluşturuyorsa, yalnızca o sınıfı tahmin eden model düşük hata oranı alır.</p>
+  <h3>Üç veya daha fazla sınıfta da aynı sorun</h3>
+  <p class="muted">1000 meyve görüntüsü; dağılımı seçin. Model her zaman en sık sınıfı (“elma”) tahmin ediyor:</p>
+  <div class="seg" role="group" aria-label="Sınıf dağılımı">
+    <button data-mix="34,33,33">Dengeli (34/33/33)</button>
+    <button data-mix="80,10,10" aria-pressed="true">Baskın (80/10/10)</button>
+    <button data-mix="98,1,1">Aşırı baskın (98/1/1)</button>
+  </div>
+  <div class="result">
+    <div class="stat"><div class="v" id="mErr"></div><div class="l">“hep elma” modelinin hata oranı</div></div>
+    <div class="stat"><div class="v" id="mMissed"></div><div class="l">muz ve domatesten doğru bilinen</div></div>
+  </div>
+  <div class="note bad" style="margin-top:12px"><strong>Sonuç:</strong> Hata oranı, nadir vakaların dikkate alınmasının önemli olduğu durumlarda kötü bir metriktir. Sınıf dengesizliğine karşı daha gürbüz (robust) metrikler gerekir; ilk adım kafa karışıklığı matrisine bakmaktır.</div>
+</section>
+
+<section id="test" class="quiz">
+  <h2><span class="secnum">6</span>Kendinizi test edin</h2>
+  <div id="quiz"></div>
+</section>
+
+<section id="ozet">
+  <h2><span class="secnum">7</span>Özet</h2>
+  <ul>
+    <li>Hata oranı = yanlış tahmin sayısı / toplam tahmin sayısı = (1/n) Σ cnt(yᵢ, ŷᵢ); değeri [0, 1] aralığındadır.</li>
+    <li>Doğruluk (accuracy) = 1 − hata oranı.</li>
+    <li>Nadir hastalık örneği: dürüst model 0,2005; hiçbir şey yapmayan model 0,01. Düşük hata oranı iyi model demek değildir.</li>
+    <li>Dengesiz verilerde kafa karışıklığı matrisi, çapraz entropi, TPR/TNR, MCC ve Cohen'in κ'sı gibi metriklere geçilmelidir.</li>
+  </ul>
+</section>
+
+<footer>Kaynak: “Hatanın Ölçülmesi: Öğrenme Modellerinin Doğrulanması” bölümü · Hata Oranı ve Sınırlamaları</footer>
+</div>
+
+<script>
+(function(){
+  // ---------- tema ----------
+  const root=document.documentElement;
+  let saved=null; try{saved=localStorage.getItem('ho-theme');}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  document.getElementById('themeBtn').addEventListener('click',()=>{
+    const isDark = root.getAttribute('data-theme')==='dark' || (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    const next = isDark?'light':'dark'; root.setAttribute('data-theme',next);
+    try{localStorage.setItem('ho-theme',next);}catch(e){}
+  });
+
+  const fmt=(x,d=4)=>x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const pct=(x,d=1)=>'%'+x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+  // ---------- 3: köpek örneği ----------
+  const breeds=['Kangal','Golden','Terrier'];
+  const truth=['Kangal','Golden','Golden','Terrier','Kangal','Terrier','Golden','Kangal','Terrier','Golden','Kangal','Terrier'];
+  const initPred=['Kangal','Golden','Terrier','Terrier','Kangal','Terrier','Golden','Golden','Terrier','Golden','Kangal','Kangal'];
+  let pred=initPred.slice();
+  const tbody=document.querySelector('#dogTable tbody');
+  function renderDogs(){
+    tbody.innerHTML='';
+    let err=0;
+    truth.forEach((y,i)=>{
+      const c = pred[i]!==y ? 1:0; err+=c;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${i+1}</td><td>${y}</td><td><button class="pred ${c?'wrong':''}" data-i="${i}" aria-label="Örnek ${i+1} tahmini: ${pred[i]}. Değiştirmek için tıklayın">${pred[i]}</button></td><td class="cntcell cnt${c}">${c}</td>`;
+      tbody.appendChild(tr);
+    });
+    const n=truth.length, r=err/n;
+    document.getElementById('dogErr').textContent=err+' / '+n;
+    document.getElementById('dogRate').textContent=fmt(r,3).replace(/0+$/,'').replace(/,$/,',0');
+    document.getElementById('dogAcc').textContent=fmt(1-r,3).replace(/0+$/,'').replace(/,$/,',0');
+    document.getElementById('dogCalc').innerHTML=`Hata oranı = (1/${n}) × ${err} = <b>${fmt(r,4)}</b> &nbsp;→&nbsp; tahminlerin ${pct(100*(1-r),1)} kadarı doğru, ${pct(100*r,1)} kadarı yanlış`;
+  }
+  tbody.addEventListener('click',e=>{
+    const b=e.target.closest('button.pred'); if(!b) return;
+    const i=+b.dataset.i; pred[i]=breeds[(breeds.indexOf(pred[i])+1)%breeds.length]; renderDogs();
+  });
+  document.getElementById('resetDogs').onclick=()=>{pred=initPred.slice();renderDogs();};
+  document.getElementById('allRight').onclick=()=>{pred=truth.slice();renderDogs();};
+  document.getElementById('allWrong').onclick=()=>{pred=truth.map(y=>breeds[(breeds.indexOf(y)+1)%3]);renderDogs();};
+  renderDogs();
+
+  // ---------- 4: nadir hastalık ----------
+  const prev=document.getElementById('prev'), sens=document.getElementById('sens'), fpr=document.getElementById('fpr');
+  const N=10000;
+  function sim(){
+    const p=+prev.value/100, s=+sens.value/100, f=+fpr.value/100;
+    document.getElementById('prevOut').textContent=pct(100*p, p*100<1?1:1);
+    document.getElementById('sensOut').textContent=pct(100*s,0);
+    document.getElementById('fprOut').textContent=pct(100*f,0);
+    const eH = p*(1-s) + (1-p)*f;
+    const eD = p;
+    const mx=Math.max(eH,eD,0.0001);
+    const scale = Math.max(0.25, mx*1.1);
+    document.getElementById('barH').style.width=(100*eH/scale)+'%';
+    document.getElementById('barD').style.width=(100*eD/scale)+'%';
+    document.getElementById('numH').textContent=fmt(eH,4);
+    document.getElementById('numD').textContent=fmt(eD,4);
+    const P=(x)=>x.toLocaleString('tr-TR',{maximumFractionDigits:3});
+    document.getElementById('calcH').innerHTML=`Dürüst: ${P(p)} × ${pct(100*(1-s),0)} + ${P(1-p)} × ${pct(100*f,0)} = <b>${fmt(eH,4)}</b>`;
+    document.getElementById('calcD').innerHTML=`Aptal: ${P(p)} × %100 + ${P(1-p)} × %0 = <b>${fmt(eD,4)}</b>`;
+    const sick=Math.round(N*p), healthy=N-sick;
+    const miss=Math.round(sick*(1-s)), fp=Math.round(healthy*f);
+    const hTot=miss+fp, dTot=sick;
+    const set=(id,v)=>document.getElementById(id).textContent=v;
+    const nf=(x)=>x.toLocaleString('tr-TR');
+    set('nSick',nf(sick)); set('nHealthy',nf(healthy));
+    set('hMiss',nf(miss)+' kaçırıldı'); set('hFP',nf(fp)+' yanlış alarm'); set('hTot',nf(hTot)); set('hRate',fmt(hTot/N,4));
+    set('dMiss',nf(sick)+' kaçırıldı'); set('dTot',nf(dTot)); set('dRate',fmt(dTot/N,4));
+    const v=document.getElementById('verdict');
+    if(eD<eH){ v.className='verdict note bad'; v.textContent=`Hata oranına göre “aptal” model ${fmt(eH/eD,1)} kat daha iyi görünüyor; oysa ${nf(sick)} hastanın hiçbirini bulmuyor. Dürüst model ise ${nf(Math.round(sick*s))} hastayı yakalıyor.`; }
+    else if(eD>eH){ v.className='verdict note good'; v.textContent=`Bu ayarlarda dürüst modelin hata oranı daha düşük: hastalık yeterince yaygın olduğunda hata oranı doğru modeli öne çıkarıyor.`; }
+    else { v.className='verdict note'; v.textContent='İki modelin hata oranı eşit.'; }
+    const th = (s+f)>0 ? f/(s+f) : NaN;
+    document.getElementById('threshold').innerHTML = isFinite(th)
+      ? `<strong>Eşik:</strong> Dürüst model ancak prevalans p > FPR / (TPR + FPR) = ${fmt(f,2)} / (${fmt(s,2)} + ${fmt(f,2)}) = <strong>${pct(100*th,1)}</strong> olduğunda hata oranında “aptal” modeli geçer. (Çünkü (1 − p)·FPR < p·TPR olmalıdır.)`
+      : 'Eşik tanımsız.';
+  }
+  [prev,sens,fpr].forEach(el=>el.addEventListener('input',sim));
+  document.getElementById('resetSim').onclick=()=>{prev.value=1;sens.value=75;fpr.value=20;sim();};
+  sim();
+
+  // ---------- 5: çok sınıf ----------
+  function mix(str){
+    const [a,b,c]=str.split(',').map(Number); const tot=1000, nA=a*10, nB=b*10, nC=c*10;
+    document.getElementById('mErr').textContent=fmt((nB+nC)/tot,2)+'  ('+(nB+nC)+'/1000)';
+    document.getElementById('mMissed').textContent='0 / '+(nB+nC);
+  }
+  document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true'); mix(b.dataset.mix);
+  }));
+  mix('80,10,10');
+
+  // ---------- 6: test ----------
+  const Q=[
+    {q:'200 örnekli bir test kümesinde model 30 yanlış tahmin yapıyor. Hata oranı kaçtır?',o:['0,30','0,15','0,85','30'],a:1,e:'30 / 200 = 0,15. Doğruluk 1 − 0,15 = 0,85 olur.'},
+    {q:'Hata oranı 0,25 olan bir model için hangisi doğrudur?',o:['Tahminlerin dörtte biri doğrudur','Tahminlerin dörtte üçü doğrudur','Model %25 olasılıkla eğitilmiştir','Hata oranı 1\'e yakın olduğu için model iyidir'],a:1,e:'Hata oranı yanlış tahminlerin payıdır: 0,25 → dörtte biri yanlış, dörtte üçü doğru.'},
+    {q:'Nüfusun %99\'u sağlıklıyken herkese “sağlıklı” diyen modelin hata oranı nedir?',o:['0,99','0,2005','0,01','0'],a:2,e:'Model yalnızca %1\'lik hasta grubunda yanılır: 0,01 × 1 + 0,99 × 0 = 0,01.'},
+    {q:'cnt(yᵢ, ŷᵢ) fonksiyonu hangi durumda 1 değerini alır?',o:['ŷᵢ = yᵢ olduğunda','ŷᵢ ≠ yᵢ olduğunda','ŷᵢ olasılığı 0,5\'ten büyük olduğunda','Her zaman'],a:1,e:'cnt yalnızca yanlış tahminleri sayar: tahmin gerçek sınıftan farklıysa 1, aynıysa 0.'},
+  ];
+  const qz=document.getElementById('quiz');
+  Q.forEach((it,qi)=>{
+    const d=document.createElement('div'); d.className='q';
+    d.innerHTML=`<strong>${qi+1}. ${it.q}</strong><div class="opts"></div><div class="fb" aria-live="polite"></div>`;
+    const opts=d.querySelector('.opts'), fb=d.querySelector('.fb');
+    it.o.forEach((t,oi)=>{
+      const b=document.createElement('button'); b.textContent=t;
+      b.onclick=()=>{
+        opts.querySelectorAll('button').forEach(x=>x.classList.remove('ok','no'));
+        if(oi===it.a){b.classList.add('ok');fb.innerHTML='<strong>Doğru.</strong> '+it.e;}
+        else{b.classList.add('no');fb.innerHTML='<strong>Tekrar deneyin.</strong>';}
+      };
+      opts.appendChild(b);
+    });
+    qz.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>
