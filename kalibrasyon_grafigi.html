@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalibrasyon Grafiği</title>
+<style>
+:root{
+  --bg:#f5f8f6; --surface:#ffffff; --surface2:#eef4f0; --ink:#13241c; --muted:#4f6559; --line:#d5e2da;
+  --accent:#0f8a5f; --accent-rgb:15,138,95; --accent-soft:#d8f0e4; --warn:#b45309; --warn-soft:#fdf0dc; --bad:#c2410c; --bad-rgb:194,65,12; --bad-soft:#fde4d8;
+  --blue:#2563eb; --blue-rgb:37,99,235; --grid:#dfe8e2;
+  --code:#0d1f17; --codeink:#e2f0ea; --shadow:0 1px 2px rgba(19,36,28,.06),0 4px 16px rgba(19,36,28,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-rgb:52,211,153; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-rgb:251,146,60; --bad-soft:#3d2216;
+  --blue:#60a5fa; --blue-rgb:96,165,250; --grid:#1f3a2c; --code:#06110c; --shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0b1612; --surface:#11211a; --surface2:#162b22; --ink:#e6f1eb; --muted:#9db5a8; --line:#24402f;
+  --accent:#34d399; --accent-rgb:52,211,153; --accent-soft:#143a2a; --warn:#fbbf24; --warn-soft:#3a2e12; --bad:#fb923c; --bad-rgb:251,146,60; --bad-soft:#3d2216;
+  --blue:#60a5fa; --blue-rgb:96,165,250; --grid:#1f3a2c; --code:#06110c; --shadow:none;}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:32px 16px 64px;position:relative}
+.kicker{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(2rem,5vw,2.8rem);line-height:1.15;margin:.3em 0}
+h2{font-size:1.45rem;margin:0 0 .5em;line-height:1.3}
+h3{font-size:1.08rem;margin:1.2em 0 .4em}
+p{margin:.5em 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:62ch}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;margin:20px 0;box-shadow:var(--shadow)}
+.secnum{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.9rem;margin-right:8px;vertical-align:2px}
+.muted{color:var(--muted)} .small{font-size:.88rem}
+code{overflow-wrap:anywhere}
+.note{border-radius:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--line)}
+.note.warn{background:var(--warn-soft);border-color:transparent}
+.note.bad{background:var(--bad-soft);border-color:transparent}
+.note.good{background:var(--accent-soft);border-color:transparent}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.btn{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 11px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .btn.on{color:#06110c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.on{color:#06110c}}
+.themebtn{position:absolute;top:12px;right:16px}
+.math{font-family:"Cambria Math",Cambria,"STIX Two Math","Times New Roman",serif;font-size:1.22rem;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center;overflow-x:auto;margin:12px 0;white-space:nowrap}
+.math .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .2em}
+.math .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 .3em}
+.math .lbl{display:block;font-family:system-ui,sans-serif;font-size:.75rem;color:var(--muted);margin-top:6px;white-space:normal}
+.calc{font-family:"Cambria Math",Cambria,serif;font-size:1rem;background:var(--surface2);border-radius:10px;padding:10px 14px;overflow-x:auto;white-space:nowrap;margin:8px 0}
+.calc b{color:var(--accent)}
+.tablewrap{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;font-size:.9rem}
+th{color:var(--muted);font-weight:600;font-size:.82rem}
+td.l,th.l{text-align:left}
+.two{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.two{grid-template-columns:minmax(0,1fr)}}
+svg.plot{width:100%;height:auto;display:block}
+svg.plot text{fill:var(--muted);font-size:12px;font-family:system-ui,sans-serif}
+.mini{background:var(--surface2);border-radius:12px;padding:10px}
+.mini strong{display:block;font-size:.95rem}
+.mini p{font-size:.84rem;color:var(--muted);margin:.2em 0 0}
+.ctrl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;margin:8px 0}
+.ctrl label{font-weight:600;font-size:.95rem}
+.ctrl output{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
+.ctrl input{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.result{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.stat{flex:1 1 130px;background:var(--surface2);border-radius:10px;padding:10px 12px}
+.stat .v{font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .l{font-size:.8rem;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:4px 0}
+.seg button{font:inherit;font-size:.86rem;border:0;background:var(--surface);color:var(--ink);padding:5px 11px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#06110c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#06110c}}
+pre{background:var(--code);color:var(--codeink);border-radius:10px;padding:14px;overflow-x:auto;font:13px/1.55 ui-monospace,"Cascadia Code",Consolas,"Courier New",monospace;margin:10px 0}
+pre .c{color:#7fa592} pre .s{color:#fbbf24} pre .k{color:#34d399} pre .n{color:#a3e635}
+.quiz .q{margin:16px 0;padding-top:12px;border-top:1px solid var(--line)}
+.quiz .q:first-child{border-top:0;padding-top:0}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opts button{font:inherit;text-align:left;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer}
+.opts button:hover{border-color:var(--accent)}
+.opts button.ok{background:var(--accent-soft);border-color:var(--accent)}
+.opts button.no{background:var(--bad-soft);border-color:var(--bad)}
+.fb{margin-top:8px;font-size:.95rem}
+footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:28px}
+@media (max-width:560px){section{padding:18px}.math{font-size:1rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<button class="btn themebtn" id="themeBtn" aria-label="Temayı değiştir">◐ Tema</button>
+
+<header>
+  <div class="kicker">Hatanın Ölçülmesi · Olasılıkların Doğruluğu</div>
+  <h1>Kalibrasyon Grafiği</h1>
+  <p class="lead">Model “%70” dediğinde olay gerçekten yaklaşık %70 oranında gerçekleşiyor mu? Kalibrasyon grafiği bu soruyu görsel olarak, Brier skoru ise tek bir sayıyla yanıtlar. Örnekler kazanma olasılığı tahmini, dinamik zorluk ayarı ve render çiftliğinden.</p>
+</header>
+
+<section id="neden">
+  <h2><span class="secnum">1</span>Neden olasılıkların doğruluğu?</h2>
+  <p>Kafa karışıklığı matrisi, ROC-AUC, MCC ve κ <strong>kararları</strong> (pozitif / negatif) değerlendirir. Ama birçok uygulamada asıl çıktı <strong>olasılığın kendisidir</strong>: ameliyattan n yıl sonra hayatta kalma olasılığı, yarın yağmur yağma olasılığı ya da bir oyuncunun maçı kazanma olasılığı.</p>
+  <div class="note"><strong>Kitaptaki örnek:</strong> Model genç hastaların kalp ameliyatından 10 yıl sonra hayatta kalma olasılığını %80 olarak tahmin ediyorsa, iyi bir model için genç hastaların yaklaşık %80'inin gerçekten hayatta kalması gerekir. Yaşlı hastalar için %60 diyorsa, onların da yaklaşık %60'ı hayatta kalmalıdır. Tahminler olay oranlarının gözlenen dağılımıyla uyuşuyorsa model <strong>iyi kalibre edilmiştir</strong>.</div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="note good"><strong>Ayrım gücü (discrimination)</strong><br>Model kazananları kaybedenlerden daha yüksek olasılıkla sıralayabiliyor mu? → ROC-AUC</div>
+    <div class="note good"><strong>Kalibrasyon</strong><br>Modelin verdiği sayılar gerçek frekanslarla uyuşuyor mu? → kalibrasyon grafiği, Brier skoru</div>
+  </div>
+  <p class="small muted" style="margin-top:8px">Not: Kitapta Cohen'in kappasının hemen ardından ele alınsa da kalibrasyon grafiği Cohen'e ait bir yöntem değildir; ikisi farklı sorulara yanıt verir.</p>
+</section>
+
+<section id="nasil">
+  <h2><span class="secnum">2</span>Kalibrasyon grafiği nasıl çizilir?</h2>
+  <ol>
+    <li>Modelin her örnek için verdiği P(y = 1 | x) olasılıklarını aralıklara (bin) ayırın. Kitapta 0,2'lik adımlarla 5 grup kullanılır: [0; 0,2), [0,2; 0,4), …, [0,8; 1].</li>
+    <li>Her grupta <strong>x</strong>: grubun ortalama model olasılığı (ya da grup merkezi), <strong>y</strong>: o gruptaki örneklerde olayın gerçekleşme oranı p̂.</li>
+    <li>Her nokta için %95 güven aralığı çizin.</li>
+    <li>Kesikli köşegen (y = x) <strong>mükemmel kalibrasyondur</strong>: %20 tahmin → %20 gözlenen.</li>
+  </ol>
+  <div class="math">%95 GA = p̂ ± 1,96 · √<span style="text-decoration:overline">p̂ (1 − p̂) / N</span>
+    <span class="lbl">p̂: grupta olayın gerçekleşme oranı · N: gruptaki gözlem sayısı</span></div>
+  <div class="calc">Örnek: bir grupta N = 120 maç, 84 galibiyet → p̂ = 0,70 → 0,70 ± 1,96 · √(0,70 · 0,30 / 120) = 0,70 ± <b>0,082</b> → [0,618; 0,782]</div>
+  <p class="small muted">Az örnek içeren gruplarda güven aralığı genişler; köşegenden uzak bir nokta orada şans eseri olabilir.</p>
+</section>
+
+<section id="lab">
+  <h2><span class="secnum">3</span>Etkileşimli laboratuvar: kazanma olasılığı göstergesi</h2>
+  <p>Bir MOBA oyununun yayınlarında izleyicilere gösterilen “Mavi takımın kazanma olasılığı” göstergesi, maçın 15. dakikasındaki altın farkı, kule sayısı ve ejderhalardan tahmin yapıyor. Test kümesinde <strong>2000 maç</strong> var. Modelin güven düzeyini ve yanlılığını değiştirerek kalibrasyon grafiğinin nasıl tepki verdiğini görün.</p>
+  <div class="presets" id="presets">
+    <button class="btn" data-s="1" data-b="0">İyi kalibre</button>
+    <button class="btn" data-s="2" data-b="0">Aşırı emin</button>
+    <button class="btn" data-s="0.5" data-b="0">Yetersiz emin</button>
+    <button class="btn" data-s="1" data-b="0.8">Maviyi kayıran</button>
+    <button class="btn" data-s="1" data-b="-0.8">Maviyi küçümseyen</button>
+  </div>
+  <div class="ctrl"><label for="s">Güven çarpanı s (logit ölçeği)</label><output id="sOut"></output><input type="range" id="s" min="0.3" max="3" step="0.05" value="1"></div>
+  <div class="ctrl"><label for="b">Yanlılık b (logit kayması)</label><output id="bOut"></output><input type="range" id="b" min="-1.5" max="1.5" step="0.05" value="0"></div>
+  <div><span class="small muted">Grup sayısı:</span>
+    <div class="seg" role="group" aria-label="Grup sayısı"><button data-k="5" aria-pressed="true">5 (kitaptaki gibi)</button><button data-k="10" aria-pressed="false">10</button></div>
+  </div>
+  <div class="two" style="margin-top:8px">
+    <svg class="plot" id="cal" viewBox="0 0 380 380" role="img" aria-label="Kalibrasyon grafiği"></svg>
+    <div>
+      <svg class="plot" id="hist" viewBox="0 0 380 150" role="img" aria-label="Model olasılıklarının dağılımı"></svg>
+      <div class="result" aria-live="polite">
+        <div class="stat"><div class="v" id="vBr"></div><div class="l">Brier skoru (model)</div></div>
+        <div class="stat"><div class="v" id="vBr0"></div><div class="l">Brier (referans: herkese aynı oran)</div></div>
+        <div class="stat"><div class="v" id="vBss"></div><div class="l">referansa göre iyileşme</div></div>
+        <div class="stat"><div class="v" id="vAuc"></div><div class="l">ROC-AUC</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="tablewrap"><table id="binTable"></table></div>
+  <div class="note" id="labNote" aria-live="polite"></div>
+  <p class="small muted">Model çıktısı: q = σ(s · logit(p) + b). Burada p her maçın “gerçek” kazanma olasılığıdır; sonuçlar bu olasılıklarla rastgele (sabit tohumla) üretildi. s = 1, b = 0 iken model gerçeğe en yakındır.</p>
+</section>
+
+<section id="auc">
+  <h2><span class="secnum">4</span>AUC aynı, kalibrasyon farklı</h2>
+  <p>Laboratuvarda s ve b'yi değiştirirken ROC-AUC'nin <strong>hiç değişmediğine</strong> dikkat edin. s &gt; 0 olduğu sürece bu dönüşüm maçların sıralamasını korur; AUC yalnızca sıralamaya baktığı için aynı kalır. Oysa olasılık sayıları tamamen değişmiştir.</p>
+  <div class="note warn"><strong>Ders:</strong> Yüksek AUC, olasılıkların doğru olduğunu garanti etmez. Olasılığın kendisi kullanılıyorsa (izleyiciye gösteriliyorsa, bir karar formülüne giriyorsa, bir bütçe hesabında çarpılıyorsa) kalibrasyon ayrıca kontrol edilmelidir.</div>
+</section>
+
+<section id="desen">
+  <h2><span class="secnum">5</span>Grafiği okumak: dört tipik desen</h2>
+  <div class="grid4" id="patterns"></div>
+</section>
+
+<section id="dda">
+  <h2><span class="secnum">6</span>Neden önemli? Dinamik zorluk ayarı</h2>
+  <p>Bir platform oyununda sistem, oyuncunun bir sonraki bölümü ilk denemede geçme olasılığını tahmin ediyor ve bölümün zorluğunu bu olasılık <strong>%70</strong> olacak şekilde ayarlıyor. Tasarım hedefi: oyuncuların yaklaşık %70'i ilk denemede geçsin.</p>
+  <div class="grid2">
+    <div class="note good"><strong>İyi kalibre model</strong><br>“%70” dediği bölümlerde oyuncuların gerçekten ≈ %70'i geçiyor. Zorluk eğrisi tasarlandığı gibi.</div>
+    <div class="note bad"><strong>Aşırı emin model (s = 2)</strong><br>Sistem zorluğu, model “%70” diyene kadar artırıyor. Ama bu modelde “%70”, gerçekte yalnızca ≈ %60 geçme olasılığına karşılık geliyor. Her 10 oyuncudan biri fazladan takılıyor; hayal kırıklığı ve oyunu bırakma artar.</div>
+  </div>
+  <div class="calc">s = 2: q = σ(2 · logit p) → q = 0,70 ⇒ logit p = logit(0,70) / 2 = 0,424 ⇒ p = <b>0,604</b></div><p>Laboratuvarda “Aşırı emin” senaryosunu seçip 0,6–0,8 grubuna bakın: model ortalama olarak gözlenenden daha yüksek olasılık veriyor.</p>
+</section>
+
+<section id="render">
+  <h2><span class="secnum">7</span>Animasyondan örnek: render çiftliğinde bütçe</h2>
+  <p>Bir animasyon stüdyosunun render çiftliğinde model, her karenin zaman aşımına uğrama (yeniden render gerektirme) olasılığını tahmin ediyor. Planlama ekibi bu olasılıkları <strong>toplayarak</strong> beklenen yeniden render sayısını ve ek sunucu saatini hesaplıyor.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th class="l">Sahne</th><th>Kare sayısı</th><th>Modelin ortalama olasılığı</th><th>Beklenen başarısız kare</th><th>Gerçekleşen</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Sahne A: kalibre model</td><td>500</td><td>0,10</td><td>500 × 0,10 = 50</td><td>48</td></tr>
+      <tr><td class="l">Sahne B: yetersiz emin model</td><td>500</td><td>0,10</td><td>50</td><td>95</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note bad">Sahne B'de model, sorunlu karelere de “ortalamaya yakın” olasılıklar veriyor. Sıralaması iyi olsa bile (AUC yüksek olsa bile) toplam bütçe yarı yarıya eksik çıkar. Beklenen değer hesabı yapan her sistem kalibrasyona doğrudan bağımlıdır.</div>
+  <p class="small muted">Sayılar öğretim amaçlıdır.</p>
+</section>
+
+<section id="brier">
+  <h2><span class="secnum">8</span>Brier skoru: tek sayıyla kalibrasyon ve keskinlik</h2>
+  <p>Kalibrasyon grafiği görseldir; ROC eğrisinde AUC olduğu gibi burada da tek bir sayı işe yarar. Glenn Brier'in hava tahminleri için geliştirdiği skor, olasılıklara uygulanan ortalama kare hatadır:</p>
+  <div class="math">Brier = <span class="frac"><span>1</span><span>N</span></span> Σ<sub>i</sub> ( p(x<sub>i</sub>) − y<sub>i</sub> )²
+    <span class="lbl">p(x<sub>i</sub>) = P(y = 1 | x<sub>i</sub>) · y<sub>i</sub> ∈ {0, 1} · 0 = mükemmel (olaylara hep 1, diğerlerine hep 0)</span></div>
+  <div class="calc">Tek maç: model %80 dedi, mavi kazandı → (0,8 − 1)² = 0,04 · kaybetti → (0,8 − 0)² = <b>0,64</b></div>
+  <h3>Referans noktası (benchmark)</h3>
+  <p>Brier skoru tek başına yorumlanması zor bir sayıdır. Kitaptaki öneri: herkese olayın genel oranını (prevalansı) atayan yalın bir modelle karşılaştırmak.</p>
+  <div class="calc">Kitap (Şekil 3.2): model 0,171 · herkese 0,3 atayan referans 0,216 → 100 · (0,171 − 0,216) / 0,216 ≈ <b>−%20,8</b></div>
+  <p class="small muted">Kitap bu değeri −%20,4 olarak verir; fark büyük olasılıkla yuvarlanmamış skorlardan kaynaklanır. Negatif değer, modelin Brier skorunu referansa göre yaklaşık %20 düşürdüğünü, yani tahmini iyileştirdiğini gösterir. Laboratuvardaki “referansa göre iyileşme” aynı hesabın işaret çevrilmiş hâlidir.</p>
+</section>
+
+<section id="kod">
+  <h2><span class="secnum">9</span>Python ile</h2>
+<pre><span class="k">from</span> sklearn.calibration <span class="k">import</span> calibration_curve, CalibratedClassifierCV
+<span class="k">from</span> sklearn.metrics <span class="k">import</span> brier_score_loss
+
+<span class="c"># y_gercek: 1 = mavi kazandı, 0 = kaybetti; q: modelin kazanma olasılıkları</span>
+gozlenen, ortalama_tahmin = calibration_curve(y_gercek, q, n_bins=<span class="n">5</span>)
+<span class="c"># plt.plot(ortalama_tahmin, gozlenen, "o-"); plt.plot([0, 1], [0, 1], "--")</span>
+
+brier_model    = brier_score_loss(y_gercek, q)
+brier_referans = brier_score_loss(y_gercek, [y_gercek.mean()] * len(y_gercek))
+print(<span class="n">100</span> * (brier_model - brier_referans) / brier_referans)
+
+<span class="c"># Kalibrasyonu düzeltmek: Platt (sigmoid) veya izotonik regresyon</span>
+kalibre = CalibratedClassifierCV(model, method=<span class="s">"isotonic"</span>, cv=<span class="n">5</span>).fit(X_egitim, y_egitim)</pre>
+  <p class="small muted"><code>calibration_curve</code> varsayılan olarak eşit genişlikte gruplar kullanır ve boş grupları atlar. Kalibrasyon düzeltme yöntemleri kitapta yer almıyor; pratik bir sonraki adım olarak eklendi. Düzeltme, modelin eğitiminde kullanılmayan verilerle yapılmalıdır.</p>
+</section>
+
+<section id="test" class="quiz">
+  <h2><span class="secnum">10</span>Kendinizi test edin</h2>
+  <div id="quiz"></div>
+</section>
+
+<section id="ozet">
+  <h2><span class="secnum">11</span>Özet</h2>
+  <ul>
+    <li>Kalibrasyon, modelin verdiği olasılıkların gözlenen olay oranlarıyla uyuşmasıdır.</li>
+    <li>Kalibrasyon grafiği: x ekseninde gruplanmış model olasılıkları, y ekseninde her gruptaki olay oranı; köşegen mükemmel kalibrasyondur.</li>
+    <li>Her noktanın %95 güven aralığı p̂ ± 1,96 √(p̂(1 − p̂)/N); az örnekli gruplarda geniştir.</li>
+    <li>Noktalar köşegenden düzleşiyorsa model aşırı emin, dikleşiyorsa yetersiz emin; hepsi üstte ya da altta ise yanlıdır.</li>
+    <li>ROC-AUC sıralamayı ölçer; kalibrasyonu ölçmez. Olasılıklar doğrudan kullanılıyorsa kalibrasyon ayrıca kontrol edilmelidir.</li>
+    <li>Brier skoru tek sayılık özettir; yorumlamak için prevalans gibi yalın bir referansla karşılaştırılır.</li>
+  </ul>
+</section>
+
+<footer>Kaynak: “Hatanın Ölçülmesi: Öğrenme Modellerinin Doğrulanması” bölümü · Kalibrasyon grafiği (Şekil 3.2) ve Brier skoru. Oyun ve animasyon senaryoları öğretim amaçlıdır.</footer>
+</div>
+
+<script>
+(function(){
+  const root=document.documentElement;
+  let saved=null; try{saved=localStorage.getItem('kal-theme');}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  document.getElementById('themeBtn').addEventListener('click',()=>{
+    const isDark=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);
+    const next=isDark?'light':'dark'; root.setAttribute('data-theme',next);
+    try{localStorage.setItem('kal-theme',next);}catch(e){}
+  });
+  const f=(x,d=3)=>isFinite(x)?x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+  const sig=z=>1/(1+Math.exp(-z)), logit=p=>Math.log(p/(1-p));
+
+  // ---- veri: 2000 maç, sabit tohum ----
+  let seed=20261115; const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
+  const gauss=()=>{let u=0;while(u===0)u=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*rnd());};
+  const N=2000, P=[], Y=[];
+  for(let i=0;i<N;i++){const z=0.15+1.35*gauss(); const p=sig(z); P.push(p); Y.push(rnd()<p?1:0);}
+  const prev=Y.reduce((a,b)=>a+b,0)/N;
+
+  function auc(q){ // Mann-Whitney, eşitlikler yarım
+    const idx=q.map((v,i)=>i).sort((a,b)=>q[a]-q[b]);
+    let rankSum=0, nPos=0, i=0;
+    while(i<N){let j=i; while(j+1<N && q[idx[j+1]]===q[idx[i]]) j++; const r=(i+j+2)/2; for(let k=i;k<=j;k++){ if(Y[idx[k]]){rankSum+=r;nPos++;} } i=j+1;}
+    const nNeg=N-nPos; return (rankSum-nPos*(nPos+1)/2)/(nPos*nNeg);
+  }
+  function model(s,b){return P.map(p=>sig(s*logit(p)+b));}
+  function bins(q,K){
+    const B=Array.from({length:K},()=>({n:0,y:0,q:0}));
+    q.forEach((v,i)=>{const k=Math.min(K-1,Math.floor(v*K)); B[k].n++; B[k].y+=Y[i]; B[k].q+=v;});
+    return B.map((o,k)=>({lo:k/K,hi:(k+1)/K,n:o.n,ph:o.n?o.y/o.n:NaN,mq:o.n?o.q/o.n:NaN}));
+  }
+  window.__cal={P,Y,prev,auc,model,bins,N};
+
+  // ---- çizim ----
+  const S=380,m=44,w=S-m-14, X=v=>m+v*w, Yp=v=>S-m-v*w;
+  function frame(){
+    let g='';
+    for(let i=0;i<=10;i+=2){const v=i/10;
+      g+=`<line x1="${X(v)}" y1="${Yp(0)}" x2="${X(v)}" y2="${Yp(1)}" style="stroke:var(--grid)"/><line x1="${X(0)}" y1="${Yp(v)}" x2="${X(1)}" y2="${Yp(v)}" style="stroke:var(--grid)"/>`;
+      g+=`<text x="${X(v)}" y="${Yp(0)+16}" text-anchor="middle">${v.toLocaleString('tr-TR')}</text><text x="${X(0)-6}" y="${Yp(v)+4}" text-anchor="end">${v.toLocaleString('tr-TR')}</text>`;}
+    g+=`<line x1="${X(0)}" y1="${Yp(0)}" x2="${X(1)}" y2="${Yp(1)}" style="stroke:var(--muted)" stroke-dasharray="5 4"/>`;
+    g+=`<text x="${X(0.5)}" y="${S-6}" text-anchor="middle">model olasılığı (grup ortalaması)</text>`;
+    g+=`<text transform="translate(12 ${Yp(0.5)}) rotate(-90)" text-anchor="middle">gözlenen olay oranı</text>`;
+    return g;
+  }
+  let K=5;
+  const sEl=document.getElementById('s'), bEl=document.getElementById('b');
+  function upd(){
+    const s=+sEl.value, b=+bEl.value;
+    document.getElementById('sOut').textContent=f(s,2); document.getElementById('bOut').textContent=(b>0?'+':'')+f(b,2);
+    const q=model(s,b), B=bins(q,K);
+    let g=frame(); let line='';
+    B.forEach(o=>{ if(!o.n) return;
+      const ci=1.96*Math.sqrt(o.ph*(1-o.ph)/o.n), lo=Math.max(0,o.ph-ci), hi=Math.min(1,o.ph+ci);
+      g+=`<line x1="${X(o.mq)}" y1="${Yp(lo)}" x2="${X(o.mq)}" y2="${Yp(hi)}" style="stroke:var(--accent)" stroke-width="2"/>`;
+      g+=`<line x1="${X(o.mq)-5}" y1="${Yp(lo)}" x2="${X(o.mq)+5}" y2="${Yp(lo)}" style="stroke:var(--accent)" stroke-width="2"/><line x1="${X(o.mq)-5}" y1="${Yp(hi)}" x2="${X(o.mq)+5}" y2="${Yp(hi)}" style="stroke:var(--accent)" stroke-width="2"/>`;
+      line+=(line?'L':'M')+X(o.mq).toFixed(1)+' '+Yp(o.ph).toFixed(1);
+    });
+    g+=`<path d="${line}" style="fill:none;stroke:var(--accent)" stroke-width="1.5" opacity=".6"/>`;
+    B.forEach(o=>{ if(o.n) g+=`<circle cx="${X(o.mq)}" cy="${Yp(o.ph)}" r="6" style="fill:var(--accent);stroke:var(--surface)" stroke-width="2"><title>${o.n} maç</title></circle>`;});
+    document.getElementById('cal').innerHTML=g;
+    // histogram
+    const H=150, hp=28, bw=(380-2*m)/20, cnt=Array(20).fill(0); q.forEach(v=>cnt[Math.min(19,Math.floor(v*20))]++);
+    const mx=Math.max(...cnt); let h='';
+    cnt.forEach((c,i)=>{const hh=(H-hp-16)*c/mx; h+=`<rect x="${m+i*bw+1}" y="${H-hp-hh}" width="${bw-2}" height="${hh}" rx="2" style="fill:rgba(var(--blue-rgb),.7)"/>`;});
+    h+=`<line x1="${m}" y1="${H-hp}" x2="${380-m}" y2="${H-hp}" style="stroke:var(--line)"/>`;
+    for(let t=0;t<=10;t+=2) h+=`<text x="${m+t/10*(380-2*m)}" y="${H-hp+14}" text-anchor="middle">${(t/10).toLocaleString('tr-TR')}</text>`;
+    h+=`<text x="${m}" y="12">model olasılıklarının dağılımı (keskinlik)</text>`;
+    document.getElementById('hist').innerHTML=h;
+    // metrikler
+    const br=q.reduce((a,v,i)=>a+(v-Y[i])**2,0)/N, br0=Y.reduce((a,y)=>a+(prev-y)**2,0)/N;
+    document.getElementById('vBr').textContent=f(br); document.getElementById('vBr0').textContent=f(br0);
+    const imp=100*(br0-br)/br0; document.getElementById('vBss').textContent=(imp>=0?'%':'−%')+f(Math.abs(imp),1);
+    document.getElementById('vAuc').textContent=f(auc(q));
+    let t='<thead><tr><th>Grup</th><th>Maç (N)</th><th>Ortalama model olasılığı</th><th>Gözlenen kazanma oranı p̂</th><th>%95 GA</th><th>Fark</th></tr></thead><tbody>';
+    B.forEach(o=>{ const ci=o.n?1.96*Math.sqrt(o.ph*(1-o.ph)/o.n):NaN;
+      t+=`<tr><td>[${f(o.lo,1)}; ${f(o.hi,1)}${o.hi===1?']':')'}</td><td>${o.n}</td><td>${f(o.mq)}</td><td>${f(o.ph)}</td><td>${o.n?'± '+f(ci):'—'}</td><td style="color:${o.n&&Math.abs(o.ph-o.mq)>ci?'var(--bad)':'inherit'};font-weight:600">${o.n?(o.ph-o.mq>=0?'+':'')+f(o.ph-o.mq):'—'}</td></tr>`;});
+    document.getElementById('binTable').innerHTML=t+'</tbody>';
+    const n=document.getElementById('labNote');
+    const ece=B.reduce((a,o)=>a+(o.n?o.n*Math.abs(o.ph-o.mq):0),0)/N;
+    if(ece<0.03){n.className='note good';n.innerHTML=`<strong>İyi kalibre:</strong> noktalar köşegene yakın, gruplardaki ortalama sapma ${f(ece)}. Model “%70” dediğinde mavi takım yaklaşık %70 kazanıyor.`;}
+    else if(Math.abs(b)<0.25 && s>1){n.className='note bad';n.innerHTML=`<strong>Aşırı emin:</strong> noktalar köşegenden <em>daha yatık</em>. Yüksek tahminlerde gözlenen oran daha düşük, düşük tahminlerde daha yüksek. Olasılıklar uçlara itilmiş; histogram iki uca yığılıyor.`;}
+    else if(Math.abs(b)<0.25 && s<1){n.className='note warn';n.innerHTML=`<strong>Yetersiz emin:</strong> noktalar köşegenden <em>daha dik</em> ve hepsi 0,5 civarına sıkışmış. Model ayırt edebildiği maçlarda bile çekingen tahminler veriyor.`;}
+    else if(b>0){n.className='note bad';n.innerHTML=`<strong>Yukarı yanlı:</strong> noktalar köşegenin altında; model mavi takımın kazanma olasılığını sistematik olarak <em>abartıyor</em>.`;}
+    else {n.className='note bad';n.innerHTML=`<strong>Aşağı yanlı:</strong> noktalar köşegenin üstünde; model mavi takımı sistematik olarak <em>küçümsüyor</em>. (Kitaptaki Şekil 3.2'de yüksek olasılıklarda hafif bir düşük kalma görülür.)`;}
+    document.querySelectorAll('#presets button').forEach(x=>x.classList.toggle('on',+x.dataset.s===s&&+x.dataset.b===b));
+  }
+  [sEl,bEl].forEach(e=>e.addEventListener('input',upd));
+  document.querySelectorAll('#presets button').forEach(x=>x.addEventListener('click',()=>{sEl.value=x.dataset.s;bEl.value=x.dataset.b;upd();}));
+  document.querySelectorAll('.seg button').forEach(x=>x.addEventListener('click',()=>{document.querySelectorAll('.seg button').forEach(y=>y.setAttribute('aria-pressed','false'));x.setAttribute('aria-pressed','true');K=+x.dataset.k;upd();}));
+  upd();
+
+  // ---- desenler ----
+  const pats=[
+    {t:'İyi kalibre',d:'Noktalar köşegen üzerinde.',fn:x=>x},
+    {t:'Aşırı emin',d:'Köşegenden yatık: uçlarda abartılı olasılıklar.',fn:x=>sig(0.5*logit(x))},
+    {t:'Yetersiz emin',d:'Köşegenden dik: olasılıklar 0,5\'e sıkışmış.',fn:x=>sig(2*logit(x))},
+    {t:'Yukarı yanlı',d:'Hepsi köşegenin altında: olay oranını abartıyor.',fn:x=>sig(logit(x)-0.9)},
+  ];
+  const pc=document.getElementById('patterns');
+  pats.forEach(p=>{
+    const s=150,mm=14,ww=s-2*mm,XX=v=>mm+v*ww,YY=v=>s-mm-v*ww;
+    let g=`<rect x="${mm}" y="${mm}" width="${ww}" height="${ww}" style="fill:none;stroke:var(--line)"/><line x1="${XX(0)}" y1="${YY(0)}" x2="${XX(1)}" y2="${YY(1)}" style="stroke:var(--muted)" stroke-dasharray="4 3"/>`;
+    let d=''; for(let i=1;i<100;i++){const x=i/100; d+=(i>1?'L':'M')+XX(x).toFixed(1)+' '+YY(p.fn(x)).toFixed(1);}
+    g+=`<path d="${d}" style="fill:none;stroke:var(--accent)" stroke-width="2.5"/>`;
+    [0.1,0.3,0.5,0.7,0.9].forEach(x=>g+=`<circle cx="${XX(x)}" cy="${YY(p.fn(x))}" r="4" style="fill:var(--accent)"/>`);
+    const div=document.createElement('div'); div.className='mini';
+    div.innerHTML=`<svg class="plot" viewBox="0 0 ${s} ${s}" role="img" aria-label="${p.t} kalibrasyon deseni">${g}</svg><strong>${p.t}</strong><p>${p.d}</p>`;
+    pc.appendChild(div);
+  });
+
+  const Q=[
+    {q:'Model 300 maç için “%40 kazanır” diyor ve bu maçların 120\'si kazanılıyor. Bu grup için ne söylenebilir?',o:['İyi kalibre: 120/300 = 0,40','Aşırı emin','Yetersiz emin','Hesaplanamaz'],a:0,e:'Gözlenen oran 120/300 = 0,40, modelin söylediğiyle aynı.'},
+    {q:'Kalibrasyon grafiğinde noktalar köşegenden daha yatık (düşük tahminlerde üstte, yüksek tahminlerde altta) ise model…',o:['iyi kalibredir','aşırı emindir','yetersiz emindir','rastgele tahmin yapıyordur'],a:1,e:'Olasılıkları uçlara itiyor: %90 dediği maçlar daha az, %10 dediği maçlar daha çok kazanılıyor.'},
+    {q:'Bir grupta N = 100 ve p̂ = 0,5 ise %95 güven aralığının yarı genişliği yaklaşık kaçtır?',o:['0,01','0,05','0,098','0,5'],a:2,e:'1,96 · √(0,5 · 0,5 / 100) = 1,96 · 0,05 = 0,098.'},
+    {q:'Modelin olasılıklarını sıralamayı bozmadan (monoton) dönüştürürseniz hangisi değişmez?',o:['Brier skoru','Kalibrasyon grafiği','ROC-AUC','Gruplardaki ortalama model olasılığı'],a:2,e:'AUC yalnızca sıralamaya bakar. Laboratuvarda s ve b\'yi değiştirirken AUC sabit kaldı.'},
+    {q:'Mavi takım galibiyet oranı %55 olan bir veri kümesinde herkese 0,55 atayan referans modelin Brier skoru kaçtır?',o:['0,2475','0,55','0,45','0'],a:0,e:'0,55 · (1 − 0,55)² + 0,45 · (0,55)² = 0,55 · 0,45 = 0,2475.'},
+  ];
+  const qz=document.getElementById('quiz');
+  Q.forEach((it,qi)=>{
+    const d=document.createElement('div'); d.className='q';
+    d.innerHTML=`<strong>${qi+1}. ${it.q}</strong><div class="opts"></div><div class="fb" aria-live="polite"></div>`;
+    const opts=d.querySelector('.opts'), fb=d.querySelector('.fb');
+    it.o.forEach((t,oi)=>{const b=document.createElement('button'); b.textContent=t;
+      b.onclick=()=>{opts.querySelectorAll('button').forEach(x=>x.classList.remove('ok','no'));
+        if(oi===it.a){b.classList.add('ok');fb.innerHTML='<strong>Doğru.</strong> '+it.e;} else {b.classList.add('no');fb.innerHTML='<strong>Tekrar deneyin.</strong>';}};
+      opts.appendChild(b);});
+    qz.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>

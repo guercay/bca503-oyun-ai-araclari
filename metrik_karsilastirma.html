@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pearson, Spearman ve NDCG — Oyun ve Animasyon Örnekleriyle</title>
+<style>
+:root{
+  --bg:#f6f6f3; --card:#ffffff; --ink:#1f2328; --muted:#646b75; --line:#e3e5e8; --grid:#eef0f3;
+  --accent:#2563eb; --accent-soft:#dbe7ff; --ideal:#9aa3ad;
+  --good:#15803d; --mid:#b45309; --bad:#b91c1c;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2; --c7:#65a30d; --c8:#dc2626;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#131518; --card:#1c1f23; --ink:#e7e9ec; --muted:#9aa3ad; --line:#2d3238; --grid:#252a30;
+    --accent:#60a5fa; --accent-soft:#1e3354; --ideal:#5b636d;
+    --good:#4ade80; --mid:#fbbf24; --bad:#f87171;
+    --c1:#60a5fa; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee; --c7:#a3e635; --c8:#f87171;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:26px;margin:0 0 4px}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:0 0 8px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;border-radius:999px;cursor:pointer;font:inherit}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab small{opacity:.75;margin-left:4px}
+.desc{margin:0 0 16px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:13px}
+td.l,th.l{text-align:left}
+.dot{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;margin-right:6px;vertical-align:middle}
+.tag{font-size:12px;color:var(--muted)}
+input[type=range]{width:150px;vertical-align:middle;accent-color:var(--accent)}
+input[type=number]{width:74px;font:inherit;padding:3px 5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);text-align:right}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.m{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.m .k{font-size:12px;color:var(--muted)}
+.m .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.m .s{font-size:12px}
+.m.small .v{font-size:20px}
+.ctrl{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 12px;font-size:14px}
+select{font:inherit;padding:4px 6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:7px 11px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px}
+.btn:hover{border-color:var(--accent)}
+.insight{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.insight p{margin:0 0 6px}.insight p:last-child{margin:0}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--muted);font-size:11px;font-family:inherit}
+.stab{display:flex;gap:6px;margin-bottom:10px}
+.stab button{border:none;background:none;color:var(--muted);font:inherit;padding:6px 10px;border-bottom:2px solid transparent;cursor:pointer}
+.stab button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.f{font-family:"Cambria Math","STIX Two Math",Georgia,serif;font-size:16px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0;overflow-x:auto}
+.note{font-size:13px;color:var(--muted)}
+.sum td{font-weight:700;border-top:2px solid var(--line)}
+.cut td{border-bottom:2px dashed var(--accent)}
+.dim{opacity:.45}
+.cmp th,.cmp td{text-align:left;white-space:normal;vertical-align:top}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:4px;flex-wrap:wrap}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pearson, Spearman ve NDCG</h1>
+  <p class="sub">Tahmin edilen değerleri kaydırın; üç metriğin nasıl farklı tepki verdiğini canlı izleyin. Örnekler oyun ve animasyon üretiminden. Tüm adlar ve veriler kurgusaldır.</p>
+
+  <div class="tabs" id="tabs"></div>
+  <p class="desc" id="desc"></p>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Veri: gerçek ve tahmin edilen değerler</h2>
+      <div class="btns" id="btns">
+        <button class="btn" data-x="reset" title="Senaryonun başlangıç tahminleri">↺ Başlangıç</button>
+        <button class="btn" data-x="perfect" title="ŷ = y">Mükemmel tahmin</button>
+        <button class="btn" data-x="linear" title="ŷ = 0,5·y + sabit">Doğrusal dönüşüm</button>
+        <button class="btn" data-x="cubic" title="Sıra korunur, ilişki eğrisel">Eğrisel (monoton) dönüşüm</button>
+        <button class="btn" data-x="swapTop" title="Mükemmel tahminden başlar, gerçekte en yüksek iki öğenin tahminini yer değiştirir">En üstteki 2'yi değiştir</button>
+        <button class="btn" data-x="swapBottom" title="Mükemmel tahminden başlar, gerçekte en düşük iki öğenin tahminini yer değiştirir">En alttaki 2'yi değiştir</button>
+        <button class="btn" data-x="reverse">Ters sıra</button>
+        <button class="btn" data-x="noise">Gürültülü tahmin</button>
+      </div>
+      <table id="data"></table>
+      <p class="note" id="unitnote"></p>
+    </div>
+
+    <div class="card">
+      <h2>Metrikler</h2>
+      <div class="ctrl">
+        <label>k (NDCG@k): <select id="k"></select></label>
+        <label>Kazanç: <select id="gain">
+          <option value="lin">doğrusal: g = rel</option>
+          <option value="exp">üstel: g = 2^rel − 1</option>
+        </select></label>
+      </div>
+      <div class="metrics">
+        <div class="m"><div class="k">Pearson r</div><div class="v" id="mP">–</div><div class="s" id="sP"></div></div>
+        <div class="m"><div class="k">Spearman ρ</div><div class="v" id="mS">–</div><div class="s" id="sS"></div></div>
+        <div class="m"><div class="k" id="kN">NDCG@k</div><div class="v" id="mN">–</div><div class="s" id="sN"></div></div>
+        <div class="m small"><div class="k">Ortalama mutlak hata (MAE) — karşılaştırma için</div><div class="v" id="mM">–</div><div class="s" id="sM"></div></div>
+      </div>
+      <div class="insight" id="insight"></div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <h3>Değerler: Pearson bunu ölçer</h3>
+      <svg id="sv" viewBox="0 0 380 320"></svg>
+      <div class="legend"><span><span class="sw" style="background:var(--accent)"></span>en küçük kareler doğrusu</span><span>– – ŷ = y (birebir isabet)</span></div>
+    </div>
+    <div class="card">
+      <h3>Sıralar: Spearman bunu ölçer</h3>
+      <svg id="sr" viewBox="0 0 380 320"></svg>
+      <div class="legend"><span>1 = en yüksek değer</span><span>– – sıralar aynı</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3>Sıra pozisyonlarına göre katkı: NDCG bunu ölçer</h3>
+    <svg id="sn" viewBox="0 0 900 260"></svg>
+    <div class="legend"><span><span class="sw" style="background:var(--accent)"></span>modelin sıralamasındaki katkı g/log₂(i+1)</span><span><span class="sw" style="background:var(--ideal)"></span>ideal sıralamadaki katkı</span><span>Kesikli çizginin sağı k dışında kalır, hesaba girmez.</span></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Adım adım hesap</h2>
+    <div class="stab" id="stab">
+      <button data-t="p" class="on">Pearson</button>
+      <button data-t="s">Spearman</button>
+      <button data-t="n">NDCG</button>
+    </div>
+    <div id="steps"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Hangi metrik ne zaman?</h2>
+    <table class="cmp">
+      <tr><th>Metrik</th><th>Neye bakar?</th><th>Neye kördür?</th><th>Oyun / animasyonda tipik kullanım</th></tr>
+      <tr><td><b>Pearson r</b></td><td>Doğrusal ilişki: tahmin arttıkça gerçek değer sabit oranda artıyor mu?</td><td>Ölçek ve kaymaya (ŷ = 0,5y + sabit için de r = 1). Eğrisel ama monoton ilişkileri olduğundan düşük gösterir; aykırı değerlere duyarlıdır.</td><td>Render süresi tahmininin gerçek süreyle doğrusal uyumu; oyuncu skor tahmini.</td></tr>
+      <tr><td><b>Spearman ρ</b></td><td>Sıra uyumu: en yüksekler yine en yüksek mi?</td><td>Değerlerin büyüklüğüne ve aralarındaki mesafeye. Listenin tepesindeki hata ile dibindeki hatayı eşit sayar.</td><td>Kısa filmleri jüri sırasına göre sıralamak; seviyeleri zorluk sırasına koymak.</td></tr>
+      <tr><td><b>NDCG@k</b></td><td>İlk k sıranın kalitesi; üst sıralara daha fazla ağırlık verir.</td><td>k'nın dışında kalan sıralara. Değerlerin büyüklüğüne (sadece sıralamaya göre kazanç toplar).</td><td>Oyuncuya ilk 5 oyunu önermek; render çiftliğinde en ağır shot'ları kuyruğun başına almak.</td></tr>
+    </table>
+    <p class="note">Hiçbir korelasyon metriği mutlak hatayı ölçmez. Bu yüzden yanında MAE veya RMSE gibi bir hata ölçüsü de raporlanmalıdır. “Doğrusal dönüşüm” düğmesiyle deneyin: üç metrik de 1 olur, ama MAE büyür.</p>
+  </div>
+</div>
+
+<script id="math">
+// ---- Saf hesap fonksiyonları (DOM kullanmaz) ----
+function mean(a){return a.reduce((s,v)=>s+v,0)/a.length}
+function pearsonDetail(x,y){
+  const mx=mean(x), my=mean(y);
+  let sxy=0,sxx=0,syy=0; const rows=[];
+  for(let i=0;i<x.length;i++){
+    const dx=x[i]-mx, dy=y[i]-my;
+    sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy;
+    rows.push({dx,dy,p:dx*dy,dx2:dx*dx,dy2:dy*dy});
+  }
+  const den=Math.sqrt(sxx*syy);
+  return {r: den>0 ? sxy/den : NaN, mx,my,sxy,sxx,syy,rows};
+}
+// Büyükten küçüğe sıra; eşit değerlere ortalama sıra
+function ranksDesc(a){
+  const idx=a.map((v,i)=>i).sort((i,j)=>a[j]-a[i]);
+  const r=new Array(a.length);
+  let i=0;
+  while(i<idx.length){
+    let j=i;
+    while(j+1<idx.length && a[idx[j+1]]===a[idx[i]]) j++;
+    const avg=(i+j)/2+1;
+    for(let t=i;t<=j;t++) r[idx[t]]=avg;
+    i=j+1;
+  }
+  return r;
+}
+function spearmanDetail(x,y){
+  const R=ranksDesc(x), S=ranksDesc(y), n=x.length;
+  const d=R.map((v,i)=>v-S[i]);
+  const sd2=d.reduce((s,v)=>s+v*v,0);
+  const ties = new Set(x).size<n || new Set(y).size<n;
+  const rho=pearsonDetail(R,S).r;
+  const shortcut=1-6*sd2/(n*(n*n-1));
+  return {R,S,d,sd2,rho,shortcut,ties};
+}
+function gainFn(mode,maxTrue){
+  return y=>{
+    if(mode==='lin') return y;
+    const rel = maxTrue>5 ? 5*y/maxTrue : y;
+    return Math.pow(2,rel)-1;
+  };
+}
+// true: gerçek değerler (kazanç kaynağı), pred: sıralama skorları
+function ndcgDetail(t,p,k,mode){
+  const n=t.length, g=gainFn(mode,Math.max(...t));
+  const order=t.map((v,i)=>i).sort((i,j)=> p[j]-p[i] || i-j);      // model sırası (eşitlikte indeks)
+  const ideal=t.map((v,i)=>i).sort((i,j)=> t[j]-t[i] || i-j);     // ideal sıra
+  const row=(o)=>o.map((it,pos)=>{const disc=1/Math.log2(pos+2), gain=g(t[it]); return {it,pos:pos+1,gain,disc,c:gain*disc};});
+  const rp=row(order), ri=row(ideal);
+  const dcg=rp.slice(0,k).reduce((s,r)=>s+r.c,0);
+  const idcg=ri.slice(0,k).reduce((s,r)=>s+r.c,0);
+  return {dcg,idcg,ndcg: idcg>0 ? dcg/idcg : NaN, rp, ri};
+}
+function maeOf(t,p){return mean(t.map((v,i)=>Math.abs(v-p[i])))}
+if(typeof module!=='undefined') module.exports={mean,pearsonDetail,ranksDesc,spearmanDetail,ndcgDetail,maeOf};
+</script>
+
+<script>
+const COLORS=['--c1','--c2','--c3','--c4','--c5','--c6','--c7','--c8'];
+const col=i=>`var(${COLORS[i%COLORS.length]})`;
+
+const SCEN={
+  oneri:{
+    tab:'🎮 Oyun öneri sistemi',
+    desc:'Bir oyun platformu, oyuncuya kataloğundan oyun önerecek. Model her oyun için “bu oyuncu kaç puan verir?” skoru üretiyor. Gerçek değer, oyuncunun sonradan verdiği puan (0–5). Platform ilk k oyunu gösterir; bu yüzden NDCG burada en anlamlı metrik.',
+    yName:'Oyuncu puanı', pName:'Model skoru', unit:'puan', dec:1, min:0, max:5, step:0.1, k:3,
+    items:[
+      ['Gölge Labirenti','bulmaca',5,4.6],['Yıldız Filosu','strateji',2,2.8],['Pikselli Macera','platform',4,3.1],
+      ['Kale Savunması','kule savunma',1,1.5],['Neon Yarış','yarış',3,3.6],['Ejder Avcısı','RPG',4.5,4.1],
+      ['Çiftlik Hayatı','simülasyon',0.5,0.7],['Zindan Kaçışı','roguelike',3.5,3.9]]
+  },
+  skor:{
+    tab:'🏆 Oyuncu skor tahmini',
+    desc:'Rekabetçi bir oyunda, sezonun son maçından önce her oyuncunun alacağı skor tahmin ediliyor. Pearson tahmin ile gerçek skorun doğrusal uyumunu gösterir. Spearman liderlik tablosu sıralamasının ne kadar korunduğunu, NDCG ise ilk k sıranın (ödül alanların) ne kadar doğru tahmin edildiğini gösterir.',
+    yName:'Gerçek skor', pName:'Tahmini skor', unit:'puan', dec:0, min:0, max:2600, step:10, k:3,
+    items:[
+      ['Oyuncu A','destek',1200,1100],['Oyuncu B','tank',950,1050],['Oyuncu C','nişancı',1800,1600],
+      ['Oyuncu D','yeni',600,700],['Oyuncu E','büyücü',1450,1500],['Oyuncu F','nişancı',2100,1900],
+      ['Oyuncu G','destek',800,750],['Oyuncu H','tank',1300,1250]]
+  },
+  render:{
+    tab:'🎬 Render süresi tahmini',
+    desc:'Bir animasyon stüdyosu, her shot\'ın bir karesinin render süresini sahne karmaşıklığından (poligon sayısı, ışık, simülasyon) tahmin ediyor. En ağır shot\'lar render çiftliği kuyruğunun başına alınacak, yani tahminin sırası önemli. NDCG@k, en ağır k shot\'ın doğru seçilip seçilmediğini gösterir.',
+    yName:'Gerçek süre', pName:'Tahmini süre', unit:'dk/kare', dec:0, min:0, max:400, step:5, k:3,
+    items:[
+      ['Sh010 Açılış','geniş plan',45,50],['Sh020 Yakın plan','karakter',30,35],['Sh030 Su simülasyonu','FX',220,150],
+      ['Sh040 Kalabalık','crowd',160,170],['Sh050 Diyalog','karakter',25,20],['Sh060 Patlama','FX',300,210],
+      ['Sh070 Gece sokak','ışık',90,70],['Sh080 Kapanış','geniş plan',60,80]]
+  },
+  festival:{
+    tab:'🎞️ Kısa film değerlendirme',
+    desc:'Bir animasyon festivali, ön elemede jüri puanını (1–10) tahmin eden bir model kullanıyor: görsel kalite, hikâye ve teknik ölçütlerden puan üretiyor. Finale ilk k film kalacak; bu yüzden üst sıraların doğruluğu kritik.',
+    yName:'Jüri puanı', pName:'Model puanı', unit:'puan', dec:1, min:0, max:10, step:0.1, k:3,
+    items:[
+      ['Kağıt Kuşlar','2D',8.5,7.9],['Son Işık','3D',6.0,6.8],['Robot ve Bahçe','stop-motion',9.2,8.1],
+      ['Kayıp Gölge','2D',4.5,5.5],['Mavi Balina','3D',7.0,7.4],['Saatçi','stop-motion',7.8,6.9],
+      ['Kum Fırtınası','2D',5.2,5.0],['Uzak Ada','3D',6.5,7.2]]
+  }
+};
+
+const st={key:'oneri', pred:[], k:3, gain:'lin', tab:'p'};
+const $=id=>document.getElementById(id);
+const S=()=>SCEN[st.key];
+const T=()=>S().items.map(r=>r[2]);
+const fmt=(v,d=3)=> Number.isFinite(v) ? v.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}) : 'tanımsız';
+const fv=v=>fmt(v,S().dec);
+const clamp=v=>Math.min(S().max,Math.max(S().min,v));
+const snap=v=>clamp(Math.round(v/S().step)*S().step);
+
+function initTabs(){
+  $('tabs').innerHTML=Object.entries(SCEN).map(([k,s])=>`<button class="tab" data-k="${k}">${s.tab}</button>`).join('');
+  $('tabs').onclick=e=>{const b=e.target.closest('.tab'); if(b) loadScen(b.dataset.k);};
+}
+function loadScen(k){
+  st.key=k; st.pred=S().items.map(r=>r[3]); st.k=S().k;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
+  $('desc').textContent=S().desc;
+  const n=S().items.length;
+  $('k').innerHTML=Array.from({length:n},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  $('k').value=st.k;
+  $('unitnote').textContent=`Birim: ${S().unit}. Kaydırıcı veya kutuyla tahmini değiştirin. Gerçek değerler sabittir.`;
+  buildTable(); update();
+}
+function buildTable(){
+  const s=S();
+  let h=`<tr><th class="l">#</th><th class="l">Öğe</th><th>${s.yName} (y)</th><th class="l">${s.pName} (ŷ)</th></tr>`;
+  s.items.forEach((r,i)=>{
+    h+=`<tr><td class="l"><span class="dot" style="background:${col(i)}">${i+1}</span></td>
+      <td class="l">${r[0]} <span class="tag">${r[1]}</span></td>
+      <td>${fv(r[2])}</td>
+      <td class="l"><input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${st.pred[i]}" data-i="${i}">
+      <input type="number" min="${s.min}" max="${s.max}" step="any" value="${st.pred[i]}" data-i="${i}"></td></tr>`;
+  });
+  $('data').innerHTML=h;
+}
+function syncInputs(){
+  document.querySelectorAll('#data input').forEach(inp=>{const i=+inp.dataset.i; if(+inp.value!==st.pred[i]) inp.value=st.pred[i];});
+}
+$('data').addEventListener('input',e=>{
+  const inp=e.target; if(!inp.dataset.i) return;
+  const v=parseFloat(inp.value); if(!Number.isFinite(v)) return;
+  st.pred[+inp.dataset.i]=clamp(v); syncInputs(); update();
+});
+$('k').onchange=e=>{st.k=+e.target.value; update();};
+$('gain').onchange=e=>{st.gain=e.target.value; update();};
+$('stab').onclick=e=>{const b=e.target.closest('button'); if(!b) return; st.tab=b.dataset.t;
+  document.querySelectorAll('#stab button').forEach(x=>x.classList.toggle('on',x===b)); renderSteps();};
+
+$('btns').onclick=e=>{
+  const b=e.target.closest('.btn'); if(!b) return;
+  const t=T(), s=S(), lo=Math.min(...t), hi=Math.max(...t);
+  const byTrue=t.map((v,i)=>i).sort((i,j)=>t[j]-t[i]);
+  switch(b.dataset.x){
+    case 'reset': st.pred=s.items.map(r=>r[3]); break;
+    case 'perfect': st.pred=t.slice(); break;
+    case 'linear': { const c=(s.max-s.min)*0.25; st.pred=t.map(v=>clamp(+(0.5*v+c).toFixed(4))); break; }
+    case 'cubic': st.pred=t.map(v=>clamp(+(lo+(hi-lo)*Math.pow((v-lo)/(hi-lo),3)).toFixed(4))); break;
+    case 'swapTop': { st.pred=t.slice(); const [a,c]=byTrue; [st.pred[a],st.pred[c]]=[st.pred[c],st.pred[a]]; break; }
+    case 'swapBottom': { st.pred=t.slice(); const a=byTrue[byTrue.length-1], c=byTrue[byTrue.length-2]; [st.pred[a],st.pred[c]]=[st.pred[c],st.pred[a]]; break; }
+    case 'reverse': { const sorted=t.slice().sort((a,b)=>b-a); byTrue.forEach((it,pos)=>st.pred[it]=sorted[sorted.length-1-pos]); break; }
+    case 'noise': { const sd=0.2*(hi-lo); st.pred=t.map(v=>{const u=Math.random(),w=Math.random(); return snap(v+sd*Math.sqrt(-2*Math.log(u||1e-9))*Math.cos(2*Math.PI*w));}); break; }
+  }
+  syncInputs(); update();
+};
+
+function strength(r){
+  if(!Number.isFinite(r)) return 'hesaplanamaz (değerlerin hepsi aynı)';
+  const a=Math.abs(r), dir=r>=0?'pozitif':'negatif';
+  if(a>=0.999) return r>0?'kusursuz pozitif':'kusursuz negatif';
+  if(a>=0.9) return `çok güçlü ${dir}`;
+  if(a>=0.7) return `güçlü ${dir}`;
+  if(a>=0.4) return `orta ${dir}`;
+  if(a>=0.2) return `zayıf ${dir}`;
+  return 'ilişki yok denecek kadar zayıf';
+}
+const clr=v=> !Number.isFinite(v)?'var(--muted)': v>=0.9?'var(--good)': v>=0.6?'var(--mid)':'var(--bad)';
+
+let R={};
+function update(){
+  const t=T(), p=st.pred, n=t.length, k=Math.min(st.k,n);
+  R.P=pearsonDetail(t,p); R.S=spearmanDetail(t,p); R.N=ndcgDetail(t,p,k,st.gain); R.mae=maeOf(t,p);
+  $('mP').textContent=fmt(R.P.r); $('mP').style.color=clr(R.P.r); $('sP').textContent=strength(R.P.r);
+  $('mS').textContent=fmt(R.S.rho); $('mS').style.color=clr(R.S.rho); $('sS').textContent=strength(R.S.rho);
+  $('kN').textContent=`NDCG@${k}`;
+  $('mN').textContent=fmt(R.N.ndcg); $('mN').style.color=clr(R.N.ndcg);
+  $('sN').textContent= !Number.isFinite(R.N.ndcg)?'':R.N.ndcg>=0.98?'ilk sıralar ideale çok yakın':R.N.ndcg>=0.9?'ilk sıralar iyi':R.N.ndcg>=0.75?'ilk sıralarda belirgin hata':'ilk sıralar zayıf';
+  $('mM').textContent=`${fv(R.mae)} ${S().unit}`;
+  $('sM').textContent='tahmin ile gerçek değer arasındaki ortalama fark';
+  insights(k);
+  drawValues(); drawRanks(); drawNdcg(k); renderSteps();
+}
+function insights(k){
+  const P=R.P.r, Sp=R.S.rho, N=R.N.ndcg, t=T(), range=Math.max(...t)-Math.min(...t);
+  const out=[];
+  if(Number.isFinite(P)&&Number.isFinite(Sp)){
+    if(Sp-P>0.04) out.push(`<b>Spearman &gt; Pearson:</b> Sıralama, değerlerin kendisinden daha iyi korunuyor. İlişki monoton ama doğrusal değil ya da birkaç nokta doğrudan çok sapıyor.`);
+    else if(P-Sp>0.04) out.push(`<b>Pearson &gt; Spearman:</b> Büyük değerler doğrusal ilişkiyi güçlü gösteriyor, ama birbirine yakın öğeler arasında sıra karışıklıkları var.`);
+    else out.push(`Pearson ve Spearman birbirine yakın: ilişki hem doğrusal hem de sıra açısından benzer kalitede.`);
+  }
+  if(Number.isFinite(N)&&Number.isFinite(Sp)){
+    if(N>=0.97&&Sp<0.95) out.push(`<b>NDCG yüksek, Spearman daha düşük:</b> Sıra hataları listenin alt kısmında. İlk ${k} sıra neredeyse doğru, kullanıcı bu hataları görmez.`);
+    else if(N<0.95&&Sp>=0.95) out.push(`<b>Spearman yüksek, NDCG düşük:</b> Az sayıda sıra hatası var, ama bunlar listenin tepesinde. Bu yüzden NDCG daha sert cezalandırıyor.`);
+  }
+  if(Number.isFinite(P)&&P>0.98&&R.mae>0.1*range) out.push(`<b>Dikkat:</b> Korelasyon çok yüksek, ama tahminler ortalama ${fv(R.mae)} ${S().unit} sapıyor. Korelasyon mutlak hatayı görmez; noktalar kesikli ŷ = y çizgisinden uzak.`);
+  if(Number.isFinite(P)&&P<0) out.push(`Negatif korelasyon: model sırayı tersine çeviriyor. Gerçekte yüksek olanlara düşük tahmin veriyor.`);
+  $('insight').innerHTML=out.map(s=>`<p>${s}</p>`).join('');
+}
+
+// ---------- SVG yardımcıları ----------
+function niceTicks(lo,hi,c=5){
+  const span=hi-lo||1, raw=span/c, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>span/s<=c)||mag*10;
+  const out=[]; for(let v=Math.ceil(lo/step)*step; v<=hi+1e-9; v+=step) out.push(+v.toFixed(10)); return out;
+}
+function frame(svg,W,H,m,xd,yd,xl,yl,xt,yt){
+  const X=v=>m.l+(v-xd[0])/(xd[1]-xd[0])*(W-m.l-m.r);
+  const Y=v=>H-m.b-(v-yd[0])/(yd[1]-yd[0])*(H-m.t-m.b);
+  let g='';
+  (xt||niceTicks(...xd)).forEach(v=>{g+=`<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--grid)"/><text x="${X(v)}" y="${H-m.b+15}" text-anchor="middle">${fmtTick(v)}</text>`;});
+  (yt||niceTicks(...yd)).forEach(v=>{g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${fmtTick(v)}</text>`;});
+  g+=`<rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="none" stroke="var(--line)"/>`;
+  g+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" style="font-size:12px">${xl}</text>`;
+  g+=`<text transform="translate(13,${(m.t+H-m.b)/2}) rotate(-90)" text-anchor="middle" style="font-size:12px">${yl}</text>`;
+  return {X,Y,g};
+}
+const fmtTick=v=>Math.abs(v)>=1000? v.toLocaleString('tr-TR') : (+v.toFixed(2)).toLocaleString('tr-TR');
+function points(X,Y,xs,ys){
+  return xs.map((x,i)=>`<g><circle cx="${X(x)}" cy="${Y(ys[i])}" r="10" fill="${col(i)}" stroke="var(--card)" stroke-width="1.5"/><text x="${X(x)}" y="${Y(ys[i])+4}" text-anchor="middle" style="fill:#fff;font-weight:700">${i+1}</text></g>`).join('');
+}
+function drawValues(){
+  const t=T(), p=st.pred, s=S(), W=380,H=320, m={l:52,r:14,t:12,b:42};
+  let lo=Math.min(...t,...p), hi=Math.max(...t,...p), pad=(hi-lo)*0.08||1; lo-=pad; hi+=pad;
+  const {X,Y,g}=frame(null,W,H,m,[lo,hi],[lo,hi],`${s.yName} (y)`,`${s.pName} (ŷ)`);
+  let svg=`<defs><clipPath id="cv"><rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}"/></clipPath></defs>`+g;
+  svg+=`<line x1="${X(lo)}" y1="${Y(lo)}" x2="${X(hi)}" y2="${Y(hi)}" stroke="var(--muted)" stroke-dasharray="5 4" clip-path="url(#cv)"/>`;
+  if(R.P.sxx>0){ const b=R.P.sxy/R.P.sxx, a=R.P.my-b*R.P.mx;
+    svg+=`<line x1="${X(lo)}" y1="${Y(a+b*lo)}" x2="${X(hi)}" y2="${Y(a+b*hi)}" stroke="var(--accent)" stroke-width="2" clip-path="url(#cv)"/>`; }
+  svg+=points(X,Y,t,p);
+  svg+=`<text x="${m.l+8}" y="${m.t+16}" style="font-size:13px;font-weight:700;fill:var(--ink)">r = ${fmt(R.P.r)}</text>`;
+  $('sv').innerHTML=svg;
+}
+function drawRanks(){
+  const n=T().length, W=380,H=320, m={l:52,r:14,t:12,b:42};
+  const ticks=Array.from({length:n},(_,i)=>i+1);
+  const {X,Y,g}=frame(null,W,H,m,[n+0.6,0.4],[n+0.6,0.4],'Gerçek sıra (R)','Tahmin sırası (S)',ticks,ticks);
+  let svg=g+`<line x1="${X(n+0.6)}" y1="${Y(n+0.6)}" x2="${X(0.4)}" y2="${Y(0.4)}" stroke="var(--muted)" stroke-dasharray="5 4"/>`;
+  R.S.R.forEach((r,i)=>{ if(R.S.d[i]!==0) svg+=`<line x1="${X(r)}" y1="${Y(r)}" x2="${X(r)}" y2="${Y(R.S.S[i])}" stroke="${col(i)}" stroke-width="2" opacity=".5"/>`; });
+  svg+=points(X,Y,R.S.R,R.S.S);
+  svg+=`<text x="${m.l+8}" y="${m.t+16}" style="font-size:13px;font-weight:700;fill:var(--ink)">ρ = ${fmt(R.S.rho)}</text>`;
+  $('sr').innerHTML=svg;
+}
+function drawNdcg(k){
+  const N=R.N, n=N.rp.length, W=900,H=260, m={l:52,r:14,t:14,b:46};
+  const maxC=Math.max(...N.rp.map(r=>r.c),...N.ri.map(r=>r.c))*1.12||1;
+  const yt=niceTicks(0,maxC,4);
+  const {Y,g}=frame(null,W,H,m,[0.5,n+0.5],[0,maxC],'','katkı',[],yt);
+  const bw=(W-m.l-m.r)/n, X=i=>m.l+(i-0.5)*bw;
+  let svg=g;
+  N.rp.forEach((r,j)=>{
+    const i=j+1, x0=X(i), ri=N.ri[j], out=i>k;
+    svg+=`<g opacity="${out?0.35:1}">`;
+    svg+=`<rect x="${x0+bw*0.5+2}" y="${Y(ri.c)}" width="${bw*0.3}" height="${Y(0)-Y(ri.c)}" fill="var(--ideal)" rx="2"/>`;
+    svg+=`<rect x="${x0+bw*0.18}" y="${Y(r.c)}" width="${bw*0.3}" height="${Y(0)-Y(r.c)}" fill="${col(r.it)}" rx="2"/>`;
+    svg+=`<text x="${x0+bw*0.33}" y="${Y(r.c)-4}" text-anchor="middle">${fmt(r.c,2)}</text>`;
+    svg+=`<circle cx="${x0+bw*0.33}" cy="${H-m.b+14}" r="9" fill="${col(r.it)}"/><text x="${x0+bw*0.33}" y="${H-m.b+18}" text-anchor="middle" style="fill:#fff;font-weight:700">${r.it+1}</text>`;
+    svg+=`<text x="${x0+bw*0.5}" y="${H-6}" text-anchor="middle">i=${i}</text></g>`;
+  });
+  if(k<n){ const xc=m.l+k*bw; svg+=`<line x1="${xc}" x2="${xc}" y1="${m.t}" y2="${H-m.b}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 4"/><text x="${xc+6}" y="${m.t+14}" style="fill:var(--accent);font-weight:700">k = ${k}</text>`; }
+  svg+=`<text x="${W-m.r-8}" y="${m.t+16}" text-anchor="end" style="font-size:13px;font-weight:700;fill:var(--ink)">DCG = ${fmt(N.dcg)} · IDCG = ${fmt(N.idcg)} · NDCG@${k} = ${fmt(N.ndcg)}</text>`;
+  $('sn').innerHTML=svg;
+}
+
+// ---------- Adım adım ----------
+function renderSteps(){
+  const s=S(), t=T(), p=st.pred, n=t.length, k=Math.min(st.k,n), name=i=>`<span class="dot" style="background:${col(i)}">${i+1}</span>${s.items[i][0]}`;
+  let h='';
+  if(st.tab==='p'){
+    const P=R.P;
+    h+=`<div class="f">r = Σ(yᵢ − ȳ)(ŷᵢ − ŷ̄) / √[ Σ(yᵢ − ȳ)² · Σ(ŷᵢ − ŷ̄)² ]</div>
+    <p class="note">ȳ = ${fmt(P.mx,3)}, ŷ̄ = ${fmt(P.my,3)}. Pearson, ortalamadan sapmaların çarpımına bakar: iki değer aynı anda ortalamanın üstünde ya da altındaysa çarpım pozitiftir.</p>
+    <table><tr><th class="l">Öğe</th><th>y</th><th>ŷ</th><th>y − ȳ</th><th>ŷ − ŷ̄</th><th>(y − ȳ)(ŷ − ŷ̄)</th><th>(y − ȳ)²</th><th>(ŷ − ŷ̄)²</th></tr>`;
+    P.rows.forEach((r,i)=>{h+=`<tr><td class="l">${name(i)}</td><td>${fv(t[i])}</td><td>${fv(p[i])}</td><td>${fmt(r.dx,2)}</td><td>${fmt(r.dy,2)}</td><td>${fmt(r.p,2)}</td><td>${fmt(r.dx2,2)}</td><td>${fmt(r.dy2,2)}</td></tr>`;});
+    h+=`<tr class="sum"><td class="l" colspan="5">Toplam</td><td>${fmt(P.sxy,2)}</td><td>${fmt(P.sxx,2)}</td><td>${fmt(P.syy,2)}</td></tr></table>
+    <div class="f">r = ${fmt(P.sxy,2)} / √(${fmt(P.sxx,2)} × ${fmt(P.syy,2)}) = <b>${fmt(P.r,4)}</b></div>`;
+  } else if(st.tab==='s'){
+    const Sp=R.S;
+    h+=`<div class="f">ρ = 1 − 6·Σdᵢ² / [n(n² − 1)] &nbsp;&nbsp;(eşit değer yoksa) &nbsp;&nbsp;|&nbsp;&nbsp; genel durumda: sıralar üzerinden Pearson r</div>
+    <p class="note">Her değer, büyükten küçüğe sıra numarasıyla değiştirilir (1 = en yüksek). Eşit değerlere ortalama sıra verilir. dᵢ = Rᵢ − Sᵢ.</p>
+    <table><tr><th class="l">Öğe</th><th>y</th><th>Gerçek sıra R</th><th>ŷ</th><th>Tahmin sırası S</th><th>d = R − S</th><th>d²</th></tr>`;
+    t.forEach((v,i)=>{h+=`<tr><td class="l">${name(i)}</td><td>${fv(v)}</td><td>${fmt(Sp.R[i],1)}</td><td>${fv(p[i])}</td><td>${fmt(Sp.S[i],1)}</td><td>${fmt(Sp.d[i],1)}</td><td>${fmt(Sp.d[i]**2,2)}</td></tr>`;});
+    h+=`<tr class="sum"><td class="l" colspan="6">Σd²</td><td>${fmt(Sp.sd2,2)}</td></tr></table>`;
+    h+= Sp.ties
+      ? `<div class="f">Eşit değerler var, bu yüzden kısa formül yaklaşıktır: 1 − 6·${fmt(Sp.sd2,2)} / (${n}·${n*n-1}) = ${fmt(Sp.shortcut,4)}.<br>Kesin değer, sıralar üzerinden Pearson ile hesaplanır: ρ = <b>${fmt(Sp.rho,4)}</b></div>`
+      : `<div class="f">ρ = 1 − 6·${fmt(Sp.sd2,2)} / (${n}·(${n}² − 1)) = 1 − ${fmt(6*Sp.sd2,2)} / ${n*(n*n-1)} = <b>${fmt(Sp.rho,4)}</b></div>`;
+  } else {
+    const N=R.N, gl=st.gain==='lin'?'g = rel = y':(Math.max(...t)>5?'g = 2^rel − 1, rel = 5·y / max(y)':'g = 2^rel − 1, rel = y');
+    h+=`<div class="f">DCG@k = Σᵢ₌₁ᵏ gᵢ / log₂(i + 1) &nbsp;&nbsp;&nbsp; NDCG@k = DCG@k / IDCG@k</div>
+    <p class="note">Model öğeleri tahmin skoruna (ŷ) göre büyükten küçüğe sıralar. Her pozisyonun kazancı, o öğenin <b>gerçek</b> değerinden gelir (${gl}). Alt sıralar log₂(i+1) ile indirgenir: 1. sıra ×1, 2. sıra ×0,63, 3. sıra ×0,5, 8. sıra ×0,32. IDCG, gerçek değerlere göre yapılan ideal sıralamanın DCG'sidir.</p>
+    <div class="grid3" style="margin-top:0"><div><h3>Modelin sıralaması → DCG</h3><table><tr><th>i</th><th class="l">Öğe</th><th>ŷ</th><th>y</th><th>g</th><th>1/log₂(i+1)</th><th>katkı</th></tr>`;
+    N.rp.forEach(r=>{h+=`<tr class="${r.pos===k&&k<n?'cut':''} ${r.pos>k?'dim':''}"><td>${r.pos}</td><td class="l">${name(r.it)}</td><td>${fv(p[r.it])}</td><td>${fv(t[r.it])}</td><td>${fmt(r.gain,2)}</td><td>${fmt(r.disc,3)}</td><td>${fmt(r.c,3)}</td></tr>`;});
+    h+=`<tr class="sum"><td class="l" colspan="6">DCG@${k}</td><td>${fmt(N.dcg,3)}</td></tr></table></div>
+    <div><h3>İdeal sıralama → IDCG</h3><table><tr><th>i</th><th class="l">Öğe</th><th>y</th><th>g</th><th>1/log₂(i+1)</th><th>katkı</th></tr>`;
+    N.ri.forEach(r=>{h+=`<tr class="${r.pos===k&&k<n?'cut':''} ${r.pos>k?'dim':''}"><td>${r.pos}</td><td class="l">${name(r.it)}</td><td>${fv(t[r.it])}</td><td>${fmt(r.gain,2)}</td><td>${fmt(r.disc,3)}</td><td>${fmt(r.c,3)}</td></tr>`;});
+    h+=`<tr class="sum"><td class="l" colspan="5">IDCG@${k}</td><td>${fmt(N.idcg,3)}</td></tr></table></div></div>
+    <div class="f">NDCG@${k} = ${fmt(N.dcg,3)} / ${fmt(N.idcg,3)} = <b>${fmt(N.ndcg,4)}</b></div>
+    <p class="note">Soluk satırlar k'nın dışında kalır ve hesaba girmez. Tahmin skorları eşitse, tablodaki sırası önce gelen öğe öne alınır.</p>`;
+  }
+  $('steps').innerHTML=h;
+}
+
+initTabs(); loadScen('oneri');
+</script>
+</body>
+</html>

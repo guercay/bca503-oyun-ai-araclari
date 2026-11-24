@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cohen'in Kappası — Oyun ve Animasyon Örnekleriyle</title>
+<style>
+:root{
+  --bg:#f6f6f3; --card:#fff; --ink:#1f2328; --muted:#646b75; --line:#e3e5e8; --grid:#eef0f3;
+  --agree:#15803d; --agree-soft:#dcfce7; --dis:#dc2626; --dis-soft:#fee2e2; --chance:#9aa3ad;
+  --a:#2563eb; --b:#d97706; --accent:#2563eb; --accent-soft:#dbe7ff;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#131518; --card:#1c1f23; --ink:#e7e9ec; --muted:#9aa3ad; --line:#2d3238; --grid:#252a30;
+    --agree:#4ade80; --agree-soft:#14361f; --dis:#f87171; --dis-soft:#3d1a1a; --chance:#5b636d;
+    --a:#60a5fa; --b:#fbbf24; --accent:#60a5fa; --accent-soft:#1e3354;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:26px;margin:0 0 4px} h2{font-size:18px;margin:0 0 10px} h3{font-size:15px;margin:0 0 8px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;border-radius:999px;cursor:pointer;font:inherit}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.desc{margin:0 0 16px;color:var(--muted)}
+.row{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;margin-top:16px}
+.row.eq{grid-template-columns:1fr 1fr}
+@media (max-width:900px){.row,.row.eq{grid-template-columns:1fr}}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:6px 11px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px}
+.btn:hover{border-color:var(--accent)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:14px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+th{color:var(--muted);font-weight:600;font-size:13px}
+td.l,th.l{text-align:left}
+.mx td,.mx th{text-align:center;border:1px solid var(--line)}
+.mx .cell{position:relative}
+.mx input{width:56px;font:inherit;font-weight:700;text-align:center;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--ink);padding:4px}
+.mx input:focus{border-color:var(--accent);outline:none;background:var(--card)}
+.mx .pm{display:flex;justify-content:center;gap:4px;margin-top:2px}
+.mx .pm button{border:1px solid var(--line);background:var(--card);color:var(--muted);width:22px;height:20px;line-height:1;border-radius:5px;cursor:pointer;font-size:13px;padding:0}
+.mx .diag{box-shadow:inset 0 0 0 2px var(--agree)}
+.mx .tot{font-weight:700;color:var(--muted)}
+.ra{color:var(--a);font-weight:700} .rb{color:var(--b);font-weight:700}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+@media (max-width:900px){.metrics{grid-template-columns:1fr 1fr}}
+.m{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.m .k{font-size:12px;color:var(--muted)} .m .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums} .m .s{font-size:12px;color:var(--muted)}
+.insight{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:16px}
+.insight p{margin:0 0 6px}.insight p:last-child{margin:0}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--muted);font-size:11px;font-family:inherit}
+.f{font-family:"Cambria Math","STIX Two Math",Georgia,serif;font-size:16px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0;overflow-x:auto}
+.note{font-size:13px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-2px}
+.tokens{display:flex;flex-wrap:wrap;gap:3px}
+.tok{width:14px;height:14px;border-radius:3px}
+.sum td{font-weight:700;border-top:2px solid var(--line)}
+.cmp th,.cmp td{text-align:left;vertical-align:top}
+.ctrl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:14px}
+select{font:inherit;padding:4px 6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cohen'in Kappası (κ)</h1>
+  <p class="sub">İki değerlendiricinin (iki kişi ya da bir model ile bir insan) aynı öğeleri kategorilere ayırırken, <b>şans eseri beklenenin ötesinde</b> ne kadar uyuştuğunu ölçer. Tablodaki sayıları değiştirin, κ anında güncellensin. Tüm veriler kurgusaldır.</p>
+
+  <div class="tabs" id="tabs"></div>
+  <p class="desc" id="desc"></p>
+
+  <div class="row">
+    <div class="card">
+      <h2>Uyum tablosu (karışıklık matrisi)</h2>
+      <div class="btns" id="btns">
+        <button class="btn" data-x="reset">↺ Başlangıç</button>
+        <button class="btn" data-x="perfect" title="A'nın dağılımı korunur, B her öğede A ile aynı etiketi verir">Mükemmel uyum</button>
+        <button class="btn" data-x="chance" title="İki değerlendirici birbirinden bağımsız etiketliyor; dağılımlar korunur">Tamamen şans (bağımsız)</button>
+        <button class="btn" data-x="shift" title="B, A'nın verdiği kategorinin hep bir sonrakini veriyor">Sistematik kayma</button>
+        <button class="btn" data-x="rare" title="Son kategori baskın (~%90), diğerleri nadir: doğruluk yüksek ama κ düşük">Nadir sınıf paradoksu</button>
+      </div>
+      <div id="mx"></div>
+      <p class="note" id="mxNote"></p>
+    </div>
+    <div class="card">
+      <h2>Sonuç</h2>
+      <div class="metrics" style="grid-template-columns:1fr 1fr;margin-top:0">
+        <div class="m"><div class="k">Gözlenen uyum p<sub>o</sub> (doğruluk)</div><div class="v" id="mPo">–</div><div class="s" id="sPo"></div></div>
+        <div class="m"><div class="k">Şansla beklenen uyum p<sub>e</sub></div><div class="v" id="mPe" style="color:var(--chance)">–</div><div class="s">yalnızca iki tarafın kategori dağılımlarından</div></div>
+        <div class="m"><div class="k">Cohen'in κ</div><div class="v" id="mK">–</div><div class="s" id="sK"></div></div>
+        <div class="m"><div class="k" id="kW">Ağırlıklı κ</div><div class="v" id="mW">–</div><div class="s" id="sW"></div></div>
+      </div>
+      <svg id="scale" viewBox="0 0 520 120" style="margin-top:12px"></svg>
+      <svg id="bar" viewBox="0 0 520 110"></svg>
+      <div class="legend"><span><span class="sw" style="background:var(--chance)"></span>şansla beklenen uyum p<sub>e</sub></span><span><span class="sw" style="background:var(--agree)"></span>şansın ötesindeki uyum p<sub>o</sub> − p<sub>e</sub></span><span><span class="sw" style="background:var(--dis-soft);border:1px solid var(--dis)"></span>uyumsuzluk</span></div>
+    </div>
+  </div>
+
+  <div class="insight" id="insight"></div>
+
+  <div class="row eq">
+    <div class="card">
+      <h3>Adım adım hesap</h3>
+      <table id="steps"></table>
+      <div class="f" id="kf"></div>
+      <p class="note" id="seNote"></p>
+    </div>
+    <div class="card">
+      <h3>İki değerlendiricinin kategori dağılımları</h3>
+      <svg id="marg" viewBox="0 0 520 260"></svg>
+      <div class="legend"><span><span class="sw" style="background:var(--a)"></span id="la">Değerlendirici A</span><span><span class="sw" style="background:var(--b)"></span>Değerlendirici B</span></div>
+      <p class="note" id="margNote"></p>
+    </div>
+  </div>
+
+  <div class="row eq">
+    <div class="card">
+      <h3>Her öğe bir kare</h3>
+      <div class="tokens" id="tokens"></div>
+      <div class="legend"><span><span class="sw" style="background:var(--agree)"></span>iki taraf aynı etiketi verdi</span><span><span class="sw" style="background:var(--dis)"></span>farklı etiket</span><span>Karenin üzerine gelince etiketler görünür.</span></div>
+    </div>
+    <div class="card">
+      <h3>Ağırlıklı κ: sıralı kategorilerde “yakın” hata daha az cezalanır</h3>
+      <div class="ctrl"><label>Ağırlık: <select id="wt"><option value="linear">doğrusal |i − j|/(k − 1)</option><option value="quadratic">karesel ((i − j)/(k − 1))²</option></select></label></div>
+      <table id="wtbl"></table>
+      <div class="f">κ<sub>w</sub> = 1 − Σ w<sub>ij</sub>·O<sub>ij</sub> / Σ w<sub>ij</sub>·E<sub>ij</sub>, &nbsp; E<sub>ij</sub> = (satır<sub>i</sub> · sütun<sub>j</sub>) / N</div>
+      <p class="note" id="wNote"></p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Yorumlama ve kullanım</h2>
+    <table class="cmp">
+      <tr><th>κ</th><th>Landis &amp; Koch (1977) yorumu</th><th>Not</th></tr>
+      <tr><td>&lt; 0</td><td>Şanstan kötü</td><td>Değerlendiriciler sistematik olarak birbirine ters etiketliyor.</td></tr>
+      <tr><td>0,00 – 0,20</td><td>Hafif</td><td rowspan="6">Sınırlar keyfidir. Sağlık gibi kritik alanlarda McHugh (2012), 0,60'ın altını yetersiz sayar. κ'yı p<sub>o</sub>, p<sub>e</sub> ve tablonun kendisiyle birlikte raporlayın.</td></tr>
+      <tr><td>0,21 – 0,40</td><td>Kabul edilebilir</td></tr>
+      <tr><td>0,41 – 0,60</td><td>Orta</td></tr>
+      <tr><td>0,61 – 0,80</td><td>Önemli (iyi)</td></tr>
+      <tr><td>0,81 – 1,00</td><td>Neredeyse mükemmel</td></tr>
+    </table>
+    <table class="cmp" style="margin-top:14px">
+      <tr><th>Durum</th><th>Kullanılacak ölçü</th><th>Oyun / animasyon örneği</th></tr>
+      <tr><td>İki değerlendirici, sırasız (nominal) kategoriler</td><td>Cohen'in κ</td><td>İki süpervizörün animasyon kusurlarını türüne göre sınıflaması</td></tr>
+      <tr><td>İki değerlendirici, sıralı kategoriler</td><td>Ağırlıklı κ (doğrusal / karesel)</td><td>İki QA testçisinin bug şiddeti: Kritik &gt; Orta &gt; Düşük</td></tr>
+      <tr><td>Üç veya daha fazla değerlendirici</td><td>Fleiss'in κ veya Krippendorff'un α</td><td>5 oyun testçisinin seviye zorluğu etiketleri</td></tr>
+      <tr><td>Model ile insan etiketi</td><td>Cohen'in κ (model ikinci değerlendirici)</td><td>Sohbet toksisite modeli ile moderatör kararı</td></tr>
+      <tr><td>Sürekli puanlar (ör. 1–10)</td><td>İç sınıf korelasyonu (ICC)</td><td>İki jüri üyesinin kısa film puanları</td></tr>
+    </table>
+    <p class="note">scikit-learn: <code>cohen_kappa_score(a, b)</code>, ağırlıklı için <code>weights="linear"</code> veya <code>"quadratic"</code>.</p>
+  </div>
+</div>
+
+<script id="math">
+function kappaStats(M){
+  const k=M.length, N=M.flat().reduce((a,b)=>a+b,0);
+  const row=M.map(r=>r.reduce((a,b)=>a+b,0)), col=M[0].map((_,j)=>M.reduce((a,r)=>a+r[j],0));
+  const po=N?M.reduce((a,r,i)=>a+r[i],0)/N:NaN;
+  const pe=N?row.reduce((a,r,i)=>a+(r/N)*(col[i]/N),0):NaN;
+  const kappa=(1-pe)>1e-12?(po-pe)/(1-pe):NaN;
+  const pmax=N?row.reduce((a,r,i)=>a+Math.min(r,col[i]),0)/N:NaN;
+  const kmax=(1-pe)>1e-12?(pmax-pe)/(1-pe):NaN;
+  const se=(1-pe)>1e-12&&N?Math.sqrt(po*(1-po)/(N*(1-pe)**2)):NaN;
+  return {k,N,row,col,po,pe,kappa,pmax,kmax,se};
+}
+function weightedKappa(M,type){
+  const s=kappaStats(M), k=s.k, N=s.N; let num=0, den=0; const W=[];
+  for(let i=0;i<k;i++){W.push([]);for(let j=0;j<k;j++){
+    const d=Math.abs(i-j)/(k-1), w=type==='quadratic'?d*d:d; W[i].push(w);
+    num+=w*M[i][j]; den+=w*s.row[i]*s.col[j]/N; }}
+  return {kw: den>1e-12?1-num/den:NaN, num, den, W};
+}
+if(typeof module!=='undefined') module.exports={kappaStats,weightedKappa};
+</script>
+
+<script>
+const SC={
+  qa:{tab:'🐞 QA: bug şiddeti', ordinal:true, A:'QA testçisi Ayşe', B:'QA testçisi Burak',
+    cats:['Kritik','Orta','Düşük'],
+    M:[[12,3,0],[4,18,5],[1,4,13]],
+    desc:'Bir oyunun beta sürümünde bildirilen 60 hata, iki QA testçisi tarafından bağımsız olarak şiddetine göre sınıflandırıldı. Kategoriler sıralı olduğu için “Kritik ↔ Düşük” karışıklığı, “Kritik ↔ Orta” karışıklığından daha ciddidir; bu yüzden ağırlıklı κ da anlamlıdır.'},
+  kusur:{tab:'🎬 Animasyon kusur türü', ordinal:false, A:'Süpervizör Ali', B:'Süpervizör Bora',
+    cats:['Zamanlama','Poz','Ayak kayması','İç içe geçme'],
+    M:[[16,3,1,0],[2,14,2,1],[1,2,17,2],[0,1,3,15]],
+    desc:'Bir animasyon filminin dailies toplantısında işaretlenen 80 kare, iki animasyon süpervizörü tarafından kusur türüne göre etiketlendi. Kategoriler sırasız (nominal), bu yüzden standart Cohen κ kullanılır; ağırlıklı κ burada anlamsızdır.'},
+  toksik:{tab:'💬 Sohbet moderasyonu', ordinal:false, A:'Moderatör', B:'Toksisite modeli',
+    cats:['Toksik','Temiz'],
+    M:[[6,4],[6,184]],
+    desc:'Çok oyunculu bir oyunun sohbetinden 200 mesaj hem insan moderatör hem de otomatik toksisite modeli tarafından etiketlendi. Toksik mesajlar nadir (%5). Doğruluk %95 görünüyor, ama κ bu yüksek doğruluğun büyük kısmının şanstan geldiğini ortaya koyuyor.'},
+  yorum:{tab:'⭐ Oyuncu yorumları', ordinal:true, A:'İnsan etiketçi', B:'Duygu modeli',
+    cats:['Olumlu','Nötr','Olumsuz'],
+    M:[[38,6,1],[5,17,4],[2,5,22]],
+    desc:'Bir oyunun mağaza sayfasındaki 100 yorum, bir insan etiketçi ve bir duygu analizi modeli tarafından Olumlu / Nötr / Olumsuz olarak etiketlendi. Nötr yorumlar her iki tarafın da en çok karıştırdığı sınıf.'}
+};
+const st={key:'qa',M:null,wt:'linear'};
+const $=id=>document.getElementById(id);
+const fmt=(v,d=3)=>Number.isFinite(v)?v.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'tanımsız';
+const pc=v=>Number.isFinite(v)?'%'+(v*100).toLocaleString('tr-TR',{maximumFractionDigits:1}):'–';
+const S=()=>SC[st.key];
+function band(k){
+  if(!Number.isFinite(k)) return ['hesaplanamaz','var(--muted)'];
+  if(k<0) return ['şanstan kötü','var(--dis)'];
+  if(k<=0.20) return ['hafif uyum','var(--dis)'];
+  if(k<=0.40) return ['kabul edilebilir uyum','#ea580c'];
+  if(k<=0.60) return ['orta düzey uyum','#ca8a04'];
+  if(k<=0.80) return ['önemli (iyi) uyum','#65a30d'];
+  return ['neredeyse mükemmel uyum','var(--agree)'];
+}
+
+function initTabs(){
+  $('tabs').innerHTML=Object.entries(SC).map(([k,s])=>`<button class="tab" data-k="${k}">${s.tab}</button>`).join('');
+  $('tabs').onclick=e=>{const b=e.target.closest('.tab'); if(b) load(b.dataset.k);};
+}
+function load(k){ st.key=k; st.M=S().M.map(r=>r.slice());
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
+  $('desc').textContent=S().desc; buildMatrix(); update(); }
+
+function buildMatrix(){
+  const s=S(), k=s.cats.length;
+  let h=`<table class="mx"><tr><th rowspan="2" class="l" style="vertical-align:bottom"><span class="ra">A:</span> ${s.A} ↓<br><span class="rb">B:</span> ${s.B} →</th><th colspan="${k}" class="rb">${s.B}</th><th rowspan="2">Toplam (A)</th></tr><tr>`;
+  s.cats.forEach(c=>h+=`<th class="rb">${c}</th>`); h+='</tr>';
+  s.cats.forEach((c,i)=>{ h+=`<tr><th class="l ra">${c}</th>`;
+    s.cats.forEach((_,j)=>{ h+=`<td class="cell ${i===j?'diag':''}" id="c${i}_${j}"><input type="number" min="0" value="${st.M[i][j]}" data-i="${i}" data-j="${j}"><div class="pm"><button data-i="${i}" data-j="${j}" data-d="-1">−</button><button data-i="${i}" data-j="${j}" data-d="1">+</button></div></td>`; });
+    h+=`<td class="tot" id="r${i}"></td></tr>`; });
+  h+=`<tr><th class="l">Toplam (B)</th>`; s.cats.forEach((_,j)=>h+=`<td class="tot" id="cc${j}"></td>`); h+=`<td class="tot" id="NN"></td></tr></table>`;
+  $('mx').innerHTML=h;
+}
+$('mx').addEventListener('input',e=>{const t=e.target; if(t.dataset.i===undefined||t.tagName!=='INPUT') return; const v=Math.max(0,parseInt(t.value)||0); st.M[+t.dataset.i][+t.dataset.j]=v; update(false);});
+$('mx').addEventListener('click',e=>{const b=e.target.closest('button[data-d]'); if(!b) return; const i=+b.dataset.i,j=+b.dataset.j; st.M[i][j]=Math.max(0,st.M[i][j]+(+b.dataset.d)); update();});
+$('wt').onchange=e=>{st.wt=e.target.value; update();};
+
+$('btns').onclick=e=>{
+  const b=e.target.closest('.btn'); if(!b) return; const s=S(), k=s.cats.length;
+  const cur=kappaStats(st.M), N=cur.N||60, row=cur.row;
+  const Z=()=>Array.from({length:k},()=>new Array(k).fill(0));
+  switch(b.dataset.x){
+    case 'reset': st.M=s.M.map(r=>r.slice()); break;
+    case 'perfect': { const M=Z(); row.forEach((r,i)=>M[i][i]=r); st.M=M; break; }
+    case 'chance': { // bağımsızlık: E_ij = r_i c_j / N, en büyük kalan yöntemiyle tamsayıya
+      const col=cur.col, M=Z(), fr=[]; let tot=0;
+      for(let i=0;i<k;i++) for(let j=0;j<k;j++){const e=row[i]*col[j]/N; M[i][j]=Math.floor(e); tot+=M[i][j]; fr.push([e-M[i][j],i,j]);}
+      fr.sort((a,b)=>b[0]-a[0]); for(let t=0;t<N-tot;t++){const [,i,j]=fr[t]; M[i][j]++;}
+      st.M=M; break; }
+    case 'shift': { const M=Z(); row.forEach((r,i)=>{ const c=Math.round(r*0.8); M[i][(i+1)%k]+=c; M[i][i]+=r-c; }); st.M=M; break; }
+    case 'rare': { // son kategori baskın (~%90); diğerleri nadir ve onlarda uyum zayıf
+      const M=Z(), n=N, last=k-1, per=Math.max(2,Math.round(n*0.08/(k-1))), fp=Math.max(1,Math.round(n*0.03/(k-1)));
+      let used=0;
+      for(let i=0;i<last;i++){ M[i][i]=Math.floor(per/2); M[i][last]=per-M[i][i]; M[last][i]=fp; used+=per+fp; }
+      M[last][last]=n-used;
+      st.M=M; break; }
+  }
+  buildMatrix(); update();
+};
+
+function update(rebuildInputs=true){
+  const s=S(), k=s.cats.length, st_=kappaStats(st.M);
+  if(rebuildInputs) document.querySelectorAll('#mx input').forEach(inp=>inp.value=st.M[+inp.dataset.i][+inp.dataset.j]);
+  // ısı haritası
+  const mx=Math.max(1,...st.M.flat());
+  for(let i=0;i<k;i++){ for(let j=0;j<k;j++){ const c=$(`c${i}_${j}`), a=st.M[i][j]/mx;
+      c.style.background= i===j?`color-mix(in srgb, var(--agree) ${Math.round(a*45)}%, transparent)`:`color-mix(in srgb, var(--dis) ${Math.round(a*45)}%, transparent)`; }
+    $(`r${i}`).textContent=st_.row[i]; }
+  for(let j=0;j<k;j++) $(`cc${j}`).textContent=st_.col[j];
+  $('NN').textContent=`N = ${st_.N}`;
+  $('mxNote').innerHTML=`Satırlar <span class="ra">A</span>'nın, sütunlar <span class="rb">B</span>'nin verdiği etiket. Yeşil çerçeveli köşegen = iki tarafın aynı etiketi verdiği öğeler. Hücrelere sayı yazın ya da −/+ ile değiştirin.`;
+  // metrikler
+  $('mPo').textContent=fmt(st_.po); $('sPo').textContent=`${st.M.reduce((a,r,i)=>a+r[i],0)} / ${st_.N} öğede aynı etiket (${pc(st_.po)})`;
+  $('mPe').textContent=fmt(st_.pe);
+  const [bl,bc]=band(st_.kappa); $('mK').textContent=fmt(st_.kappa); $('mK').style.color=bc;
+  $('sK').textContent=`${bl}; 95% GA ≈ [${fmt(st_.kappa-1.96*st_.se,2)}; ${fmt(st_.kappa+1.96*st_.se,2)}]`;
+  const W=weightedKappa(st.M,st.wt);
+  $('kW').textContent=`Ağırlıklı κ (${st.wt==='linear'?'doğrusal':'karesel'})`;
+  if(s.ordinal){ $('mW').textContent=fmt(W.kw); $('mW').style.color=band(W.kw)[1]; $('sW').textContent='sıralı kategoriler: yakın hatalar kısmen affedilir'; }
+  else { $('mW').textContent='–'; $('mW').style.color='var(--muted)'; $('sW').textContent='kategoriler sırasız; ağırlıklı κ uygulanmaz'; }
+  drawScale(st_.kappa); drawBar(st_); drawMarg(st_); drawTokens(); steps(st_); wtable(W,st_); insights(st_,W);
+}
+
+function drawScale(k){
+  const W=520,H=120,l=20,r=20,y=50,h=22, X=v=>l+(v+0.2)/1.2*(W-l-r);
+  const bands=[[-0.2,0,'var(--dis)','< 0'],[0,0.2,'var(--dis)','hafif'],[0.2,0.4,'#ea580c','kabul ed.'],[0.4,0.6,'#ca8a04','orta'],[0.6,0.8,'#65a30d','önemli'],[0.8,1,'var(--agree)','n. mükemmel']];
+  let o='';
+  bands.forEach(([a,b,c,t])=>{o+=`<rect x="${X(a)}" y="${y}" width="${X(b)-X(a)-1}" height="${h}" fill="${c}" opacity=".28"/><text x="${(X(a)+X(b))/2}" y="${y+h+16}" text-anchor="middle">${t}</text>`;});
+  [-0.2,0,0.2,0.4,0.6,0.8,1].forEach(v=>o+=`<text x="${X(v)}" y="${y-6}" text-anchor="middle">${fmt(v,1)}</text>`);
+  if(Number.isFinite(k)){ const kk=Math.max(-0.2,Math.min(1,k)); o+=`<path d="M${X(kk)-8},${y-28} L${X(kk)+8},${y-28} L${X(kk)},${y-14} Z" fill="var(--ink)"/><text x="${X(kk)}" y="${y-32}" text-anchor="middle" style="fill:var(--ink);font-weight:700;font-size:13px">κ = ${fmt(k)}</text><line x1="${X(kk)}" x2="${X(kk)}" y1="${y}" y2="${y+h}" stroke="var(--ink)" stroke-width="3"/>`; }
+  $('scale').innerHTML=o;
+}
+function drawBar(s){
+  const W=520,H=110,l=20,r=20,y=36,h=30, X=v=>l+v*(W-l-r);
+  let o='';
+  if(Number.isFinite(s.po)){
+    const a=Math.min(s.pe,s.po), extra=Math.max(0,s.po-s.pe);
+    o+=`<rect x="${X(0)}" y="${y}" width="${X(1)-X(0)}" height="${h}" fill="var(--dis-soft)" stroke="var(--dis)" stroke-width=".6" rx="4"/>`;
+    o+=`<rect x="${X(0)}" y="${y}" width="${X(s.po)-X(0)}" height="${h}" fill="var(--chance)" rx="4"/>`;
+    o+=`<rect x="${X(a)}" y="${y}" width="${X(a+extra)-X(a)}" height="${h}" fill="var(--agree)"/>`;
+    o+=`<line x1="${X(s.pe)}" x2="${X(s.pe)}" y1="${y-8}" y2="${y+h+8}" stroke="var(--ink)" stroke-dasharray="3 2"/><text x="${X(s.pe)}" y="${y-12}" text-anchor="middle" style="fill:var(--ink)">p<tspan baseline-shift="sub" font-size="9">e</tspan> = ${fmt(s.pe,2)}</text>`;
+    o+=`<text x="${X(s.po)}" y="${y+h+20}" text-anchor="middle" style="fill:var(--ink)">p<tspan baseline-shift="sub" font-size="9">o</tspan> = ${fmt(s.po,2)}</text>`;
+    o+=`<text x="${X(1)}" y="${y-12}" text-anchor="end">κ = yeşil / (yeşil + kırmızı) = ${fmt(s.po-s.pe,3)} / ${fmt(1-s.pe,3)}</text>`;
+  }
+  $('bar').innerHTML=o;
+}
+function drawMarg(s){
+  const sc=S(), k=sc.cats.length, W=520,H=260,m={l:44,r:10,t:16,b:40};
+  const pa=s.row.map(v=>v/s.N), pb=s.col.map(v=>v/s.N), ymax=Math.max(...pa,...pb,0.01)*1.15;
+  const gw=(W-m.l-m.r)/k, Y=v=>H-m.b-v/ymax*(H-m.t-m.b);
+  let o='';
+  [0,0.25,0.5,0.75,1].filter(v=>v<=ymax).forEach(v=>o+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">%${v*100}</text>`);
+  sc.cats.forEach((c,i)=>{const x=m.l+i*gw, bw=gw*0.3;
+    o+=`<rect x="${x+gw*0.18}" y="${Y(pa[i])}" width="${bw}" height="${Y(0)-Y(pa[i])}" fill="var(--a)" rx="2"/><text x="${x+gw*0.18+bw/2}" y="${Y(pa[i])-4}" text-anchor="middle">${pc(pa[i])}</text>`;
+    o+=`<rect x="${x+gw*0.52}" y="${Y(pb[i])}" width="${bw}" height="${Y(0)-Y(pb[i])}" fill="var(--b)" rx="2"/><text x="${x+gw*0.52+bw/2}" y="${Y(pb[i])-4}" text-anchor="middle">${pc(pb[i])}</text>`;
+    o+=`<text x="${x+gw/2}" y="${H-m.b+16}" text-anchor="middle" style="font-size:12px;fill:var(--ink)">${c}</text>`;
+    o+=`<text x="${x+gw/2}" y="${H-m.b+31}" text-anchor="middle">şans: ${fmt(pa[i]*pb[i],3)}</text>`;});
+  $('marg').innerHTML=o;
+  const diff=Math.max(...pa.map((v,i)=>Math.abs(v-pb[i])));
+  $('margNote').innerHTML=`p<sub>e</sub>, her kategori için “A bu etiketi verme oranı × B bu etiketi verme oranı” çarpımlarının toplamıdır (alt satırdaki “şans” değerleri). İki dağılım arasındaki en büyük fark ${fmt(diff*100,1)} puan. ${diff>0.1?'Değerlendiricilerden biri bazı kategorileri belirgin şekilde daha sık kullanıyor (yanlılık). Bu, ulaşılabilecek en yüksek κ’yı da sınırlar.':'Dağılımlar birbirine yakın: belirgin bir yanlılık yok.'} Bu dağılımlarla mümkün en yüksek κ: <b>${fmt(s.kmax)}</b>.`;
+}
+function drawTokens(){
+  const sc=S(); let h='';
+  st.M.forEach((r,i)=>r.forEach((c,j)=>{for(let t=0;t<c;t++) h+=`<div class="tok" style="background:${i===j?'var(--agree)':'var(--dis)'}" title="A: ${sc.cats[i]} · B: ${sc.cats[j]}"></div>`;}));
+  $('tokens').innerHTML=h;
+}
+function steps(s){
+  const sc=S();
+  let h=`<tr><th class="l">Kategori</th><th>Uyum (köşegen)</th><th>A toplamı</th><th>B toplamı</th><th>p<sub>A</sub></th><th>p<sub>B</sub></th><th>p<sub>A</sub>·p<sub>B</sub></th></tr>`;
+  sc.cats.forEach((c,i)=>h+=`<tr><td class="l">${c}</td><td>${st.M[i][i]}</td><td>${s.row[i]}</td><td>${s.col[i]}</td><td>${fmt(s.row[i]/s.N)}</td><td>${fmt(s.col[i]/s.N)}</td><td>${fmt(s.row[i]*s.col[i]/s.N/s.N,4)}</td></tr>`);
+  const d=st.M.reduce((a,r,i)=>a+r[i],0);
+  h+=`<tr class="sum"><td class="l">Toplam</td><td>${d}</td><td>${s.N}</td><td>${s.N}</td><td></td><td></td><td>p<sub>e</sub> = ${fmt(s.pe,4)}</td></tr>`;
+  $('steps').innerHTML=h;
+  $('kf').innerHTML=`p<sub>o</sub> = ${d} / ${s.N} = ${fmt(s.po,4)}<br>κ = (p<sub>o</sub> − p<sub>e</sub>) / (1 − p<sub>e</sub>) = (${fmt(s.po,4)} − ${fmt(s.pe,4)}) / (1 − ${fmt(s.pe,4)}) = <b>${fmt(s.kappa,4)}</b>`;
+  $('seNote').innerHTML=`Yaklaşık standart hata (Cohen, 1960): SE = √[p<sub>o</sub>(1 − p<sub>o</sub>) / (N(1 − p<sub>e</sub>)²)] = ${fmt(s.se,4)}; %95 güven aralığı ≈ κ ± 1,96·SE. N = ${s.N} ile aralığın genişliği ${fmt(3.92*s.se,2)}.`;
+}
+function wtable(W,s){
+  const sc=S(), k=sc.cats.length;
+  if(!sc.ordinal){ $('wtbl').innerHTML=`<tr><td class="l">Bu senaryoda kategoriler sırasız. “Zamanlama”nın “Poz”a, “İç içe geçme”den daha yakın olduğunu söylemek anlamsız, bu yüzden ağırlıklı κ kullanılmaz. Sıralı bir senaryo seçin (QA veya Oyuncu yorumları).</td></tr>`; $('wNote').textContent=''; return; }
+  let h=`<tr><th class="l">Ağırlık w<sub>ij</sub> (A ↓, B →)</th>${sc.cats.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  sc.cats.forEach((c,i)=>h+=`<tr><td class="l">${c}</td>${W.W[i].map((w,j)=>`<td style="${i===j?'color:var(--agree);font-weight:700':''}">${fmt(w,2)}</td>`).join('')}</tr>`);
+  $('wtbl').innerHTML=h;
+  $('wNote').innerHTML=`Σ w·O = ${fmt(W.num,2)} (gözlenen ağırlıklı uyumsuzluk), Σ w·E = ${fmt(W.den,2)} (şansla beklenen ağırlıklı uyumsuzluk) → κ<sub>w</sub> = 1 − ${fmt(W.num,2)} / ${fmt(W.den,2)} = <b>${fmt(W.kw,4)}</b>. Standart κ (${fmt(s.kappa,3)}) her karışıklığı tam hata sayar; ağırlıklı κ bir basamaklık karışıklığı kısmen affeder.`;
+}
+function insights(s,W){
+  const sc=S(), o=[];
+  if(!Number.isFinite(s.kappa)){ $('insight').innerHTML='<p>κ hesaplanamıyor: iki taraf da tüm öğelere aynı tek kategoriyi vermiş (p<sub>e</sub> = 1).</p>'; return; }
+  o.push(`<b>Okuma:</b> İki taraf öğelerin ${pc(s.po)}'inde aynı etiketi vermiş. Ama rastgele etiketleseler bile (aynı kategori oranlarıyla) ${pc(s.pe)} uyum beklenirdi. Şansın ötesinde ulaşılabilecek uyumun <b>${pc(s.kappa)}</b>'i gerçekleşmiş: κ = ${fmt(s.kappa)} (${band(s.kappa)[0]}).`);
+  if(s.po>=0.85 && s.kappa<0.65) o.push(`<b>Paradoks:</b> Doğruluk ${pc(s.po)} ile yüksek görünse de κ düşük. Bir kategori çok baskın olduğu için şans uyumu da çok yüksek (${pc(s.pe)}). Yalnızca doğruluğa bakan biri yanılırdı; nadir kategori (ör. toksik mesaj) asıl önemli olandır.`);
+  if(Math.abs(s.kappa)<0.05) o.push(`κ ≈ 0: Uyum tamamen şansla açıklanabilir. Değerlendiriciler birbirinden bağımsız etiketliyor gibi.`);
+  if(s.kappa<0) o.push(`κ &lt; 0: Uyum, şansla beklenenden de düşük. Sistematik bir karışıklık var (ör. biri kategori tanımlarını ters anlamış).`);
+  if(sc.ordinal && Number.isFinite(W.kw) && W.kw-s.kappa>0.05) o.push(`Ağırlıklı κ (${fmt(W.kw)}) standart κ'dan yüksek: Karışıklıkların çoğu komşu kategoriler arasında (ör. Orta ↔ Düşük). Kritik ↔ Düşük gibi uzak hatalar az.`);
+  if(s.kmax<0.95) o.push(`İki tarafın kategori dağılımları farklı olduğu için κ en fazla ${fmt(s.kmax)} olabilir. Kalibrasyon toplantısıyla tanımların ortaklaştırılması, uyumu artırmanın ilk adımıdır.`);
+  $('insight').innerHTML=o.map(x=>`<p>${x}</p>`).join('');
+}
+
+initTabs(); load('qa');
+</script>
+</body>
+</html>

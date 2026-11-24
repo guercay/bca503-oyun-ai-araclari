@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tekrarlanan Örnekleme (Monte Carlo Çapraz Doğrulama) — Oyun ve Animasyon Örnekleriyle</title>
+<style>
+:root{
+  --bg:#f6f6f3; --card:#fff; --ink:#1f2328; --muted:#646b75; --line:#e3e5e8; --grid:#eef0f3;
+  --train:#2563eb; --train-soft:#cfe0ff; --test:#ea580c; --test-soft:#ffd9c2; --full:#9aa3ad;
+  --rs:#db2777; --kf:#7c3aed; --loo:#059669; --true:#1f2328; --accent:#2563eb; --accent-soft:#dbe7ff; --zero:#b91c1c;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#131518; --card:#1c1f23; --ink:#e7e9ec; --muted:#9aa3ad; --line:#2d3238; --grid:#252a30;
+    --train:#60a5fa; --train-soft:#1f3556; --test:#fb923c; --test-soft:#5a2e14; --full:#6b7480;
+    --rs:#f472b6; --kf:#a78bfa; --loo:#34d399; --true:#e7e9ec; --accent:#60a5fa; --accent-soft:#1e3354; --zero:#f87171;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:26px;margin:0 0 4px} h2{font-size:18px;margin:0 0 10px} h3{font-size:15px;margin:0 0 8px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;border-radius:999px;cursor:pointer;font:inherit}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.desc{margin:0 0 16px;color:var(--muted)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:900px){.row{grid-template-columns:1fr}}
+.ctrls{display:flex;flex-wrap:wrap;gap:16px 26px;align-items:center}
+.ctrls label{display:flex;align-items:center;gap:8px}
+input[type=range]{accent-color:var(--accent);width:150px}
+input[type=number]{width:64px;font:inherit;padding:3px 5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:6px 11px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px}
+.btn:hover{border-color:var(--accent)}
+.val{font-weight:700;min-width:34px;display:inline-block;font-variant-numeric:tabular-nums}
+.stepper{display:flex;align-items:center;gap:8px;margin:0 0 8px;flex-wrap:wrap}
+.stepper .lbl{font-weight:600;margin-right:6px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+@media (max-width:900px){.metrics{grid-template-columns:1fr 1fr}}
+.m{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.m .k{font-size:12px;color:var(--muted)} .m .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums} .m .s{font-size:12px;color:var(--muted)}
+.insight{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:16px}
+.insight p{margin:0 0 6px}.insight p:last-child{margin:0}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--muted);font-size:11px;font-family:inherit}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:14px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right}
+th{color:var(--muted);font-weight:600;font-size:13px}
+td.l,th.l{text-align:left}
+tr.cur td{background:var(--test-soft)}
+tr.clk{cursor:pointer}
+.f{font-family:"Cambria Math","STIX Two Math",Georgia,serif;font-size:16px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0;overflow-x:auto}
+.note{font-size:13px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-2px}
+.tblwrap{max-height:300px;overflow:auto}
+.cmp th,.cmp td{text-align:left;vertical-align:top}
+.best{font-weight:700;color:var(--loo)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tekrarlanan Örnekleme (Monte Carlo Çapraz Doğrulama)</h1>
+  <p class="sub">Veriyi her seferinde rastgele, R oranında doğrulama ve (1 − R) oranında eğitim kümesine böl; modeli eğit ve ölç; bunu B kez tekrarla; ölçümlerin ortalamasını al. Model: polinom regresyon. Veriler kurgusal ve sabit tohumla üretilmiştir (çapraz doğrulama sayfasıyla aynı veriler).</p>
+
+  <div class="tabs" id="tabs"></div>
+  <p class="desc" id="desc"></p>
+
+  <div class="card">
+    <div class="ctrls">
+      <label>Doğrulama oranı R <input type="range" id="R" min="0.1" max="0.8" step="0.05" value="0.3"><span class="val" id="Rv">0,30</span></label>
+      <label>Tekrar sayısı B <input type="range" id="B" min="1" max="200" step="1" value="20"><span class="val" id="Bv">20</span></label>
+      <label>Polinom derecesi <input type="range" id="deg" min="1" max="6" value="2"><span class="val" id="degv">2</span></label>
+      <label>Tohum <input type="number" id="seed" value="1" min="1"> <button class="btn" id="reseed">🎲 Yeni tohum</button></label>
+    </div>
+    <p class="note" id="splitNote" style="margin:10px 0 0"></p>
+  </div>
+
+  <div class="metrics">
+    <div class="m"><div class="k">Tekrarlanan örnekleme tahmini (RMSE)</div><div class="v" id="mRS" style="color:var(--rs)">–</div><div class="s" id="sRS"></div></div>
+    <div class="m"><div class="k">Tek bölmelerin yayılımı</div><div class="v" id="mSpread">–</div><div class="s" id="sSpread"></div></div>
+    <div class="m"><div class="k">Hiç doğrulamaya girmeyen gözlem</div><div class="v" id="mZero" style="color:var(--zero)">–</div><div class="s" id="sZero"></div></div>
+    <div class="m"><div class="k">Gerçek genelleme hatası (referans)</div><div class="v" id="mTrue">–</div><div class="s">Tüm veriyle eğitilen model, 4000 yeni seviye/shot üzerinde (simülasyon)</div></div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <div class="stepper">
+        <span class="lbl" id="repLbl">Tekrar 1 / 30</span>
+        <button class="btn" id="prev">◀</button><button class="btn" id="next">▶</button><button class="btn" id="play">▶ Oynat</button>
+      </div>
+      <svg id="scatter" viewBox="0 0 520 350"></svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--train)"></span>eğitim (bu tekrar)</span>
+        <span><span class="sw" style="background:var(--test)"></span>doğrulama (bu tekrar)</span>
+        <span>– – tüm veriyle uydurulan model</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Kapsama: her gözlem kaç kez doğrulama kümesine düştü?</h3>
+      <svg id="cover" viewBox="0 0 520 250"></svg>
+      <div class="legend"><span><span class="sw" style="background:var(--test)"></span>doğrulamada kullanılma sayısı</span><span><span class="sw" style="background:var(--zero)"></span>hiç kullanılmadı</span><span>– – beklenen: B·m/n</span></div>
+      <p class="note" id="coverNote"></p>
+    </div>
+  </div>
+
+  <div class="insight" id="insight"></div>
+
+  <div class="row">
+    <div class="card">
+      <h3>Tekrar sayısı arttıkça tahmin nasıl oturuyor?</h3>
+      <svg id="run" viewBox="0 0 520 300"></svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--rs)"></span>yürüyen ortalama √(ortalama MSE)</span>
+        <span><span class="sw" style="background:var(--rs);opacity:.35"></span>tek bölmenin RMSE'si</span>
+        <span><span class="sw" style="background:var(--kf)"></span>K-katlı CV (K = 1/R)</span>
+        <span><span class="sw" style="background:var(--true)"></span>gerçek hata</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Tek bölmelerin RMSE dağılımı</h3>
+      <svg id="hist" viewBox="0 0 520 300"></svg>
+      <p class="note">Tek bir rastgele bölmeye (holdout) güvenseydik, bu dağılımdaki herhangi bir değeri raporlayabilirdik. Tekrar edip ortalamak bu şans faktörünü azaltır.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>R'nin etkisi: doğrulamaya ne kadar veri ayrılmalı?</h3>
+      <svg id="reff" viewBox="0 0 520 300"></svg>
+      <div class="legend"><span><span class="sw" style="background:var(--rs)"></span>tek bölme RMSE ortalaması</span><span><span class="sw" style="background:var(--rs);opacity:.25"></span>tek bölmelerin %10–90 aralığı</span><span><span class="sw" style="background:var(--true)"></span>gerçek hata</span></div>
+      <p class="note" id="reffNote"></p>
+    </div>
+    <div class="card">
+      <h3>Tekrar tablosu</h3>
+      <div class="tblwrap"><table id="repTbl"></table></div>
+      <div class="f">Tahmin = √[ (1/B) Σ<sub>b=1</sub><sup>B</sup> MSE<sub>b</sub> ], &nbsp; MSE<sub>b</sub> = (1/m) Σ<sub>i∈V<sub>b</sub></sub> (yᵢ − ŷᵢ<sup>(b)</sup>)²</div>
+      <p class="note">V<sub>b</sub>: b'inci tekrarın doğrulama kümesi (m = round(R·n) gözlem). ŷ<sup>(b)</sup>: yalnızca o tekrarın eğitim kümesiyle eğitilen model.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Karşılaştırma: aynı veride 60 farklı tohumla</h2>
+    <p class="note" id="cmpNote" style="margin-top:0"></p>
+    <table id="cmpTbl"></table>
+    <div class="insight" id="claim"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Yöntemlerin özeti</h2>
+    <table class="cmp">
+      <tr><th></th><th>Tek bölme (holdout)</th><th>Tekrarlanan örnekleme</th><th>K-katlı CV</th><th>LOOCV</th></tr>
+      <tr><td><b>Bölme</b></td><td>Bir kez, oran R</td><td>B kez bağımsız rastgele, oran R</td><td>K ayrık parça</td><td>n parça (her biri 1 gözlem)</td></tr>
+      <tr><td><b>Her gözlem doğrulamada?</b></td><td>Hayır</td><td>Garanti yok; olasılık 1 − (1 − m/n)<sup>B</sup></td><td>Evet, tam bir kez</td><td>Evet, tam bir kez</td></tr>
+      <tr><td><b>Eğitim boyutu</b></td><td>(1 − R)·n</td><td>(1 − R)·n, R'den bağımsız olarak B ayarlanabilir</td><td>(K − 1)/K · n</td><td>n − 1</td></tr>
+      <tr><td><b>Model eğitimi</b></td><td>1</td><td>B</td><td>K</td><td>n</td></tr>
+      <tr><td><b>scikit-learn</b></td><td><code>train_test_split</code></td><td><code>ShuffleSplit</code></td><td><code>KFold</code>, <code>RepeatedKFold</code></td><td><code>LeaveOneOut</code></td></tr>
+      <tr><td><b>Oyun / animasyon örneği</b></td><td>1 milyon oturumluk oyuncu verisi: tek bölme yeterli</td><td>Doğrulama oranını eğitim boyutundan bağımsız seçmek gerektiğinde; örn. 200 shot'lık render verisi</td><td>Varsayılan seçim</td><td>15–20 gözlemlik pilot test</td></tr>
+    </table>
+  </div>
+</div>
+
+<script id="math">
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){const u=r()||1e-12,v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function makeData(sc){
+  const r=mulberry32(sc.seed), n=sc.n, [lo,hi]=sc.xr, w=(hi-lo)/n, xs=[], ys=[];
+  for(let i=0;i<n;i++){
+    const x=lo+w*(i+0.5)+(r()-0.5)*w*0.8;
+    let y=sc.f(x)+sc.sd*gauss(r);
+    if(sc.yclip) y=Math.min(sc.yclip[1],Math.max(sc.yclip[0],y));
+    xs.push(+x.toFixed(sc.xd)); ys.push(+y.toFixed(sc.yd));
+  }
+  return {x:xs,y:ys};
+}
+function solve(A,b){ // Gauss eliminasyonu, kısmi pivotlama
+  const n=b.length, M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){
+    let p=c; for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[p][c])) p=r;
+    [M[c],M[p]]=[M[p],M[c]];
+    const d=M[c][c]||1e-15;
+    for(let r=0;r<n;r++){ if(r===c) continue; const f=M[r][c]/d; for(let k=c;k<=n;k++) M[r][k]-=f*M[c][k]; }
+  }
+  return M.map((r,i)=>r[n]/(r[i]||1e-15));
+}
+function scaler(xs){const lo=Math.min(...xs),hi=Math.max(...xs),m=(lo+hi)/2,h=(hi-lo)/2||1;return x=>(x-m)/h}
+const row=(x,deg,s)=>{const z=s(x),r=[];for(let p=0;p<=deg;p++) r.push(Math.pow(z,p));return r};
+function fit(xs,ys,deg,s){
+  const P=deg+1, A=Array.from({length:P},()=>new Array(P).fill(0)), b=new Array(P).fill(0);
+  xs.forEach((x,i)=>{const v=row(x,deg,s);for(let a=0;a<P;a++){b[a]+=v[a]*ys[i];for(let c=0;c<P;c++) A[a][c]+=v[a]*v[c];}});
+  return solve(A,b);
+}
+const pred=(c,x,deg,s)=>row(x,deg,s).reduce((t,v,i)=>t+v*c[i],0);
+function makeFolds(n,K,shuffle,seed){
+  const idx=[...Array(n).keys()];
+  if(shuffle){const r=mulberry32(seed*7919+13);for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}}
+  const base=Math.floor(n/K), rem=n%K, out=[]; let p=0;
+  for(let k=0;k<K;k++){const sz=base+(k<rem?1:0); out.push(idx.slice(p,p+sz).sort((a,b)=>a-b)); p+=sz;}
+  return out;
+}
+function crossVal(d,deg,folds){
+  const s=scaler(d.x), n=d.x.length; let sse=0;
+  const per=folds.map(test=>{
+    const T=new Set(test), tr=[...Array(n).keys()].filter(i=>!T.has(i));
+    const c=fit(tr.map(i=>d.x[i]),tr.map(i=>d.y[i]),deg,s);
+    const pr=test.map(i=>pred(c,d.x[i],deg,s)), se=test.map((i,j)=>(d.y[i]-pr[j])**2);
+    const fs=se.reduce((a,b)=>a+b,0); sse+=fs;
+    return {test,train:tr,coef:c,pred:pr,se,mse:fs/test.length};
+  });
+  return {per,mse:sse/n,rmse:Math.sqrt(sse/n)};
+}
+function trainErr(d,deg){
+  const s=scaler(d.x), c=fit(d.x,d.y,deg,s);
+  const mse=d.x.reduce((t,x,i)=>t+(d.y[i]-pred(c,x,deg,s))**2,0)/d.x.length;
+  return {coef:c,mse,rmse:Math.sqrt(mse)};
+}
+function looShortcut(d,deg){
+  const s=scaler(d.x), n=d.x.length, P=deg+1, X=d.x.map(x=>row(x,deg,s));
+  const A=Array.from({length:P},(_,a)=>Array.from({length:P},(_,c)=>X.reduce((t,r)=>t+r[a]*r[c],0)));
+  const c=fit(d.x,d.y,deg,s);
+  const rows=X.map((xi,i)=>{const z=solve(A,xi), h=xi.reduce((t,v,j)=>t+v*z[j],0), yh=pred(c,d.x[i],deg,s), e=d.y[i]-yh; return {h,yh,e,q:(e/(1-h))**2};});
+  const mse=rows.reduce((t,r)=>t+r.q,0)/n;
+  return {rows,mse,rmse:Math.sqrt(mse)};
+}
+
+
+function splitRandom(n,m,r){const idx=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}return idx.slice(0,m).sort((a,b)=>a-b)}
+function evalSplit(d,deg,test){
+  const s=scaler(d.x), n=d.x.length, T=new Set(test), tr=[...Array(n).keys()].filter(i=>!T.has(i));
+  const c=fit(tr.map(i=>d.x[i]),tr.map(i=>d.y[i]),deg,s), pr=test.map(i=>pred(c,d.x[i],deg,s));
+  return {test,train:tr,coef:c,pred:pr,mse:test.reduce((t,i,j)=>t+(d.y[i]-pr[j])**2,0)/test.length};
+}
+function mOf(n,R,deg){return Math.max(1,Math.min(n-(deg+2),Math.round(R*n)))}
+function repeated(d,deg,R,B,seed){
+  const n=d.x.length, m=mOf(n,R,deg), r=mulberry32(seed*104729+7), reps=[], cnt=new Array(n).fill(0);
+  for(let b=0;b<B;b++){const t=splitRandom(n,m,r); t.forEach(i=>cnt[i]++); reps.push(evalSplit(d,deg,t));}
+  const mse=reps.reduce((a,x)=>a+x.mse,0)/B;
+  return {m,reps,cnt,mse,rmse:Math.sqrt(mse)};
+}
+const kOf=(R,n)=>Math.max(2,Math.min(n,Math.round(1/R)));
+function kfoldMse(d,deg,K,seed){return crossVal(d,deg,makeFolds(d.x.length,K,true,seed)).mse}
+function repKfoldMse(d,deg,K,reps,seed){let s=0;for(let i=0;i<reps;i++) s+=kfoldMse(d,deg,K,seed*1000+i+1);return s/reps}
+function trueErr(sc,d,deg){
+  const s=scaler(d.x), c=fit(d.x,d.y,deg,s), r=mulberry32(99991), lo=Math.min(...d.x), hi=Math.max(...d.x); let t=0; const N=4000;
+  for(let i=0;i<N;i++){const x=lo+(hi-lo)*r(); let y=sc.f(x)+sc.sd*gauss(r); if(sc.yclip) y=Math.min(sc.yclip[1],Math.max(sc.yclip[0],y)); t+=(y-pred(c,x,deg,s))**2;}
+  return Math.sqrt(t/N);
+}
+if(typeof module!=='undefined') module.exports={mulberry32,makeData,fit,pred,scaler,makeFolds,crossVal,trainErr,looShortcut,splitRandom,evalSplit,mOf,repeated,kOf,kfoldMse,repKfoldMse,trueErr};
+</script>
+
+<script>
+const SC={
+  render:{tab:'🎬 Render süresi', seed:4, n:16, xr:[0.5,12], xd:1, yd:1, sd:4, yclip:[1,500],
+    f:x=>4+1.5*x+0.35*x*x, xName:'Sahnedeki poligon sayısı (milyon)', yName:'Render süresi (dk/kare)', yu:'dk',
+    desc:'Bir animasyon stüdyosu, 16 shot\'lık pilot projeden “sahne karmaşıklığına göre bir karenin render süresi” modelini kuruyor. Gerçek ilişki eğrisel (poligon arttıkça süre hızlanarak artıyor). Doğru polinom derecesini çapraz doğrulama ile seçiyoruz.'},
+  memnun:{tab:'🎮 Zorluk ve memnuniyet', seed:4, n:16, xr:[1,10], xd:1, yd:1, sd:0.8, yclip:[1,10],
+    f:x=>2+1.9*x-0.17*x*x, xName:'Seviye zorluğu (1–10)', yName:'Oyuncu memnuniyeti (1–10)', yu:'puan',
+    desc:'Bir mobil oyunun 16 seviyesi için oyun testinde ortalama memnuniyet ölçüldü. Çok kolay seviyeler sıkıcı, çok zor seviyeler sinir bozucu: ilişki ters U biçimli. Doğrusal model (derece 1) bunu yakalayamaz; çok yüksek derece ise gürültüyü ezberler.'},
+  sure:{tab:'🕹️ Seviye tamamlama süresi', seed:2, n:16, xr:[2,40], xd:0, yd:1, sd:1.2,
+    f:x=>3+14*(1-Math.exp(-x/12)), xName:'Seviyedeki düşman sayısı', yName:'Ortalama tamamlama süresi (dk)', yu:'dk',
+    desc:'Seviye tasarımcısı, düşman sayısından tamamlama süresini tahmin etmek istiyor. Süre önce hızla artıyor, sonra doygunluğa ulaşıyor (oyuncular alan hasarlı silahlar kullanmaya başlıyor). Hangi polinom derecesi genellenir?'},
+  anim:{tab:'🎞️ Animasyon iş gücü', seed:1, n:16, xr:[2,30], xd:0, yd:1, sd:1.0,
+    f:x=>1+0.35*x, xName:'Shot uzunluğu (saniye)', yName:'Animasyon süresi (adam-gün)', yu:'gün',
+    desc:'Yapım planlaması için shot uzunluğundan animatör iş gücü tahmin ediliyor. Gerçek ilişki doğrusal. Çapraz doğrulama, daha karmaşık modellerin burada fayda sağlamadığını gösterir.'}
+};
+const st={key:'render',R:0.3,B:20,deg:2,seed:1,rep:0,timer:null};
+const $=id=>document.getElementById(id);
+const fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'–';
+const pct=a=>{const s=[...a].sort((x,y)=>x-y);return q=>{const p=(s.length-1)*q,i=Math.floor(p),f=p-i;return s[i]+(s[Math.min(i+1,s.length-1)]-s[i])*f}};
+const sdOf=a=>{const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((t,v)=>t+(v-m)**2,0)/(a.length-1||1))};
+let D,R={};
+
+function initTabs(){
+  $('tabs').innerHTML=Object.entries(SC).map(([k,s])=>`<button class="tab" data-k="${k}">${s.tab}</button>`).join('');
+  $('tabs').onclick=e=>{const b=e.target.closest('.tab'); if(b){st.key=b.dataset.k; load();}};
+}
+function load(){
+  const sc=SC[st.key]; D=makeData(sc);
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.k===st.key));
+  $('desc').textContent=sc.desc; st.rep=0; computeAll();
+}
+function computeAll(){ computeMain(); computeHeavy(); render(); }
+function computeMain(){
+  stop();
+  const sc=SC[st.key], n=D.x.length;
+  R.rs=repeated(D,st.deg,st.R,st.B,st.seed);
+  R.K=kOf(st.R,n);
+  R.kf=Math.sqrt(kfoldMse(D,st.deg,R.K,st.seed));
+  R.loo=Math.sqrt(crossVal(D,st.deg,makeFolds(n,n,false,1)).mse);
+  R.true=trueErr(sc,D,st.deg);
+  if(st.rep>=st.B) st.rep=0;
+}
+function computeHeavy(){
+  const n=D.x.length, deg=st.deg;
+  // R etkisi
+  R.reff=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8].map(r=>{const x=repeated(D,deg,r,300,7); const rm=x.reps.map(z=>Math.sqrt(z.mse)); const q=pct(rm); return {r,m:x.m,mean:Math.sqrt(x.mse),q10:q(0.1),q90:q(0.9)};});
+  // Karşılaştırma (60 tohum)
+  const S=60, K=R.K, repsK=Math.max(1,Math.round(st.B/K)), rows={hold:[],rs:[],kf:[],rkf:[]}; let zeroSum=0;
+  for(let s=1;s<=S;s++){
+    rows.hold.push(repeated(D,deg,st.R,1,s+500).rmse);
+    const rr=repeated(D,deg,st.R,st.B,s+500); rows.rs.push(rr.rmse); zeroSum+=rr.cnt.filter(c=>c===0).length;
+    rows.kf.push(Math.sqrt(kfoldMse(D,deg,K,s+500)));
+    rows.rkf.push(Math.sqrt(repKfoldMse(D,deg,K,repsK,s+500)));
+  }
+  R.cmp={rows,repsK,zeroAvg:zeroSum/S,S};
+}
+function render(){
+  const sc=SC[st.key], n=D.x.length, rs=R.rs, m=rs.m;
+  $('Rv').textContent=fmt(st.R,2); $('Bv').textContent=st.B; $('degv').textContent=st.deg;
+  const capped=m!==Math.round(st.R*n);
+  $('splitNote').innerHTML=`n = ${n} gözlem → her tekrarda <b>m = ${m}</b> doğrulama, <b>${n-m}</b> eğitim gözlemi${capped?` (derece ${st.deg} için eğitimde en az ${st.deg+2} gözlem kalacak şekilde sınırlandı)`:''}. Karşılaştırılan K-katlı CV: K = round(1/R) = ${R.K}.`;
+  $('mRS').textContent=`${fmt(rs.rmse)} ${sc.yu}`;
+  $('sRS').textContent=`${st.B} rastgele bölmenin ortalaması`;
+  const rm=rs.reps.map(z=>Math.sqrt(z.mse));
+  $('mSpread').textContent=`${fmt(Math.min(...rm))} – ${fmt(Math.max(...rm))}`;
+  $('sSpread').textContent=`tek bölme RMSE'si (${sc.yu}), standart sapma ${fmt(sdOf(rm))}`;
+  const zero=rs.cnt.filter(c=>c===0).length, expZero=n*Math.pow(1-m/n,st.B);
+  $('mZero').textContent=`${zero} / ${n}`;
+  $('sZero').textContent=`beklenen: n·(1 − m/n)^B = ${fmt(expZero,2)}`;
+  $('mTrue').textContent=`${fmt(R.true)} ${sc.yu}`;
+  $('repLbl').textContent=`Tekrar ${st.rep+1} / ${st.B}`;
+  drawScatter(); drawCover(); drawRun(); drawHist(); drawReff(); drawTable(); drawCmp(); insights();
+}
+
+// --------- SVG yardımcıları ---------
+function niceTicks(lo,hi,c=5){const sp=hi-lo||1,raw=sp/c,mag=Math.pow(10,Math.floor(Math.log10(raw)));const step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>sp/s<=c)||mag*10;const o=[];for(let v=Math.ceil(lo/step)*step;v<=hi+1e-9;v+=step)o.push(+v.toFixed(10));return o}
+const tk=v=>(+v.toFixed(3)).toLocaleString('tr-TR');
+function axes(W,H,m,xd,yd,xl,yl,xt){
+  const X=v=>m.l+(v-xd[0])/(xd[1]-xd[0])*(W-m.l-m.r), Y=v=>H-m.b-(v-yd[0])/(yd[1]-yd[0])*(H-m.t-m.b);
+  let g='';
+  (xt||niceTicks(...xd)).forEach(v=>g+=`<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--grid)"/><text x="${X(v)}" y="${H-m.b+15}" text-anchor="middle">${tk(v)}</text>`);
+  niceTicks(...yd).forEach(v=>g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${tk(v)}</text>`);
+  g+=`<rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="none" stroke="var(--line)"/>`;
+  g+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" style="font-size:12px">${xl}</text>`;
+  g+=`<text transform="translate(13,${(m.t+H-m.b)/2}) rotate(-90)" text-anchor="middle" style="font-size:12px">${yl}</text>`;
+  return {X,Y,g};
+}
+function curve(X,Y,c,deg,s,xd){let d='';for(let i=0;i<=120;i++){const x=xd[0]+(xd[1]-xd[0])*i/120;d+=(i?'L':'M')+X(x).toFixed(1)+','+Y(pred(c,x,deg,s)).toFixed(1);}return d}
+const hline=(X0,X1,y,c,lbl,dash)=>`<line x1="${X0}" x2="${X1}" y1="${y}" y2="${y}" stroke="var(${c})" stroke-width="2" ${dash?'stroke-dasharray="6 4"':''}/>`+(lbl?`<text x="${X1-4}" y="${y-5}" text-anchor="end" style="fill:var(${c});font-weight:700">${lbl}</text>`:'');
+
+function drawScatter(){
+  const sc=SC[st.key], W=520,H=350, m={l:50,r:14,t:14,b:44}, s=scaler(D.x);
+  const xlo=Math.min(...D.x), xhi=Math.max(...D.x), xp=(xhi-xlo)*0.04, xd=[xlo-xp,xhi+xp];
+  const ylo=Math.min(...D.y), yhi=Math.max(...D.y), yp=(yhi-ylo)*0.15, yd=[ylo-yp,yhi+yp];
+  const {X,Y,g}=axes(W,H,m,xd,yd,sc.xName,sc.yName);
+  const f=R.rs.reps[st.rep], T=new Set(f.test), full=trainErr(D,st.deg).coef;
+  let o=`<defs><clipPath id="cp"><rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}"/></clipPath></defs>`+g;
+  o+=`<path d="${curve(X,Y,full,st.deg,s,xd)}" fill="none" stroke="var(--full)" stroke-width="1.5" stroke-dasharray="5 4" clip-path="url(#cp)"/>`;
+  o+=`<path d="${curve(X,Y,f.coef,st.deg,s,xd)}" fill="none" stroke="var(--train)" stroke-width="2.5" clip-path="url(#cp)"/>`;
+  f.test.forEach((i,j)=>o+=`<line x1="${X(D.x[i])}" x2="${X(D.x[i])}" y1="${Y(D.y[i])}" y2="${Y(f.pred[j])}" stroke="var(--test)" stroke-width="2" stroke-dasharray="3 2" clip-path="url(#cp)"/>`);
+  D.x.forEach((x,i)=>{const t=T.has(i); o+=`<circle cx="${X(x)}" cy="${Y(D.y[i])}" r="${t?8:6}" fill="${t?'var(--test)':'var(--train)'}" stroke="var(--card)" stroke-width="1.5"><title>#${i+1}: x=${x}, y=${D.y[i]}</title></circle>`;});
+  o+=`<text x="${m.l+8}" y="${m.t+16}" style="font-size:13px;font-weight:700;fill:var(--ink)">Bu tekrarın doğrulama RMSE'si: ${fmt(Math.sqrt(f.mse))} ${sc.yu}</text>`;
+  $('scatter').innerHTML=o;
+}
+function drawCover(){
+  const n=D.x.length, W=520,H=250, m={l:40,r:10,t:14,b:36}, c=R.rs.cnt, exp=st.B*R.rs.m/n;
+  const ymax=Math.max(...c,exp)*1.15||1, bw=(W-m.l-m.r)/n;
+  const Y=v=>H-m.b-v/ymax*(H-m.t-m.b);
+  let o='';
+  niceTicks(0,ymax,4).forEach(v=>o+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${tk(v)}</text>`);
+  c.forEach((v,i)=>{const x=m.l+i*bw, cur=R.rs.reps[st.rep].test.includes(i);
+    o+= v===0 ? `<text x="${x+bw/2}" y="${Y(0)-6}" text-anchor="middle" style="fill:var(--zero);font-weight:700;font-size:14px">✕</text>`
+              : `<rect x="${x+bw*0.15}" y="${Y(v)}" width="${bw*0.7}" height="${Y(0)-Y(v)}" fill="var(--test)" opacity="${cur?1:0.6}" rx="2"/>`;
+    o+=`<text x="${x+bw/2}" y="${H-m.b+14}" text-anchor="middle" style="${cur?'fill:var(--test);font-weight:700':''}">${i+1}</text>`;});
+  o+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(exp)}" y2="${Y(exp)}" stroke="var(--ink)" stroke-dasharray="6 4"/><text x="${W-m.r-4}" y="${Y(exp)-5}" text-anchor="end" style="fill:var(--ink)">beklenen ${fmt(exp,1)}</text>`;
+  o+=`<text x="${(m.l+W-m.r)/2}" y="${H-4}" text-anchor="middle" style="font-size:12px">gözlem numarası (x'e göre sıralı)</text>`;
+  $('cover').innerHTML=o;
+  const mn=Math.min(...c), mx=Math.max(...c), n0=c.filter(v=>v===0).length;
+  $('coverNote').innerHTML=`${st.B} tekrarda her gözlemin doğrulamaya girme olasılığı her seferinde m/n = ${R.rs.m}/${n}. Gözlemler ${mn} ile ${mx} kez arasında kullanıldı${n0?`; <b style="color:var(--zero)">${n0} gözlem hiç doğrulanmadı</b>, yani modelin o noktalardaki hatası tahmine hiç girmedi`:'; her gözlem en az bir kez doğrulandı'}. K-katlı CV'de ise her gözlem tam olarak bir kez doğrulanır.`;
+}
+function drawRun(){
+  const sc=SC[st.key], W=520,H=300, m={l:50,r:14,t:14,b:42}, B=st.B, reps=R.rs.reps;
+  const single=reps.map(z=>Math.sqrt(z.mse)); let acc=0; const run=reps.map((z,i)=>{acc+=z.mse;return Math.sqrt(acc/(i+1));});
+  const all=[...single,R.kf,R.true,R.loo]; const lo=Math.min(...all)*0.9, hi=Math.max(...all)*1.05;
+  const {X,Y,g}=axes(W,H,m,[0.5,Math.max(B,2)+0.5],[lo,hi],'tekrar sayısı b',`RMSE (${sc.yu})`);
+  let o=g;
+  single.forEach((v,i)=>o+=`<circle cx="${X(i+1)}" cy="${Y(v)}" r="${i===st.rep?5:3}" fill="var(--rs)" opacity="${i===st.rep?1:0.35}"/>`);
+  o+=hline(m.l,W-m.r,Y(R.kf),'--kf','',true)+`<text x="${m.l+6}" y="${Y(R.kf)+14}" style="fill:var(--kf);font-weight:700">${R.K}-katlı ${fmt(R.kf)}</text>`;
+  o+=hline(m.l,W-m.r,Y(R.true),'--true',`gerçek ${fmt(R.true)}`,true);
+  o+=`<path d="${run.map((v,i)=>(i?'L':'M')+X(i+1)+','+Y(v)).join('')}" fill="none" stroke="var(--rs)" stroke-width="2.5"/>`;
+  $('run').innerHTML=o;
+}
+function drawHist(){
+  const sc=SC[st.key], W=520,H=300, m={l:40,r:14,t:14,b:42}, v=R.rs.reps.map(z=>Math.sqrt(z.mse));
+  const lo=Math.min(...v,R.true), hi=Math.max(...v,R.true), nb=Math.min(14,Math.max(5,Math.ceil(Math.sqrt(v.length))+2)), bw=(hi-lo)/nb||1;
+  const bins=new Array(nb).fill(0); v.forEach(x=>bins[Math.min(nb-1,Math.floor((x-lo)/bw))]++);
+  const ymax=Math.max(...bins)*1.15;
+  const {X,Y,g}=axes(W,H,m,[lo-bw*0.5,hi+bw*0.5],[0,ymax],`tek bölme RMSE (${sc.yu})`,'tekrar sayısı');
+  let o=g;
+  bins.forEach((c,i)=>{const x0=X(lo+i*bw), x1=X(lo+(i+1)*bw); o+=`<rect x="${x0+1}" y="${Y(c)}" width="${Math.max(0,x1-x0-2)}" height="${Y(0)-Y(c)}" fill="var(--rs)" opacity=".7" rx="2"/>`;});
+  const vl=(x,c,l,dy)=>`<line x1="${X(x)}" x2="${X(x)}" y1="${m.t}" y2="${H-m.b}" stroke="var(${c})" stroke-width="2.5"/><text x="${X(x)+4}" y="${m.t+12+dy}" style="fill:var(${c});font-weight:700">${l}</text>`;
+  o+=vl(R.rs.rmse,'--rs',`ortalama ${fmt(R.rs.rmse)}`,0)+vl(R.true,'--true',`gerçek ${fmt(R.true)}`,16);
+  $('hist').innerHTML=o;
+}
+function drawReff(){
+  const sc=SC[st.key], W=520,H=300, m={l:50,r:14,t:14,b:42}, E=R.reff;
+  const lo=Math.min(...E.map(e=>e.q10),R.true)*0.9, hi=Math.max(...E.map(e=>e.q90),R.true)*1.05;
+  const {X,Y,g}=axes(W,H,m,[0.05,0.85],[lo,hi],'doğrulama oranı R','RMSE ('+sc.yu+')',[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]);
+  let o=g;
+  o+=`<path d="${E.map((e,i)=>(i?'L':'M')+X(e.r)+','+Y(e.q90)).join('')}${E.slice().reverse().map(e=>'L'+X(e.r)+','+Y(e.q10)).join('')}Z" fill="var(--rs)" opacity=".18"/>`;
+  o+=hline(m.l,W-m.r,Y(R.true),'--true',`gerçek ${fmt(R.true)}`,true);
+  o+=`<path d="${E.map((e,i)=>(i?'L':'M')+X(e.r)+','+Y(e.mean)).join('')}" fill="none" stroke="var(--rs)" stroke-width="2.5"/>`;
+  E.forEach(e=>o+=`<circle cx="${X(e.r)}" cy="${Y(e.mean)}" r="4" fill="var(--rs)"><title>R=${e.r}: m=${e.m}, ortalama ${fmt(e.mean)}</title></circle><text x="${X(e.r)}" y="${H-m.b-6}" text-anchor="middle" style="font-size:10px">eğt ${D.x.length-e.m}</text>`);
+  o+=`<line x1="${X(st.R)}" x2="${X(st.R)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+  $('reff').innerHTML=o;
+  const a=E[0], b=E[E.length-1];
+  $('reffNote').innerHTML=`Her R için 300 rastgele bölme. R büyüdükçe eğitim kümesi küçülür (R = 0,1'de ${D.x.length-a.m}, R = 0,8'de ${D.x.length-b.m} gözlem), model daha az veriyle eğitildiği için hata tahmini gerçek hatanın üstüne çıkar: <b>kötümser yanlılık</b>. R küçükse doğrulama kümesi çok küçüktür (m = ${a.m}), tek bölmeler çok oynak olur; bant genişler.`;
+}
+function drawTable(){
+  const sc=SC[st.key];
+  let h=`<tr><th class="l">Tekrar</th><th class="l">Doğrulama gözlemleri</th><th>MSE</th><th>RMSE</th></tr>`;
+  R.rs.reps.forEach((z,i)=>h+=`<tr class="clk ${i===st.rep?'cur':''}" data-r="${i}"><td class="l">${i+1}</td><td class="l">${z.test.map(j=>'#'+(j+1)).join(', ')}</td><td>${fmt(z.mse)}</td><td>${fmt(Math.sqrt(z.mse))}</td></tr>`);
+  h+=`<tr style="font-weight:700"><td class="l" colspan="2">Ortalama MSE → √</td><td>${fmt(R.rs.mse)}</td><td>${fmt(R.rs.rmse)}</td></tr>`;
+  $('repTbl').innerHTML=h;
+}
+function drawCmp(){
+  const C=R.cmp, sc=SC[st.key], K=R.K, n=D.x.length, m=R.rs.m;
+  const rows=[
+    ['Tek bölme (holdout), R = '+fmt(st.R,2), C.rows.hold, 1, n-m],
+    [`Tekrarlanan örnekleme, B = ${st.B}`, C.rows.rs, st.B, n-m],
+    [`${K}-katlı CV (tek karıştırma)`, C.rows.kf, K, `${n-Math.ceil(n/K)}–${n-Math.floor(n/K)}`],
+    [`Tekrarlı ${K}-katlı CV, ${C.repsK} tekrar`, C.rows.rkf, K*C.repsK, `${n-Math.ceil(n/K)}–${n-Math.floor(n/K)}`],
+  ];
+  const sds=rows.map(r=>sdOf(r[1])), best=Math.min(...sds);
+  let h=`<tr><th class="l">Yöntem</th><th>Model eğitimi</th><th>Eğitim boyutu</th><th>Tahminlerin ortalaması</th><th>Gerçek hatadan fark (yanlılık)</th><th>Tohumlar arası std (varyans)</th><th>En düşük – en yüksek</th></tr>`;
+  rows.forEach((r,i)=>{const mean=r[1].reduce((a,b)=>a+b,0)/r[1].length;
+    h+=`<tr><td class="l">${r[0]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${fmt(mean,3)}</td><td>${mean-R.true>=0?'+':''}${fmt(mean-R.true,3)}</td><td class="${sds[i]===best?'best':''}">${fmt(sds[i],3)}</td><td>${fmt(Math.min(...r[1]))} – ${fmt(Math.max(...r[1]))}</td></tr>`;});
+  h+=`<tr><td class="l">LOOCV (karıştırmaya bağlı değil)</td><td>${n}</td><td>${n-1}</td><td>${fmt(R.loo,3)}</td><td>${R.loo-R.true>=0?'+':''}${fmt(R.loo-R.true,3)}</td><td>0</td><td>–</td></tr>`;
+  $('cmpTbl').innerHTML=h;
+  $('cmpNote').innerHTML=`Her yöntem aynı 16 gözlemlik veride 60 farklı tohumla çalıştırıldı. “Tohumlar arası std”, sonucun bölme şansına ne kadar bağlı olduğunu gösterir. Gerçek genelleme hatası ${fmt(R.true,3)} ${sc.yu} (simülasyonla). Tekrarlanan örneklemede 60 çalıştırmanın her birinde ortalama <b>${fmt(C.zeroAvg,2)}</b> gözlem hiç doğrulanmadı.`;
+  const sdRS=sds[1], sdKF=sds[2], sdRKF=sds[3];
+  $('claim').innerHTML=`<p><b>Metindeki iddia üzerine:</b> “Her gözlemin doğrulamaya girmesi garanti değildir” kısmı doğrudur; kapsama grafiği bunu gösteriyor. “Daha fazla yanlılık ve varyans” kısmı ise koşula bağlıdır:</p>
+  <p>• <b>Yanlılık</b> esas olarak eğitim boyutundan gelir. R = 1/K seçilirse iki yöntem de aynı boyutta eğitim kümesi kullanır ve yanlılıkları benzer olur. Tekrarlanan örnekleme, ancak R daha büyük seçildiğinde (daha az eğitim verisi) daha yanlıdır.</p>
+  <p>• <b>Varyans:</b> Bu ayarlarda tekrarlanan örneklemenin tohumlar arası std'si ${fmt(sdRS,3)}, tek karıştırmalı ${K}-katlı CV'ninki ${fmt(sdKF,3)}, aynı sayıda model eğitimiyle tekrarlı ${K}-katlı CV'ninki ${fmt(sdRKF,3)}. ${sdRS>1.3*sdRKF?'Aynı sayıda model eğitimiyle tekrarlı K-katlı CV belirgin şekilde daha kararlı: her gözlemin her turda tam bir kez doğrulanması varyansı azaltıyor. Metindeki iddia bu karşılaştırma için geçerli.':(sdRS>=sdRKF?'Aynı sayıda model eğitimiyle tekrarlı K-katlı CV yalnızca biraz daha kararlı; fark küçük.':'Aynı sayıda model eğitimiyle fark yok denecek kadar küçük.')} ${sdRS<sdKF?`Buna karşılık tekrarlanan örnekleme, <i>tek</i> karıştırmalı K-katlı CV'den ${fmt(sdKF/sdRS,1)} kat daha kararlı: burada iddia geçerli değil.`:''} B'yi küçültüp büyüterek farkı izleyin.</p>`;
+}
+function insights(){
+  const sc=SC[st.key], n=D.x.length, o=[], rm=R.rs.reps.map(z=>Math.sqrt(z.mse));
+  o.push(`<b>Tek bölmeye güvenmeyin:</b> Bu ayarlarda tek bir rastgele bölme ${fmt(Math.min(...rm))} ile ${fmt(Math.max(...rm))} ${sc.yu} arasında herhangi bir RMSE verebiliyordu. ${st.B} tekrarın ortalaması ${fmt(R.rs.rmse)} ${sc.yu}; gerçek hata ${fmt(R.true)} ${sc.yu}.`);
+  { const pz=Math.pow(1-R.rs.m/n,st.B); o.push(`<b>Kapsama:</b> Bir gözlemin ${st.B} tekrarın hiçbirinde doğrulamaya girmeme olasılığı (1 − ${R.rs.m}/${n})^${st.B} = ${pz<0.001?pz.toExponential(1).replace('.',','):fmt(pz,3)}. Ortalama ${fmt(n*pz,2)} gözlem hiç doğrulanmaz. B'yi 3–5'e indirip kapsama grafiğindeki ✕ işaretlerine bakın.`); }
+  if(st.B<10) o.push(`B = ${st.B} çok az: ortalama hâlâ tek tek bölmelerin şansına bağlı. Yürüyen ortalama grafiğinde eğrinin ne zaman yatıştığına bakın.`);
+  if(st.R>=0.5) o.push(`R = ${fmt(st.R,2)} ile eğitimde yalnızca ${n-R.rs.m} gözlem kalıyor. Son model 16 gözlemle eğitileceği için bu ayar, gerçek hatayı olduğundan kötü gösterir.`);
+  $('insight').innerHTML=o.map(s=>`<p>${s}</p>`).join('');
+}
+
+// --------- olaylar ---------
+$('R').oninput=e=>{st.R=+e.target.value; st.rep=0; computeAll();};
+$('B').oninput=e=>{st.B=+e.target.value; st.rep=Math.min(st.rep,st.B-1); computeAll();};
+$('deg').oninput=e=>{st.deg=+e.target.value; computeAll();};
+$('seed').onchange=e=>{st.seed=Math.max(1,parseInt(e.target.value)||1); computeMain(); render();};
+$('reseed').onclick=()=>{st.seed++; $('seed').value=st.seed; computeMain(); render();};
+$('prev').onclick=()=>{stop(); st.rep=(st.rep-1+st.B)%st.B; render();};
+$('next').onclick=()=>{stop(); st.rep=(st.rep+1)%st.B; render();};
+$('repTbl').addEventListener('click',e=>{const r=e.target.closest('tr[data-r]'); if(r){stop(); st.rep=+r.dataset.r; render();}});
+$('play').onclick=()=>{ if(st.timer){stop();return;} $('play').textContent='⏸ Durdur'; st.timer=setInterval(()=>{st.rep=(st.rep+1)%st.B; render();},700); };
+function stop(){ if(st.timer){clearInterval(st.timer); st.timer=null;} $('play').textContent='▶ Oynat'; }
+
+initTabs(); load();
+</script>
+</body>
+</html>
